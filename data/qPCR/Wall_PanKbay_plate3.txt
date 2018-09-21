@@ -1,0 +1,49 @@
+* Block Type = 96well
+* Chemistry = TAQMAN
+* Experiment File Name = C:\Users\gatescorallab\Desktop\Wall_panK\Wall_PanKbay_plate3.eds
+* Experiment Run End Time = Not Started
+* Instrument Type = steponeplus
+* Passive Reference = ROX
+
+[Results]
+Well	Sample Name	Target Name	Task	Reporter	Quencher	Cт	Cт Mean	Cт SD	Quantity	Quantity Mean	Quantity SD	Automatic Ct Threshold	Ct Threshold	Automatic Baseline	Baseline Start	Baseline End	Comments	HIGHSD	NOAMP	EXPFAIL
+A1																		N	N	N
+A2																		N	N	N
+A3																		N	N	N
+A4																		N	N	N
+A5																		N	N	N
+A6																		N	N	N
+A7																		N	N	N
+A8																		N	N	N
+A9																		N	N	N
+A10																		N	N	N
+A11																		N	N	N
+A12																		N	N	N
+B1	R10_13	C	UNKNOWN	VIC	NFQ-MGB	27.4286	25.6413	1.0162				false	0.01	true	3	27		Y	N	Y
+B1	R10_13	D	UNKNOWN	FAM	NFQ-MGB	Undetermined	32.9876	0.865				true	0.01	true	3	39		Y	N	Y
+B2	R10_13	C	UNKNOWN	VIC	NFQ-MGB	25.4168	25.6413	1.0162				false	0.01	true	3	24		Y	N	N
+B2	R10_13	D	UNKNOWN	FAM	NFQ-MGB	32.374	32.9876	0.865				true	0.01	true	3	31		Y	N	N
+B3	R10_15	C	UNKNOWN	VIC	NFQ-MGB	27.5175	27.037	0.6795				false	0.01	true	3	27		Y	N	N
+B3	R10_15	D	UNKNOWN	FAM	NFQ-MGB	28.2655	27.8858	0.537				true	0.01	true	3	27		Y	N	N
+B4	R10_15	C	UNKNOWN	VIC	NFQ-MGB	26.5565	27.037	0.6795				false	0.01	true	3	26		Y	N	N
+B4	R10_15	D	UNKNOWN	FAM	NFQ-MGB	27.5061	27.8858	0.537				true	0.01	true	3	27		Y	N	N
+B5	HIMB_13	C	UNKNOWN	VIC	NFQ-MGB	27.3981	27.0776	0.4533				false	0.01	true	3	26		N	N	N
+B5	HIMB_13	D	UNKNOWN	FAM	NFQ-MGB	27.2522	27	0.3566				true	0.01	true	3	26		N	N	N
+B6	HIMB_13	C	UNKNOWN	VIC	NFQ-MGB	26.7571	27.0776	0.4533				false	0.01	true	3	26		N	N	N
+B6	HIMB_13	D	UNKNOWN	FAM	NFQ-MGB	26.7478	27	0.3566				true	0.01	true	3	26		N	N	N
+B7	HIMB_14	C	UNKNOWN	VIC	NFQ-MGB	27.6169	26.4585	1.6383				false	0.01	true	3	27		Y	N	N
+B7	HIMB_14	D	UNKNOWN	FAM	NFQ-MGB	24.8835	23.8198	1.5042				true	0.01	true	3	24		Y	N	N
+B8	HIMB_14	C	UNKNOWN	VIC	NFQ-MGB	25.3001	26.4585	1.6383				false	0.01	true	3	24		Y	N	N
+B8	HIMB_14	D	UNKNOWN	FAM	NFQ-MGB	22.7562	23.8198	1.5042				true	0.01	true	3	22		Y	N	N
+B9	R42_11	C	UNKNOWN	VIC	NFQ-MGB	27.5381	26.9802	0.7889				false	0.01	true	3	27		Y	N	N
+B9	R42_11	D	UNKNOWN	FAM	NFQ-MGB	25.291	24.593	0.9871				true	0.01	true	3	24		Y	N	N
+B10	R42_11	C	UNKNOWN	VIC	NFQ-MGB	26.4224	26.9802	0.7889				false	0.01	true	3	25		Y	N	N
+B10	R42_11	D	UNKNOWN	FAM	NFQ-MGB	23.895	24.593	0.9871				true	0.01	true	3	23		Y	N	N
+B11	H2O	C	UNKNOWN	VIC	NFQ-MGB	Undetermined						false	0.01	true	3	39		N	Y	Y
+B11	H2O	D	UNKNOWN	FAM	NFQ-MGB	Undetermined						true	0.01	true	3	39		N	Y	Y
+B12	H2O	C	UNKNOWN	VIC	NFQ-MGB	Undetermined						false	0.01	true	3	39		N	Y	Y
+B12	H2O	D	UNKNOWN	FAM	NFQ-MGB	Undetermined						true	0.01	true	3	39		N	Y	Y
+C1	+C52	C	UNKNOWN	VIC	NFQ-MGB	28.994	29.1109	0.1654				false	0.01	true	3	28		N	N	N
+C1	+C52	D	UNKNOWN	FAM	NFQ-MGB	25.8099	26.0545	0.346				true	0.01	true	3	25		N	N	N
+C2	+C52	C	UNKNOWN	VIC	NFQ-MGB	29.2278	29.1109	0.1654				false	0.01	true	3	28		N	N	N
+C2	+C52	D	UNKNOWN	FAM	NFQ-MGB	26.2992	26.0545	0.346				true	0.01	true	3	25		N	N	N
