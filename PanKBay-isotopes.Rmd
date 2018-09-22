@@ -3,17 +3,16 @@ title: "Symbiont ecology and its influence on the physiology and isotopic compos
 author: "CB Wall cbwall@hawaii.edu"
 date: "9/19/2018"
 output:
+  pdf_document:
+    toc: yes
+    toc_depth: '4'
   html_document:
     code_folding: hide
     toc: yes
     toc_depth: 4
     toc_float: yes
-  pdf_document:
-    toc: yes
-    toc_depth: '4'
 ---
-
-```{r setup chunk, setup, include=FALSE}
+```{r setup chunk, setup, include=FALSE, fig.align='center'}
 knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE)
 library(ggplot2)
 library(plyr)
@@ -33,6 +32,8 @@ library(popbio)
 library(car)
 library(lmerTest)
 library(cowplot)
+library(sjPlot)
+library(sjmisc)
 ```
 ## Project background
 
@@ -161,14 +162,109 @@ Win<-df.light[(df.light$Season=="winter"),]
 
 plot(Light~newDepth, Sum, col="coral", pch=16, xlab="Depth (m)", ylab="DLI at coral", 
      ylim=c(0, 30), xlim=c(0, 10))
-summod<-glm(Light~newDepth, family=poisson, Sum)
+summod<-lm(log(Light)~newDepth, Sum)
 curve(exp(coef(summod)["(Intercept)"]+coef(summod)["newDepth"]*x), add=TRUE, col="coral", lwd=2)
 par(new=T)
 plot(Light~newDepth, Win, col="lightblue2", pch=16, xaxt="n", yaxt="n", 
      xlab="", ylab="", ylim=c(0, 30), xlim=c(0, 10))
-wintmod<-glm(Light~newDepth, family=poisson, Win)
+wintmod<-lm(log(Light)~newDepth, Win)
 curve(exp(coef(wintmod)["(Intercept)"]+coef(wintmod)["newDepth"]*x), add=TRUE, col="lightblue2", lwd=2)
 legend("topright", legend=c("summer", "winter"), col=c("coral", "lightblue2"), lty=1, lwd=1, pch=16, bty="n")
+```
+  
+### Isotopes in particulates  
+  
+Plankton tows and seawater collections to parameterized particulates and plankters as potential heterotrophic end members available to reef corals. Sampling was done at 4 sites where corals were collected [*North*: (Reef 42, fringe-Reef 46), and *South*: (HIMB, fringe-Reef 10)], as well as two reefs in central region of the bay where corals were not collected (*Central*: Reef 25, fringe-Reef 25) to increase spatial resolution of suspended particulate isotope sample sizes. Using size-fractioned materials collected in seawater and plankton tows, we examined the spatial (*among reef sites*) and temporal patterns (*among seasons*) in stable isotope values of size-fractioned end members. Carbon and nitrogen isotope values among the 6 reef sites were not significantly different (*p* > 0.140), season had marginal effects (*p* > 0.049), whereas fraction influenced isotope values significantly (*p*< 0.001). Therefore, isotope values were pooled among reefs and seasons to best interpret size-fraction isotope values.  
+  
+```{r seawater isotopes}
+SWiso<-read.csv("data/isotopes_SW_all times.csv")
+
+anova(lm(d13C~Reef.ID+Time.point+SW.fraction..um, data=SWiso)) # no site effect
+anova(lm(d15N~Reef.ID+Time.point+SW.fraction..um, data=SWiso)) # no site effect
+
+SWiso$Reef.ID<-factor(SWiso$Reef.ID, levels=c("F1-46", "R42", "F2-R25", "R25", "F8-R10", "HIMB"))
+SWiso$SW.fraction..um<-factor(SWiso$SW.fraction..um, levels=c(">243", "<243", "100-243", "10-100", "0-10"))
+
+winter.data<-SWiso[(SWiso$Time.point=="winter"),]
+summer.data<-SWiso[(SWiso$Time.point=="summer"),]
+```
+
+```{r isotope sw figures boxplot1, results="hide", fig.cap="*Figures of size-fractioned sample isotope values stratified by seasons (summer and winter)*"}
+# plots of SW isotopes by Season-- first showing by size, then by site
+op<-par(mfrow = c(2,2), mar=c(5,5,2,1))
+
+######### Sizes
+# Summer size d13C
+plot(d13C~SW.fraction..um, data=summer.data, ylim=c(-25,-10), 
+     main=expression(paste("summer"~ delta^{13}, "C")), ylab=expression(paste(delta^{13}, "C (‰, V-PDB)")),
+     col="paleturquoise3", cex.axis=0.7, cex.main=1, cex.lab= 0.8, xlab=expression(paste("Size Fraction (", mu,m,")")))
+
+# Winter size d13C
+plot(d13C~SW.fraction..um, data=winter.data, ylim=c(-25,-10), 
+     main=expression(paste("winter"~ delta^{13}, "C")), ylab=expression(paste(delta^{13}, "C (‰, V-PDB)")),
+     col="paleturquoise3", cex.axis=0.7, cex.main=1, cex.lab= 0.8, xlab=expression(paste("Size Fraction (", mu,m,")")))
+
+# Summer size d15N
+plot(d15N~SW.fraction..um, data=summer.data, ylim=c(3,10), 
+     main=expression(paste("summer"~ delta^{15}, "N")), col="plum", cex.axis=0.7, cex.main=1, cex.lab= 0.8,
+     xlab=expression(paste("Size Fraction (", mu,m,")")),
+     ylab=expression(paste(delta^{15}, "N (‰, air)")))
+
+# Winter size d15N
+plot(d15N~SW.fraction..um, data=winter.data, ylim=c(3,10), 
+     main=expression(paste("winter"~ delta^{15}, "N")), ylab=expression(paste(delta^{15}, "N (‰, air)")),
+     col="plum", cex.axis=0.7, cex.main=1, cex.lab= 0.8, xlab=expression(paste("Size Fraction (", mu,m,")")))
+```
+
+```{r isotope sw figures boxplot2, results="hide", fig.cap="*Figures of isotope values in seawater particles stratified by sites (northwest to southeast)*"}
+######## Sites
+op<-par(mfrow = c(2,2), mar=c(5,5,2,1))
+
+# Summer site d13C
+plot(d13C~Reef.ID, data=summer.data, ylim=c(-25,-10), 
+     main=expression(paste("summer"~ delta^{13}, "C")), ylab=expression(paste(delta^{13}, "C (‰, V-PDB)")),
+     col="lightskyblue", cex.axis=0.7, cex.main=1, cex.lab= 0.8, xlab="Reef Sites")
+
+# Winter site d13C
+plot(d13C~Reef.ID, data=winter.data, ylim=c(-25,-10), 
+     main=expression(paste("winter"~ delta^{13}, "C")), ylab=expression(paste(delta^{13}, "C (‰, V-PDB)")),
+     col="lightskyblue", cex.axis=0.7, cex.main=1, cex.lab= 0.8, xlab="Reef Sites")
+
+# Summer site d15N
+plot(d15N~Reef.ID, data=summer.data, ylim=c(3,10), 
+     main=expression(paste("summer"~ delta^{15}, "N")), col="salmon", cex.axis=0.7, cex.main=1, cex.lab= 0.8,
+     ylab=expression(paste(delta^{15}, "N (‰, air)")), xlab="Reef Sites")
+
+# Winter site d15N
+plot(d15N~Reef.ID, data=winter.data, ylim=c(3,10), 
+     main=expression(paste("winter"~ delta^{15}, "N")), ylab=expression(paste(delta^{15}, "N (‰, air)")),
+     col="salmon", cex.axis=0.7, cex.main=1, xlab="Reef Sites")
+```
+```{r SW isotope figure, results="hide", fig.cap="*Isotope values for size-fractioned seawater particles and plankters pooled across 2 seasons and 6 reef sites*"}
+
+####
+#### making scatter for d15N and d13C, pooled across seasons and sites
+mix.N.mean<-aggregate(d15N~SW.fraction..um, data=SWiso, mean)
+mix.N.SE<-aggregate(d15N~SW.fraction..um, data=SWiso, std.error)
+mix.C.mean<-aggregate(d13C~SW.fraction..um, data=SWiso, mean)
+mix.C.SE<-aggregate(d13C~SW.fraction..um, data=SWiso, std.error)
+mix.data<-cbind(mix.N.mean, mix.C.mean[c(2,0)], mix.N.SE[c(2,0)], mix.C.SE[c(2,0)]); colnames(mix.data)=c("fraction", "d15N", "d13C", "d15N.SE", "d13C.SE")
+
+colors=c("#FF6A6A", "#00B2EE", "#FFB90F", "#3CB371", "#8B7500")
+op<-par(mfrow = c(1,1), mar=c(5,4,1,5),xpd=TRUE, pty="sq")
+
+size.labels=c(expression(paste("> 243"~mu,m)), expression(paste("< 243"~mu,m)), expression(paste("100-243"~mu,m)), expression(paste("10-100"~mu,m)), expression(paste("0-10"~mu,m)))
+
+#### make the plot
+plot(d15N~d13C, data=mix.data, type="n", ylim=c(4.5,8), xlim=c(-23,-17), tck=-0.03, cex.axis=0.7, cex.lab=0.7,
+     ylab=expression(paste(delta^{15}, "N (‰, air)")), xlab=expression(paste(delta^{13}, "C (‰, V-PDB)")))
+legend("topleft", inset=c(0.05,0.0), legend=size.labels, col=colors, pch=19, cex=0.6, bty="n", x.intersp=1.8, y.intersp = 1.4)
+arrows(mix.data$d13C-mix.data$d13C.SE, mix.data$d15N, mix.data$d13C+mix.data$d13C.SE, mix.data$d15N, length=0.0, angle=90, code=3, lwd=0.7)
+arrows(mix.data$d13C, mix.data$d15N-mix.data$d15N.SE, mix.data$d13C, mix.data$d15N+mix.data$d15N.SE, length=0.0, angle=90, code=3, lwd=0.7)
+points(d15N~d13C, data=mix.data, pch=19, cex=0.8, col=colors)
+
+dev.copy(pdf, "output/iso.sources.KBay.pdf", encod="MacRoman", height=4, width=4)
+dev.off()
 ```
 
 
@@ -373,12 +469,10 @@ full<-lmer(Y~Season*Light*Dom+ (1|Location), data=model.data, na.action=na.exclu
 summary(full)
 print(anova(full, type=2), digits=4)
 
-library(sjPlot)
-library(sjmisc)
 ranef(full)
 fixef(full)
 sjp.lmer(full, y.offset = .4)
-sjp.lmer(full, vars = "Seasonwinter", type = "ri.slope")
+#sjp.lmer(full, vars = "Seasonwinter", type = "ri.slope")
 
 posthoc<-emmeans(full, ~Light:Season)
 CLD(posthoc, Letters=letters)
@@ -624,15 +718,15 @@ fitted.win <- predict(results.win, newdata = list(newDepth=seq(0,12,0.1)), type 
 ## Figure of Dominant symbiont clades across seasons
 ## **Note** where points equal 0.0 is 100% D, where they equal 0 is 100% C
 par(mar=c(5,4,3,2))
-plot(sum.dat$propD~sum.dat$newDepth, xlab="Depth (m)", ylab = "Proportion of Clade D Symbiont", pch=19, col="salmon", xlim=c(0,10), ylim=c(0.0, 1.0), cex=0.7)
+plot(sum.dat$propD~sum.dat$newDepth, xlab="Depth (m)", ylab = "Proportion of Clade D Symbiont", pch=19, col="salmon", xlim=c(0,10), ylim=c(0.0, 1.0), cex=0.5)
 par(new=T)
-plot(wint.dat$propD~wint.dat$newDepth, pch=19, col="lightskyblue", xlim=c(0,10), ylim=c(0.0, 1.0), xaxt="n", xlab="", ylab="", cex=0.7)
-lines(fitted.all ~ seq(0,12,0.1), col="gray30", lwd=1.5, lty=2)
-lines(fitted.sum ~ seq(0,12,0.1), col="coral", lwd=1.5)
-lines(fitted.win ~ seq(0,12,0.1), col="lightskyblue", lwd=1.5)
-legend("topright", pch=c(19,19, NA), lty=2, col=c("coral", "lightskyblue", "gray30"), legend=c("Summer", "Winter", "Combined"), lwd=1.5, bty="n", x.intersp=0.2, pt.cex=0.7, y.intersp=0.7, cex=0.8, inset=c(-0.06, 0.1), seg.len=1.1)
+plot(wint.dat$propD~wint.dat$newDepth, pch=19, col="lightskyblue", xlim=c(0,10), ylim=c(0.0, 1.0), xaxt="n", xlab="", ylab="", cex=0.5)
+lines(fitted.all ~ seq(0,12,0.1), col="gray30", lwd=1, lty=2)
+lines(fitted.sum ~ seq(0,12,0.1), col="coral", lwd=1)
+lines(fitted.win ~ seq(0,12,0.1), col="lightskyblue", lwd=1)
+legend("topright", pch=c(19,19, NA), lty=c(1,1,2), col=c("coral", "lightskyblue", "gray30"), legend=c("Summer", "Winter", "Combined"), lwd=1, bty="n", x.intersp=1, pt.cex=0.7, y.intersp=2, cex=0.5, inset=c(0.1, 0), seg.len=3)
 
-dev.copy(pdf, "figures/symbionts/Symbionts_by_Season.pdf", encod="MacRoman", height=4, width=5)
+dev.copy(pdf, "figures/symbionts/Symbionts_by_Season.pdf", encod="MacRoman", height=4, width=4)
 dev.off()
 
 #######
@@ -653,7 +747,7 @@ dev.off()
 ```
   
 #### Physiology
-```{r physiology figures, results="hide"}
+```{r physiology figures, results="hide", eval=FALSE}
 #########################
 # Physiology
 df.fig<-data.trim
@@ -864,7 +958,7 @@ dev.copy(pdf, "figures/physiology/PanKB.biomass.pdf", width=9, height=7)
 ```
 
 #### Isotopes
-```{r isotope figures}
+```{r isotope figures, eval=FALSE}
 ### ISOTOPES ##
 ############### 
 
@@ -1034,8 +1128,6 @@ legend("topright" ,c("Fringe-Reef 46", "Patch-Reef 42", "Fringe-Reef 10", "HIMB"
 dev.copy(pdf, "figures/isotope/PanKB.d15N-host.pdf", width=9, height=7, encod="MacRoman")
 
 
-
-
 ##################
 # Fig: d15N symb over season and depth
 ##################        
@@ -1167,6 +1259,3 @@ legend("topright", c("Fringe-Reef 46", "Patch-Reef 42", "Fringe-Reef 10", "HIMB"
 
 dev.copy(pdf, "figures/isotope/PanKB.C.Nsym.pdf", width=9, height=7, encod="MacRoman")
 ```
-
-- other figures, attempts
-```{r other figures, fig.show="hold", eval=FALSE}
