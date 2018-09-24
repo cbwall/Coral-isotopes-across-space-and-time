@@ -54,8 +54,8 @@ Rf42.df$log.deep<-log(Rf42.df$Rf42.deep.DLI)
 Rf42.df$log.delta.mid.deep<-Rf42.df$log.mid-Rf42.df$log.deep # difference in 2m - 8m light
 Rf42.df$log.delta.mid.shal<-Rf42.df$log.mid-Rf42.df$log.shal # difference in 2m - 1m light
 Rf42.df$dm.depth<-Rf42.depths[3]-Rf42.depths[2] # difference in depth 8m - 2m
-Rf42.df$mm.depth<-Rf42.depths[2]-Rf42.depths[2] # difference in depth 2m - 2m
 Rf42.df$sm.depth<-Rf42.depths[1]-Rf42.depths[2] # difference in depth 1m - 2m
+Rf42.df$mm.depth<-Rf42.depths[2]-Rf42.depths[2] # difference in depth 2m - 2m
 
 new.df<-Rf42.df[8:11]; colnames(new.df)<-c("log.DLI.delta", "log.DLI.delta", "Depth.delta", "Depth.delta")
 new.df1<-rbind(new.df[1], new.df[2]); new.df2<-rbind(new.df[3], new.df[4])
@@ -142,8 +142,8 @@ HIMB.df$log.deep<-log(HIMB.df$HIMB.deep.DLI)
 HIMB.df$log.delta.mid.deep<-HIMB.df$log.mid-HIMB.df$log.deep # difference in 2m - 8m light
 HIMB.df$log.delta.mid.shal<-HIMB.df$log.mid-HIMB.df$log.shal # difference in 2m - 1m light
 HIMB.df$dm.depth<-HIMB.depths[3]-HIMB.depths[2] # difference in depth 8m - 2m
-HIMB.df$mm.depth<-HIMB.depths[2]-HIMB.depths[2] # difference in depth 2m - 2m
 HIMB.df$sm.depth<-HIMB.depths[1]-HIMB.depths[2] # difference in depth 1m - 2m
+HIMB.df$mm.depth<-HIMB.depths[2]-HIMB.depths[2] # difference in depth 2m - 2m
 
 new.df<-HIMB.df[8:11]; colnames(new.df)<-c("log.DLI.delta", "log.DLI.delta", "Depth.delta", "Depth.delta")
 new.df1<-rbind(new.df[1], new.df[2]); new.df2<-rbind(new.df[3], new.df[4])
@@ -261,8 +261,8 @@ Rf44.df$log.deep<-log(Rf44.df$Rf44.deep.DLI)
 Rf44.df$log.delta.mid.deep<-Rf44.df$log.mid-Rf44.df$log.deep # difference in 2m - 8m light
 Rf44.df$log.delta.mid.shal<-Rf44.df$log.mid-Rf44.df$log.shal # difference in 2m - 1m light
 Rf44.df$dm.depth<-Rf44.depths[3]-Rf44.depths[2] # difference in depth 8m - 2m
-Rf44.df$mm.depth<-Rf44.depths[2]-Rf44.depths[2] # difference in depth 2m - 2m
 Rf44.df$sm.depth<-Rf44.depths[1]-Rf44.depths[2] # difference in depth 1m - 2m
+Rf44.df$mm.depth<-Rf44.depths[2]-Rf44.depths[2] # difference in depth 2m - 2m
 
 new.df<-Rf44.df[8:11]; colnames(new.df)<-c("log.DLI.delta", "log.DLI.delta", "Depth.delta", "Depth.delta")
 new.df1<-rbind(new.df[1], new.df[2]); new.df2<-rbind(new.df[3], new.df[4])
@@ -350,8 +350,8 @@ Rf10.df$log.deep<-log(Rf10.df$Rf10.deep.DLI)
 Rf10.df$log.delta.mid.deep<-Rf10.df$log.mid-Rf10.df$log.deep # difference in 2m - 8m light
 Rf10.df$log.delta.mid.shal<-Rf10.df$log.mid-Rf10.df$log.shal # difference in 2m - 1m light
 Rf10.df$dm.depth<-Rf10.depths[3]-Rf10.depths[2] # difference in depth 8m - 2m
-Rf10.df$mm.depth<-Rf10.depths[2]-Rf10.depths[2] # difference in depth 2m - 2m
 Rf10.df$sm.depth<-Rf10.depths[1]-Rf10.depths[2] # difference in depth 1m - 2m
+Rf10.df$mm.depth<-Rf10.depths[2]-Rf10.depths[2] # difference in depth 2m - 2m
 
 new.df<-Rf10.df[8:11]; colnames(new.df)<-c("log.DLI.delta", "log.DLI.delta", "Depth.delta", "Depth.delta")
 new.df1<-rbind(new.df[1], new.df[2]); new.df2<-rbind(new.df[3], new.df[4])
@@ -424,3 +424,7 @@ kd.all$Sites<-as.factor(c("Rf42", "Rf44", "HIMB", "Rf10")); kd.all<-kd.all[2:1]
 colnames(kd.all)<-c("Site", "kd")
 
 write.csv(kd.all, "data/environmental/kd.all.csv")
+
+####
+#### end
+####

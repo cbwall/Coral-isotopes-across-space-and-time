@@ -3,14 +3,14 @@ title: "Symbiont ecology and its influence on the physiology and isotopic compos
 author: "CB Wall cbwall@hawaii.edu"
 date: "9/19/2018"
 output:
-  pdf_document:
-    toc: yes
-    toc_depth: '4'
   html_document:
     code_folding: hide
     toc: yes
     toc_depth: 4
     toc_float: yes
+  pdf_document:
+    toc: yes
+    toc_depth: '4'
 ---
 ```{r setup chunk, setup, include=FALSE, fig.align='center'}
 knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE)
@@ -38,7 +38,9 @@ library(sjmisc)
 ## Project background
 
 
-### Sea level correction
+### Sea level correction  
+Corals were collected across in summer and winter 2016 across several different days with each period. To correct for differences in the depth of coral colonies we used NOAA tide data to correct all depth measurements to Mean Sea Level (MSL). This approach was done in [Innis et al. 2018](https://link.springer.com/article/10.1007/s00338-018-1667-0) on a larger collection of the coral samples--which have been subset in the current study.
+
 ```{r sea level correction}
 #########################
 # Sea level correction
@@ -69,10 +71,539 @@ Tide$Time.r <- Tide$Time
 data<-merge(data, Tide, by="Time.r", all.x=T)
 data$newDepth <- data$Depth..m-data$TideHT # new depth in METERS
 ```
+  
+### Light parameters  
+  
+#### DLI 2m all sites
+This figure shows the daily integrated light (DLI mol photon m^-2^ d^-1^) at long-term light loggers at 2m depth near the locations where corals were collected in northern and southern sectors of Kāne'ohe Bay near shore (east) further off shore (west). 
+
+```{r DLI across time, results='hide', fig.cap="**Figure** *DLI at the four reef areas from summer to winter 2016 at 2m depths. Data at 2m was recorded from loggers*"}
+# DLI
+##### all DLI for graphs
+files <- list.files(path="data/environmental/temp and light/Jun_DecPAR/all DLI", pattern = "csv$", full.names = T)
+tables <- lapply(files, read.csv, header = TRUE)
+DLI<-do.call(rbind, tables)
+DLI=DLI[-1] # remove junk column
+DLI$Date<-as.Date(DLI$Date) # fix date
+DLI<-DLI[order(DLI$Date),] # order by Date
+
+# make a date sequence for entire study
+all.date<-as.data.frame(seq(as.Date("2016-06-10"), as.Date("2017-01-12"), "days"))
+colnames(all.date)="Date"
+
+# merge the DLI data and the date sequence to make a complete df through time
+DLI.3site<-merge(all.date, DLI, by="Date", all.x=T)
+R10<-read.csv("data/environmental/temp and light/Jun_DecPAR/all DLI/Reef 10/DLI.Rf102016.csv")
+R10<-R10[-1]; R10$Date<-as.Date(R10$Date)
+
+DLI.4site<-merge(DLI.3site, R10, by="Date", all.x=T)
+DLI.4site$month <- months(as.Date(DLI.4site$Date)) # makes a month column
+DLI.4site<-DLI.4site[, c(1,6, 2:5)]
+
+# determine monthly mean for PAR during deployments at depth
+write.csv(DLI.4site, "data/environmental/temp and light/Jun_DecPAR/All.DLI.csv")
 
 
+##### Figure
+All.DLI<-DLI.4site
+# All.DLI <- read.csv("data/environmental/temp and light/Jun_DecPAR/All.DLI.csv")[,-1] # DLI at mid-depth
+# All.DLI$Date<-as.Date(All.DLI$Date)
+
+reefcols=c("mediumseagreen", "dodgerblue", "salmon", "orchid")
+par(mar=c(2,3.6,1,1.3), mgp=c(2,0.5,0))
+layout(matrix(c(1,2,3,4), 2,2, byrow=TRUE))
+
+plot(Rf44.mid.DLI~Date, type="l", All.DLI, ylab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), ylim=c(0, 30), xaxt="n", xlab="Time", col=reefcols[1])
+legend("topright", lty=1, col=reefcols[1], legend="Northwest", lwd=1.5, bty="n", cex=0.8, 
+       x.intersp = 0.3, inset=c(0, -0.02))
+axis.Date(1, at=seq(min(All.DLI$Date), max(All.DLI$Date), by="2 mo"), format="%b '%y")
+
+plot(Rf42.mid.DLI~Date, type="l", All.DLI, ylab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), ylim=c(0, 30), xaxt="n", xlab="Time", col=reefcols[2])
+legend("topright", lty=1, col=reefcols[2], legend="Northeast", lwd=1.5, bty="n", cex=0.8, 
+       x.intersp = 0.3, inset=c(0, -0.02))
+axis.Date(1, at=seq(min(All.DLI$Date), max(All.DLI$Date), by="2 mo"), format="%b '%y")
+
+plot(Rf10.mid.DLI~Date, type="l", All.DLI, ylab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1, ")", sep=""))), ylim=c(0, 30), xaxt="n", xlab="Time", col=reefcols[3])
+legend("topright", lty=1, col=reefcols[3], legend="Southwest", lwd=1.5, bty="n", cex=0.8, 
+       x.intersp = 0.3, inset=c(0, -0.02))
+axis.Date(1, at=seq(min(All.DLI$Date), max(All.DLI$Date), by="2 mo"), format="%b '%y")
+
+plot(HIMB.mid.DLI~Date, type="l", All.DLI, ylab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1, ")", sep=""))), ylim=c(0, 30), xaxt="n", xlab="Time", col=reefcols[4])
+legend("topright", lty=1, col=reefcols[4], legend="HIMB", lwd=1.5, bty="n", cex=0.8, 
+       x.intersp = 0.3, inset=c(0, -0.02))
+axis.Date(1, at=seq(min(All.DLI$Date), max(All.DLI$Date), by="2 mo"), format="%b '%y")
+
+dev.copy(pdf, "figures/environmental/All.DLI.pdf", width=6.5, height=4)
+dev.off()
+```
+
+#### PAR at 3 depths  
+With PAR as a factor, we can produce a continuous graph of light at 2m and use a model to predict the light at the shallow and deep zone (ca. <1m and 7m). 
+```{r light as a factor figure, include=FALSE, results='hide', fig.show='hide'}
+
+####################################################
+####################################################
+### Light attenuation  October deployment ##########
+####################################################
+####################################################
+
+# using October deployment at 3 depths
+
+df<-read.csv("data/environmental/temp and light/Field.allPAR.Oct2016.csv")
+df<-df[ , -which(names(df) %in% c("X","Rf44.shallow", "Rf44.mid"))] # remove R44 w/o 3 levels
+df$timestamp<-as.POSIXct(df$timestamp)
+df[df<=1] <- NA # remove low values to get day only
+
+Oct.PAR<-df
+colnames(Oct.PAR)[2:7]<-"PAR" # change all light columns to read "PAR" this is for rbind later
+
+Rf42.shall<-Oct.PAR[1:2] #only time and PAR
+Rf42.shall$Site<-as.factor("Rf42") # make site level
+Rf42.shall$Depth<-3*0.3048 # logger at 3 ft, convert to --> meters
+Rf42.mid<-Oct.PAR[, c(1,3)]; Rf42.mid$Site<-as.factor("Rf42"); Rf42.mid$Depth<-8*0.3048 # logger at 8 ft 
+Rf42.deep<-Oct.PAR[, c(1,4)]; Rf42.deep$Site<-as.factor("Rf42"); Rf42.deep$Depth<-27*0.3048 # logger at 27 ft
+
+HIMB.shall<-Oct.PAR[, c(1,5)]; HIMB.shall$Site<-as.factor("HIMB"); HIMB.shall$Depth<-1*0.3048 # logger at 1 ft
+HIMB.mid<-Oct.PAR[, c(1,6)]; HIMB.mid$Site<-as.factor("HIMB"); HIMB.mid$Depth<-6*0.3048 # logger at 6 ft
+HIMB.deep<-Oct.PAR[, c(1,7)]; HIMB.deep$Site<-as.factor("HIMB"); HIMB.deep$Depth<-25*0.3048 # logger at 25 ft
+
+PAR.df<-rbind(Rf42.shall, Rf42.mid, Rf42.deep, HIMB.shall, HIMB.mid, HIMB.deep)
+
+# Break up into each reef
+#####
+PAR.Rf42<-PAR.df[(PAR.df$Site=="Rf42"),] # just Rf42
+PAR.Rf42$Depth<-as.factor(PAR.Rf42$Depth) # depth as factor
+PAR.Rf42$Depth <- factor(PAR.Rf42$Depth, levels = c("2.4384", "0.9144", "8.2296"))
+PAR.Rf42$log.PAR<-log(PAR.Rf42$PAR)
+
+mod<-lm(log.PAR~Depth, data=PAR.Rf42, na.action=na.exclude) # Rf42 dataframe with Depth as a factor
+summary(mod)$coefficients # coefficients
+Rf42.coeffs<-c(coef(mod)["(Intercept)"], coef(mod)[2], coef(mod)[3])
+
+shal<-Rf42.coeffs[2]; mid<-Rf42.coeffs[1]; deep<-Rf42.coeffs[3]
+
+####
+####
+# make new dataframes for Sites
+Rf42.df<-df[1:4] 
+
+####
+# making some log data
+Rf42.df$log.shal<-log(Rf42.df$Rf42.shallow)
+Rf42.df$log.mid<-log(Rf42.df$Rf42.mid)
+Rf42.df$log.deep<-log(Rf42.df$Rf42.deep)
+
+# making some log data using coefficients
+Rf42.df$coef.shal<-Rf42.df$log.mid + shal
+Rf42.df$coef.mid<-Rf42.df$log.mid
+Rf42.df$coef.deep<-Rf42.df$log.mid + deep
+
+##################
+##### Figure #####
+# how does data compare?
+
+##### plot log data collected at each site
+par(mfrow=c(2,1), mar=c(4,4,2,2))
+plot(y=Rf42.df$log.shal, x=Rf42.df$timestamp, type="l", col="dodgerblue", 
+     main="Reef 42 logger (top), 2m-coeff (bottom)", cex.main=0.7, 
+     ylab="log(PAR)", xlab="", ylim=c(0,8))
+par(new=T)
+with(Rf42.df, lines(y=Rf42.df$log.mid, x=Rf42.df$timestamp, type="l", col="gray"))
+par(new=T)
+with(Rf42.df, lines(y=Rf42.df$log.deep, x=Rf42.df$timestamp, type="l", col="paleturquoise3"))
+
+##### plot of modeled 1m and 8m using <1m model coeffs. 
+plot(y=Rf42.df$coef.shal, x=Rf42.df$timestamp, type="l", col="dodgerblue", ylab="log(PAR)", 
+     xlab="Date", ylim=c(0,8))
+par(new=T)
+with(Rf42.df, lines(y=Rf42.df$coef.mid, x=Rf42.df$timestamp, type="l", col="gray"))
+par(new=T)
+with(Rf42.df, lines(y=Rf42.df$coef.deep, x=Rf42.df$timestamp, type="l", col="paleturquoise3"))
+legend("top", lty=1, col=c("dodgerblue", "gray", "paleturquoise3"), legend=c("<1m", "2m", "8m"), 
+       lwd=2, bty="n", inset=c(0, -0.5), seg.len=1, cex=1.1, xpd=TRUE, horiz=TRUE)
+
+
+################################ 
+########### HIMB ############### 
+PAR.HIMB<-PAR.df[(PAR.df$Site=="HIMB"),] # just HIMB
+PAR.HIMB$Depth<-as.factor(PAR.HIMB$Depth) # depth as factor
+PAR.HIMB$Depth <- factor(PAR.HIMB$Depth, levels = c("1.8288", "0.3048", "7.62"))
+
+mod<-lm(log(PAR)~Depth, data=PAR.HIMB, na.action=na.exclude) # HIMB dataframe with Depth as a factor
+summary(mod)$coefficients # coefficients
+HIMB.coeffs<-c(coef(mod)["(Intercept)"], coef(mod)[2], coef(mod)[3])
+shal<-HIMB.coeffs[2]; mid<-HIMB.coeffs[1]; deep<-HIMB.coeffs[3]
+
+####
+####
+# make new dataframes for Sites
+HIMB.df<-df[, c(1,5:7)]; 
+HIMB.df[HIMB.df<=1] <- NA # remove leftover values that remain low independently
+
+####
+# making some log data
+HIMB.df$log.shal<-log(HIMB.df$HIMB.shallow)
+HIMB.df$log.mid<-log(HIMB.df$HIMB.mid)
+HIMB.df$log.deep<-log(HIMB.df$HIMB.deep)
+
+# making some log data using coefficients
+HIMB.df$coef.shal<-HIMB.df$log.mid + shal
+HIMB.df$coef.mid<-HIMB.df$log.mid 
+HIMB.df$coef.deep<-HIMB.df$log.mid + deep
+
+
+##################
+##### Figure #####
+
+# plot log data
+par(mfrow=c(2,1), mar=c(4,4,2,2))
+plot(y=HIMB.df$log.shal, x=HIMB.df$timestamp, type="l", col="mediumorchid2", 
+     main="HIMB logger (top), 2m-coeff (bottom)", cex.main=0.7, ylab="log(PAR)", 
+     xlab="", ylim=c(0,8))
+par(new=T)
+with(HIMB.df, lines(y=HIMB.df$log.mid, x=HIMB.df$timestamp, type="l", col="gray"))
+par(new=T)
+with(HIMB.df, lines(y=HIMB.df$log.deep, x=HIMB.df$timestamp, type="l", col="plum4"))
+
+# plot of modeled 1m and 8m using <2m model coeffs. 
+plot(y=HIMB.df$coef.shal, x=HIMB.df$timestamp, type="l", col="mediumorchid2", 
+     cex.main=0.7, ylab="log(PAR)", xlab="", ylim=c(0,8))
+par(new=T)
+with(HIMB.df, lines(y=HIMB.df$coef.mid, x=HIMB.df$timestamp, type="l", col="gray"))
+par(new=T)
+with(HIMB.df, lines(y=HIMB.df$coef.deep, x=HIMB.df$timestamp, type="l", col="plum4"))
+legend("top", lty=1, col=c("mediumorchid2", "gray", "plum4"), legend=c("<1m", "2m", "8m"), 
+       lwd=2, bty="n", inset=c(0, -0.5), seg.len=1, cex=1.1, xpd=TRUE, horiz=TRUE)
+
+
+
+####################################################
+####################################################
+### Light attenuation  November deployment #########
+####################################################
+####################################################
+
+# using November deployment at 3 depths
+
+df<-read.csv("data/environmental/temp and light/Field.allPAR.Nov2016.csv"); df<-df[-1]
+df$timestamp<-as.POSIXct(df$timestamp)
+df[df<=1] <- NA # remove low values to get day only
+
+Nov.PAR<-df
+colnames(Nov.PAR)[2:7]<-"PAR" # change all light columns to read "PAR" this is for rbind later
+
+Rf44.shall<-Nov.PAR[1:2] #only time and PAR
+Rf44.shall$Site<-as.factor("Rf44") # make site level
+Rf44.shall$Depth<-1*0.3048 # logger at 1 ft, convert to --> meters
+Rf44.mid<-Nov.PAR[, c(1,3)]; Rf44.mid$Site<-as.factor("Rf44"); Rf44.mid$Depth<-6*0.3048 # logger at 6 ft 
+Rf44.deep<-Nov.PAR[, c(1,4)]; Rf44.deep$Site<-as.factor("Rf44"); Rf44.deep$Depth<-25*0.3048 # logger at 25 ft
+
+Rf10.shall<-Nov.PAR[, c(1,5)]; Rf10.shall$Site<-as.factor("Rf10"); Rf10.shall$Depth<-2*0.3048 # logger at 2 ft
+Rf10.mid<-Nov.PAR[, c(1,6)]; Rf10.mid$Site<-as.factor("Rf10"); Rf10.mid$Depth<-6*0.3048 # logger at 6 ft
+Rf10.deep<-Nov.PAR[, c(1,7)]; Rf10.deep$Site<-as.factor("Rf10"); Rf10.deep$Depth<-26*0.3048 # logger at 26 ft
+
+# bind together
+PAR.df<-rbind(Rf44.shall, Rf44.mid, Rf44.deep, Rf10.shall, Rf10.mid, Rf10.deep)
+
+# Break up into each reef
+#####
+PAR.Rf44<-PAR.df[(PAR.df$Site=="Rf44"),] # just Rf44
+PAR.Rf44$Depth<-as.factor(PAR.Rf44$Depth) # depth as factor
+PAR.Rf44$Depth <- factor(PAR.Rf44$Depth, levels = c("1.8288", "0.3048", "7.62"))
+PAR.Rf44$log.PAR<-log(PAR.Rf44$PAR)
+
+mod<-lm(log.PAR~Depth, data=PAR.Rf44, na.action=na.exclude) # R44 dataframe with Depth as a factor
+summary(mod)$coefficients # coefficients
+Rf44.coeffs<-c(coef(mod)["(Intercept)"], coef(mod)[2], coef(mod)[3])
+shal<-Rf44.coeffs[2]; mid<-Rf44.coeffs[1]; deep<-Rf44.coeffs[3]
+
+####
+####
+# make new dataframes for Sites
+Rf44.df<-df[1:4] 
+
+####
+# making some log data
+Rf44.df$log.shal<-log(Rf44.df$Rf44.shallow)
+Rf44.df$log.mid<-log(Rf44.df$Rf44.mid)
+Rf44.df$log.deep<-log(Rf44.df$Rf44.deep)
+
+# making some log data using coefficients
+Rf44.df$coef.shal<-Rf44.df$log.mid + shal
+Rf44.df$coef.mid<-Rf44.df$log.mid
+Rf44.df$coef.deep<-Rf44.df$log.mid + deep
+
+##################
+##### Figure #####
+# how does data compare?
+
+##### plot log data collected at each site
+par(mfrow=c(2,1), mar=c(4,4,2,2))
+plot(y=Rf44.df$log.shal, x=Rf44.df$timestamp, type="l", col="yellowgreen", 
+     main="Reef 44 logger (top), 2m-coeff (bottom)", cex.main=0.7, 
+     ylab="log(PAR)", xlab="", ylim=c(0,8))
+par(new=T)
+with(Rf44.df, lines(y=Rf44.df$log.mid, x=Rf44.df$timestamp, type="l", col="gray"))
+par(new=T)
+with(Rf44.df, lines(y=Rf44.df$log.deep, x=Rf44.df$timestamp, type="l", col="palegreen4"))
+
+##### plot of modeled 2m and 8m using <1m model coeffs. 
+plot(y=Rf44.df$coef.shal, x=Rf44.df$timestamp, type="l", col="yellowgreen", ylab="log(PAR)", 
+     xlab="", ylim=c(0,8))
+par(new=T)
+with(Rf44.df, lines(y=Rf44.df$coef.mid, x=Rf44.df$timestamp, type="l", col="gray"))
+par(new=T)
+with(Rf44.df, lines(y=Rf44.df$coef.deep, x=Rf44.df$timestamp, type="l", col="palegreen4"))
+legend("top", lty=1, col=c("yellowgreen", "gray", "palegreen4"), legend=c("<1m", "2m", "8m"), 
+       lwd=2, bty="n", inset=c(0, -0.5), seg.len=1, cex=1.1, xpd=TRUE, horiz=TRUE)
+
+
+
+###################################
+########### Reef 10 ############### 
+PAR.Rf10<-PAR.df[(PAR.df$Site=="Rf10"),] # just Rf10
+PAR.Rf10$Depth<-as.factor(PAR.Rf10$Depth) # depth as factor
+PAR.Rf10$Depth <- factor(PAR.Rf10$Depth, levels = c("1.8288", "0.6096", "7.9248"))
+
+mod<-lm(log(PAR)~Depth, data=PAR.Rf10, na.action=na.exclude) # Rf10 dataframe with Depth as a factor
+summary(mod)$coefficients # coefficients
+Rf10.coeffs<-c(coef(mod)["(Intercept)"], coef(mod)[2], coef(mod)[3])
+shal<-Rf10.coeffs[2]; mid<-Rf10.coeffs[1]; deep<-Rf10.coeffs[3]
+
+####
+####
+# make new dataframes for Sites
+Rf10.df<-df[, c(1,5:7)]
+
+####
+# making some log data
+Rf10.df$log.shal<-log(Rf10.df$Rf10.shallow)
+Rf10.df$log.mid<-log(Rf10.df$Rf10.mid)
+Rf10.df$log.deep<-log(Rf10.df$Rf10.deep)
+
+# making some log data using coefficients
+Rf10.df$coef.shal<-Rf10.df$log.mid + shal
+Rf10.df$coef.mid<-Rf10.df$log.mid
+Rf10.df$coef.deep<-Rf10.df$log.mid + deep
+
+##################
+##### Figure #####
+
+# plot log data
+par(mfrow=c(2,1), mar=c(4,4,2,2))
+plot(y=Rf10.df$log.shal, x=Rf10.df$timestamp, type="l", col="orangered", 
+     main="Reef 10 logger (top), 2m-coeff (bottom)", cex.main=0.7, ylab="log(PAR)", 
+     xlab="", ylim=c(0,8))
+par(new=T)
+with(Rf10.df, lines(y=Rf10.df$log.mid, x=Rf10.df$timestamp, type="l", col="gray"))
+par(new=T)
+with(Rf10.df, lines(y=Rf10.df$log.deep, x=Rf10.df$timestamp, type="l", col="rosybrown2"))
+
+# plot of modeled 2m and 8m using <1m model coeffs. 
+plot(y=Rf10.df$coef.shal, x=Rf10.df$timestamp, type="l", col="orangered", 
+     cex.main=0.7, ylab="log(PAR)", xlab="", ylim=c(0,8))
+par(new=T)
+with(Rf10.df, lines(y=Rf10.df$coef.mid, x=Rf10.df$timestamp, type="l", col="gray"))
+par(new=T)
+with(Rf10.df, lines(y=Rf10.df$coef.deep, x=Rf10.df$timestamp, type="l", col="rosybrown2"))
+legend("top", lty=1, col=c("orangered", "gray", "rosybrown2"), legend=c("<1m", "2m", "8m"), 
+       lwd=2, bty="n", inset=c(0, -0.45), seg.len=1, cex=0.9, xpd=TRUE, horiz=TRUE)
+
+
+########
+# combine all coefficients
+all.coefficients<-rbind(Rf42.coeffs, HIMB.coeffs, Rf44.coeffs, Rf10.coeffs)
+write.csv(all.coefficients, "data/environmental/light coeffs_factor.csv")
+
+###########
+
+par(mfrow=c(4,3), mar=c(4,4,2,2))
+d<-Rf42.df
+plot(d$log.shal~d$coef.shal); abline(lm(d$log.shal~d$coef.shal), col="red")
+plot(d$log.mid~d$coef.mid, main="Reef 42"); abline(lm(d$log.mid~d$coef.mid), col="red")
+plot(d$log.deep~d$coef.deep); abline(lm(d$log.deep~d$coef.deep), col="red")
+
+d<-Rf44.df
+plot(d$log.shal~d$coef.shal); abline(lm(d$log.shal~d$coef.shal), col="red")
+plot(d$log.mid~d$coef.mid, main="Reef 44"); abline(lm(d$log.mid~d$coef.mid), col="red")
+plot(d$log.deep~d$coef.deep); abline(lm(d$log.deep~d$coef.deep), col="red")
+
+d<-HIMB.df
+plot(d$log.shal~d$coef.shal); abline(lm(d$log.shal~d$coef.shal), col="red")
+plot(d$log.mid~d$coef.mid, main="HIMB"); abline(lm(d$log.mid~d$coef.mid), col="red")
+plot(d$log.deep~d$coef.deep); abline(lm(d$log.deep~d$coef.deep), col="red")
+
+d<-Rf10.df
+plot(d$log.shal~d$coef.shal); abline(lm(d$log.shal~d$coef.shal), col="red")
+plot(d$log.mid~d$coef.mid, main="Reef 10"); abline(lm(d$log.mid~d$coef.mid), col="red")
+plot(d$log.deep~d$coef.deep); abline(lm(d$log.deep~d$coef.deep), col="red")
+
+#dev.copy(pdf, "figures/environmental/PAR_coef_ob.ex.factor.pdf", height=6, width=6)
+#dev.off()
+
+########### 
+
+
+#########################
+#########################
+#########################
+
+##### 
+##### all PAR
+files <- list.files(path="data/environmental/temp and light/Jun_DecPAR/all PAR", pattern = "csv$", full.names = T)
+tables <- lapply(files, read.csv, header = TRUE)
+All.PAR<-do.call(rbind, tables)
+All.PAR=All.PAR[-1]
+All.PAR$timestamp<-as.POSIXct(All.PAR$timestamp) # fix date
+
+# make a date sequence for entire study
+all.date.time<-as.data.frame(seq(
+  from=as.POSIXct("2016-06-10 00:00:00", tz="HST"),
+  to=as.POSIXct("2017-01-12 00:00:00", tz="HST"),
+  by="15 min"))  
+colnames(all.date.time)[1]<-"timestamp"
+
+# merge the PAR data and the date sequence to make a complete df through time
+PAR.3site<-merge(all.date.time, All.PAR, by="timestamp", all.x=T)
+R10.par<-read.csv("data/environmental/temp and light/Jun_DecPAR/all PAR/Reef 10/Rf10.PAR.csv")
+R10.par<-R10.par[-1]; R10.par$timestamp<-as.POSIXct(R10.par$timestamp)
+
+PAR.4site<-merge(PAR.3site, R10.par, by="timestamp", all.x=T)
+PAR.4site$month <- months(as.Date(PAR.4site$timestamp)) # makes a month column
+PAR.4site<-PAR.4site[, c(1,6, 2:5)]
+
+# determine monthly mean for PAR during deployments at depth
+write.csv(PAR.4site, "data/environmental/temp and light/Jun_DecPAR/All.PAR.csv")
+
+
+###########
+###########
+########### 
+# read in all PAR data at 2m and model what the 1m and 8m data would look like
+df<-PAR.4site # all the instantaneous light data
+df[df<=1] <- NA
+
+coeffs<-read.csv("data/environmental/light coeffs.csv") # modeled coefficients
+colnames(coeffs)<-c("Site", "Intercept", "shal.coeff", "deep.coeff")
+
+# log transform PAR data to determine light at depth, then reverse transform
+
+## example calcs
+# df$log.shal<-df$log.mid - mid.coeff
+# df$log.mid<-df$log.mid
+# df$log.deep<-df$log.mid - mid.coeff + deep.coeff
+
+df$logRf42.mid<-log(df$Rf42.mid)
+df$logRf42.shall<-log(df$Rf42.mid) + coeffs[1,3]
+df$logRf42.deep<-log(df$Rf42.mid) + coeffs[1,4]
+
+df$logHIMB.mid<-log(df$HIMB.mid)
+df$logHIMB.shall<-log(df$HIMB.mid) + coeffs[2,3]
+df$logHIMB.deep<-log(df$HIMB.mid) + coeffs[2,4]
+
+df$logRf44.mid<-log(df$Rf44.mid)
+df$logRf44.shall<-log(df$Rf44.mid) + coeffs[3,3]
+df$logRf44.deep<-log(df$Rf44.mid) + coeffs[3,4]
+
+df$logRf10.mid<-log(df$Rf10.mid)
+df$logRf10.shall<-log(df$Rf10.mid) + coeffs[4,3]
+df$logRf10.deep<-log(df$Rf10.mid) + coeffs[4,4]
+
+
+df$bt.Rf42.mid<-1*exp(df$logRf42.mid)
+df$bt.Rf42.shall<-1*exp(df$logRf42.shall)
+df$bt.Rf42.deep<-1*exp(df$logRf42.deep)
+
+df$bt.Rf44.mid<-1*exp(df$logRf44.mid)
+df$bt.Rf44.shall<-1*exp(df$logRf44.shall)
+df$bt.Rf44.deep<-1*exp(df$logRf44.deep)
+
+df$bt.HIMB.mid<-1*exp(df$logHIMB.mid)
+df$bt.HIMB.shall<-1*exp(df$logHIMB.shall)
+df$bt.HIMB.deep<-1*exp(df$logHIMB.deep)
+
+df$bt.Rf10.mid<-1*exp(df$logRf10.mid)
+df$bt.Rf10.shall<-1*exp(df$logRf10.shall)
+df$bt.Rf10.deep<-1*exp(df$logRf10.deep)
+
+
+All.PAR.df<-df[, (names(df) %in% c("timestamp", "month", 
+                                   "bt.Rf42.shall", "bt.Rf42.mid", "bt.Rf42.deep",
+                                   "bt.Rf44.shall", "bt.Rf44.mid", "bt.Rf44.deep", 
+                                   "bt.HIMB.shall", "bt.HIMB.mid", "bt.HIMB.deep",  
+                                   "bt.Rf10.shall", "bt.Rf10.mid", "bt.Rf10.deep"))]
+
+colnames(All.PAR.df)<-c("timestamp", "month", 
+                        "Rf42.mid", "Rf42.shall", "Rf42.deep",
+                        "Rf44.mid", "Rf44.shall", "Rf44.deep", 
+                        "HIMB.mid", "HIMB.shall", "HIMB.deep",  
+                        "Rf10.mid", "Rf10.shall", "Rf10.deep")
+```
+
+```{r figure PAR at 3 depths, results='hide', fig.cap="**Figure** *PAR at the four reef areas from summer to winter 2016 at three depths (<1m, 2m, 8m). Data at 2m was recorded from loggers; data at <1m and 8m were modeled using light attenuation calculations*"}
+# Plot it!!
+# Reef 44
+par(mfrow=c(2,2), mar=c(4,5,2,2))
+
+plot(y=All.PAR.df$Rf44.shall, x=All.PAR.df$timestamp, type="l", col="palegreen2", 
+     cex.main=0.7, ylab=(expression(paste("PAR"~(mu*mol~photons~m^-2~s^-1), sep="")))
+     , xlab="", main="Northwest", cex.main=1, ylim=c(0, 2400))
+par(new=T)
+with(All.PAR.df, lines(y=All.PAR.df$Rf44.mid, x=All.PAR.df$timestamp, type="l", col="gray"))
+par(new=T)
+with(All.PAR.df, lines(y=All.PAR.df$Rf44.deep, x=All.PAR.df$timestamp, type="l", col="palegreen4"))
+legend("topright", lty=1, col=c("palegreen2", "gray", "palegreen4"), legend=c("<1m", "2m", "8m"), 
+       lwd=2, bty="n", inset=c(0, -0.01), seg.len=0.5, cex=0.9, x.intersp=0.5, y.intersp=0.8)
+
+
+# Plot it!!
+# Reef 42
+plot(y=All.PAR.df$Rf42.shall, x=All.PAR.df$timestamp, type="l", col="dodgerblue", 
+     cex.main=0.7, ylab=(expression(paste("PAR"~(mu*mol~photons~m^-2~s^-1), sep="")))
+     , xlab="", main="Northeast", cex.main=1, ylim=c(0, 2400))
+par(new=T)
+with(All.PAR.df, lines(y=All.PAR.df$Rf42.mid, x=All.PAR.df$timestamp, type="l", col="gray"))
+par(new=T)
+with(All.PAR.df, lines(y=All.PAR.df$Rf42.deep, x=All.PAR.df$timestamp, type="l", col="skyblue"))
+legend("topright", lty=1, col=c("dodgerblue", "gray", "skyblue"), legend=c("<1m", "2m", "8m"), 
+       lwd=2, bty="n", inset=c(0, -0.01), seg.len=0.5, cex=0.9, x.intersp=0.5, y.intersp=0.8)
+
+# Plot it!!
+# Reef 10
+plot(y=All.PAR.df$Rf10.shall, x=All.PAR.df$timestamp, type="l", col="orangered", 
+     cex.main=0.7, ylab=(expression(paste("PAR"~(mu*mol~photons~m^-2~s^-1), sep="")))
+     , xlab="Dates", main="Southwest", cex.main=1, ylim=c(0, 2400))
+par(new=T)
+with(All.PAR.df, lines(y=All.PAR.df$Rf10.mid, x=All.PAR.df$timestamp, type="l", col="gray"))
+par(new=T)
+with(All.PAR.df, lines(y=All.PAR.df$Rf10.deep, x=All.PAR.df$timestamp, type="l", col="lightsalmon3"))
+legend("topright", lty=1, col=c("orangered", "gray", "lightsalmon3"), legend=c("<1m", "2m", "8m"), 
+       lwd=2, bty="n", inset=c(0, -0.01), seg.len=0.5, cex=0.9, x.intersp=0.5, y.intersp=0.8)
+
+# Plot it!
+# HIMB
+plot(y=All.PAR.df$HIMB.shall, x=All.PAR.df$timestamp, type="l", col="mediumorchid2", 
+     cex.main=0.7, ylab=(expression(paste("PAR"~(mu*mol~photons~m^-2~s^-1), sep="")))
+     , xlab="Dates", main="HIMB", cex.main=1, ylim=c(0, 2400))
+par(new=T)
+with(All.PAR.df, lines(y=All.PAR.df$HIMB.mid, x=All.PAR.df$timestamp, type="l", col="gray"))
+par(new=T)
+with(All.PAR.df, lines(y=All.PAR.df$HIMB.deep, x=All.PAR.df$timestamp, type="l", col="plum4"))
+legend("topright", lty=1, col=c("mediumorchid2", "gray", "rosybrown2"), legend=c("<1m", "2m", "8m"), 
+       lwd=2, bty="n", inset=c(0, -0.01), seg.len=0.5, cex=0.9, x.intersp=0.5, y.intersp=0.8)
+
+dev.copy(pdf, "figures/environmental/PAR.all depths.pdf", height=7, width=8)
+dev.off()
+```
+  
 ### Light at Depth
-```{r light at depth, fig.dim=c(6,5), fig.align='center'}
+A periodic deployment of loggers (October and November) at ca. <1m and ca. 7m were used to model the relatiship between 2m light and light at other depths following Beer-Lambert: $Ez{_d} = Ez_{_0}e^{(-k_d *d)}$, where $d$ is depth, $k_d$ is the attenuation coefficient for each site, $Ez{_d}$ is light at depth $d$ and $Ez{_0}$ is measured light. Calculations were relative to light at 2m depth (i.e., $Ez_{_0}$ was the light at 2m depth) and $d$ was the difference between coral depth relative to depth of the logger (i.e., 2m). light reaching depth d and Ez(0) is the incident light at the surface.  
+  
+Using the logger data, the difference in light at 1 and 7m was calcualted relative to 2m (i.e, PAR baseline (2m) - PAR other), then the difference in depth at 1 and 7m was calculated realtive to logger depth i.e, depth logger other - depth logger (2m baseline). A no-intercept model was used to fit difference in light and depth (i.e, delta-log(DLI) and delta-depth) to determine *kd*: $lm(delta.log.DLI$~$delta.Depth + 0)$.  
+  
+Site-specific kd values were used to generate a continuous variable of "light at depth". At each time period (summer or winter) the daily light integral was averaged over 3 months: *summer 2016 (June, July, August)* and *winter 2016 (November, December, January)*. Discrete monthly seasonal-mean DLI means was used to generate an estimate of light at depth for corals at each site, as this integrates the site and seasoanl variance.  
+
+```{r light at depth, fig.dim=c(6,5), fig.align='center', fig.cap="**Figure** *Relationship between mean seasonal light availability (mean daily light integral) at depth of coral fragment collection*"}
 ########################## # LIGHT AT DEPTH
 #############
 ###### 
@@ -172,9 +703,97 @@ curve(exp(coef(wintmod)["(Intercept)"]+coef(wintmod)["newDepth"]*x), add=TRUE, c
 legend("topright", legend=c("summer", "winter"), col=c("coral", "lightblue2"), lty=1, lwd=1, pch=16, bty="n")
 ```
   
+### Dissolved nutrients  
+  
+Dissolved inorganic nutrients in seawater were quantified on water samples (ca. 100 ml)  taken from each site and filtered through a GF/F filter and stored in acid-washed bottles and frozen at -20 °C until analyzes.  Dissolved inorganic nutrients—ammonium (NH~4~^+^), nitrate + nitrite (NO~3~^-^ + NO~2~^-^), phosphate (PO~4~^3-^), and silicate (Si(OH)~4~)—were measured at University of Hawai‘i at Mānoa SOEST Laboratory for Analytical Biogeochemistry using a Seal Analytical AA3 HR nutrient autoanalyzer and expressed as μmol l^-1^.   
+  
+
+```{r nutrients, fig.dim=c(7,3), fig.align='center'}
+#########################
+#########################
+# nutrients
+nutr<-read.csv("data/environmental/PanKBay_nutrients.csv")
+
+#models
+mod<-lm(phosphate~Location+Date, data=nutr); Anova(mod, type=2)
+mod<-lm(silicate~Location+Date, data=nutr); Anova(mod, type=2)
+mod<-lm(N.N~Location+Date, data=nutr); Anova(mod, type=2)
+mod<-lm(ammonium~Location+Date, data=nutr); Anova(mod, type=2)
+#OR.... do t-tests at each date in separate period-dataframes
+
+nutr$Date<-mdy(nutr$Date) # corrects date format
+dates<-cbind("10-Aug '16", "20-Dec '16")
+
+RfHIMB<-nutr[(nutr$Location=="HIMB"), ]
+Rf42<-nutr[(nutr$Location=="R42"), ]
+Rf46<-nutr[(nutr$Location=="F1-46"), ]
+RF10<-nutr[(nutr$Location=="F8-R10"), ]
+
+Reefs<-c("Reef 46", "Reef 42", "Reef 10", "HIMB")
+plot_colors<-c("mediumseagreen", "dodgerblue", "salmon", "orchid")
+
+###############
+# Phosphate
+# par(mfrow=c(1,1), mar=c(2,4,1,1), mgp=c(2,0.5,0))
+
+# figure layout
+layout(matrix(c(1,2,3,4), nrow=1, byrow=TRUE))
+par(mar=c(5,5,7,1))
+
+plot(y=Rf46$phosphate, x=Rf46$Date, xaxt="n", type="o", xlab=NA, ylab=expression(paste("phosphate"~(mu*mol~L^-1), sep="")), ylim=c(0, 0.25), pch=19, lty=2, cex=1, lwd=1, col=plot_colors[1], cex.axis=0.8)
+axis(side=1, at=Rf46$Date, labels=dates, cex.axis=0.8) # plots HIMB
+#plots Reef 42
+with(Rf46, lines(Rf42$phosphate, x=Rf42$Date, type="o", pch=19, lty=2, cex=1, lwd=1, col=plot_colors[2]))
+#plots HIMB
+with(RfHIMB, lines(RfHIMB$phosphate, x=RfHIMB$Date, type="o", pch=19, lty=2, cex=1, lwd=1, col=plot_colors[3]))
+#plots Reef 10
+with(Rf46, lines(RF10$phosphate, x=RF10$Date, type="o", pch=19, lty=2, cex=1, lwd=1, col=plot_colors[4]))
+
+
+###############
+# Silicate
+plot(y=Rf46$silicate, x=Rf46$Date, xaxt="n", type="o", xlab=NA, ylab=expression(paste("silicate"~(mu*mol~L^-1), sep="")), ylim=c(0, 15), pch=19, lty=2, cex=1, lwd=1, col=plot_colors[1], cex.axis=0.8)
+axis(side=1, at=Rf46$Date, labels=dates, cex.axis=0.8) # plots HIMB
+#plots Reef 42
+with(Rf46, lines(Rf42$silicate, x=Rf42$Date, type="o", pch=19, lty=2, cex=1, lwd=1, col=plot_colors[2]))
+#plots HIMB
+with(RfHIMB, lines(RfHIMB$silicate, x=RfHIMB$Date, type="o", pch=19, lty=2, cex=1, lwd=1, col=plot_colors[3]))
+#plots Reef 10
+with(Rf46, lines(RF10$silicate, x=RF10$Date, type="o", pch=19, lty=2, cex=1, lwd=1, col=plot_colors[4]))
+
+
+###############
+# N+N
+plot(y=Rf46$N.N, x=Rf46$Date, xaxt="n", type="o", xlab=NA, ylab=expression(paste("nitrate+nitrite"~(mu*mol~L^-1), sep="")), ylim=c(0, 1.5), pch=19, lty=2, cex=1, lwd=1, col=plot_colors[1], cex.axis=0.8)
+axis(side=1, at=Rf46$Date, labels=dates, cex.axis=0.8) # plots HIMB
+#plots Reef 42
+with(Rf46, lines(Rf42$N.N, x=Rf42$Date, type="o", pch=19, lty=2, cex=1, lwd=1, col=plot_colors[2]))
+#plots HIMB
+with(RfHIMB, lines(RfHIMB$N.N, x=RfHIMB$Date, type="o", pch=19, lty=2, cex=1, lwd=1, col=plot_colors[3]))
+#plots Reef 10
+with(Rf46, lines(RF10$N.N, x=RF10$Date, type="o", pch=19, lty=2, cex=1, lwd=1, col=plot_colors[4]))
+
+
+###############
+# ammonium
+plot(y=Rf46$ammonium, x=Rf46$Date, xaxt="n", type="o", xlab=NA, ylab=expression(paste("ammonium"~(mu*mol~L^-1), sep="")), ylim=c(0, 1.5), pch=19, lty=2, cex=1, lwd=1, col=plot_colors[1], cex.axis=0.8)
+axis(side=1, at=Rf46$Date, labels=dates, cex.axis=0.8) # plots HIMB
+#plots Reef 42
+with(Rf46, lines(Rf42$ammonium, x=Rf42$Date, type="o", pch=19, lty=2, cex=1, lwd=1, col=plot_colors[2]))
+#plots HIMB
+with(RfHIMB, lines(RfHIMB$ammonium, x=RfHIMB$Date, type="o", pch=19, lty=2, cex=1, lwd=1, col=plot_colors[3]))
+#plots Reef 10
+with(Rf46, lines(RF10$ammonium, x=RF10$Date, type="o", pch=19, lty=2, cex=1, lwd=1, col=plot_colors[4]))
+legend("topleft", legend=Reefs, col=plot_colors[1:4], lwd=1, pch=19, lty=2, cex=0.8, bty="n", x.intersp=0.2, y.intersp=1.5, inset=c(0, 0), seg.len=1.5)
+
+dev.copy(pdf, "figures/environmental/all.nutrients.pdf", encod="MacRoman", height=3, width=7)
+dev.off()
+```
+  
+  
 ### Isotopes in particulates  
   
-Plankton tows and seawater collections to parameterized particulates and plankters as potential heterotrophic end members available to reef corals. Sampling was done at 4 sites where corals were collected [*North*: (Reef 42, fringe-Reef 46), and *South*: (HIMB, fringe-Reef 10)], as well as two reefs in central region of the bay where corals were not collected (*Central*: Reef 25, fringe-Reef 25) to increase spatial resolution of suspended particulate isotope sample sizes. Using size-fractioned materials collected in seawater and plankton tows, we examined the spatial (*among reef sites*) and temporal patterns (*among seasons*) in stable isotope values of size-fractioned end members. Carbon and nitrogen isotope values among the 6 reef sites were not significantly different (*p* > 0.140), season had marginal effects (*p* > 0.049), whereas fraction influenced isotope values significantly (*p*< 0.001). Therefore, isotope values were pooled among reefs and seasons to best interpret size-fraction isotope values.  
+Plankton tows and seawater collections to parameterized particulates and plankters as potential heterotrophic end members available to reef corals. Sampling was done at 4 sites where corals were collected [*North*: (Reef 42, fringe-Reef 46), and *South*: (HIMB, fringe-Reef 10)], as well as two reefs in central region of the bay where corals were not collected (*Central*: Reef 25, fringe-Reef 25) to increase spatial resolution of suspended particulate isotope sample sizes. Using size-fractioned materials collected in seawater and plankton tows, we examined the spatial (*among reef sites*) and temporal patterns (*among seasons*) in stable isotope values of size-fractioned end members. Carbon and nitrogen isotope values among the 6 reef sites were not significantly different (*p* > 0.140), season had marginal effects (*p* > 0.049), whereas fraction influenced isotope values significantly (*p*< 0.001). Therefore, isotope values were pooled among reefs and seasons to best interpret size-fraction isotope values.  *Samples were not acidified prior to analysis as to not affect nitrogen isotope values.*
   
 ```{r seawater isotopes}
 SWiso<-read.csv("data/isotopes_SW_all times.csv")
@@ -188,8 +807,9 @@ SWiso$SW.fraction..um<-factor(SWiso$SW.fraction..um, levels=c(">243", "<243", "1
 winter.data<-SWiso[(SWiso$Time.point=="winter"),]
 summer.data<-SWiso[(SWiso$Time.point=="summer"),]
 ```
-
-```{r isotope sw figures boxplot1, results="hide", fig.cap="*Figures of size-fractioned sample isotope values stratified by seasons (summer and winter)*"}
+  
+These box plots show the seasonal isotope values for carbon and nitrogen according to size fractions.
+```{r isotope sw figures boxplot1, results="hide", fig.cap="**Figure** *Size-fractioned sample isotope values stratified by seasons (summer and winter)*"}
 # plots of SW isotopes by Season-- first showing by size, then by site
 op<-par(mfrow = c(2,2), mar=c(5,5,2,1))
 
@@ -215,8 +835,10 @@ plot(d15N~SW.fraction..um, data=winter.data, ylim=c(3,10),
      main=expression(paste("winter"~ delta^{15}, "N")), ylab=expression(paste(delta^{15}, "N (‰, air)")),
      col="plum", cex.axis=0.7, cex.main=1, cex.lab= 0.8, xlab=expression(paste("Size Fraction (", mu,m,")")))
 ```
+  
+These figures show the same size-fractioned isotope data as above, but stratified by location and pooled across seasons.  
 
-```{r isotope sw figures boxplot2, results="hide", fig.cap="*Figures of isotope values in seawater particles stratified by sites (northwest to southeast)*"}
+```{r isotope sw figures boxplot2, results="hide", fig.cap="**Figure** *Isotope values in seawater particles stratified by sites (northwest to southeast)*"}
 ######## Sites
 op<-par(mfrow = c(2,2), mar=c(5,5,2,1))
 
@@ -240,7 +862,9 @@ plot(d15N~Reef.ID, data=winter.data, ylim=c(3,10),
      main=expression(paste("winter"~ delta^{15}, "N")), ylab=expression(paste(delta^{15}, "N (‰, air)")),
      col="salmon", cex.axis=0.7, cex.main=1, xlab="Reef Sites")
 ```
-```{r SW isotope figure, results="hide", fig.cap="*Isotope values for size-fractioned seawater particles and plankters pooled across 2 seasons and 6 reef sites*"}
+  
+Pooling the isotope data across sites and seasons (where effects were absent or negligible), this planktonic foodweb for carbon and nitrogen illustrates differences in the food sources and their isotopic composition.  
+```{r SW isotope figure, results="hide", fig.cap="**Figure** *Isotope values for size-fractioned seawater particles and plankters pooled across seasons and reef sites*", fig.height=5, fig.width=5, fig.align='center'}
 
 ####
 #### making scatter for d15N and d13C, pooled across seasons and sites

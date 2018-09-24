@@ -86,9 +86,6 @@ with(Rf42.df, lines(y=Rf42.df$coef.deep, x=Rf42.df$timestamp, type="l", col="pal
 legend("top", lty=1, col=c("dodgerblue", "gray", "paleturquoise3"), legend=c("<1m", "2m", "8m"), 
        lwd=2, bty="n", inset=c(0, -0.5), seg.len=1, cex=1.1, xpd=TRUE, horiz=TRUE)
 
-dev.copy(pdf, "figures/environmental/PAR_data_2xcoef_Rf42.pdf", height=4, width=6)
-dev.off()
-
 
 ################################ 
 ########### HIMB ############### 
@@ -142,8 +139,6 @@ with(HIMB.df, lines(y=HIMB.df$coef.deep, x=HIMB.df$timestamp, type="l", col="plu
 legend("top", lty=1, col=c("mediumorchid2", "gray", "plum4"), legend=c("<1m", "2m", "8m"), 
        lwd=2, bty="n", inset=c(0, -0.5), seg.len=1, cex=1.1, xpd=TRUE, horiz=TRUE)
 
-dev.copy(pdf, "figures/environmental/PAR_data_2xcoef_HIMB.pdf", height=4, width=6)
-dev.off()
 
 
 ####################################################
@@ -226,8 +221,6 @@ with(Rf44.df, lines(y=Rf44.df$coef.deep, x=Rf44.df$timestamp, type="l", col="pal
 legend("top", lty=1, col=c("yellowgreen", "gray", "palegreen4"), legend=c("<1m", "2m", "8m"), 
        lwd=2, bty="n", inset=c(0, -0.5), seg.len=1, cex=1.1, xpd=TRUE, horiz=TRUE)
 
-dev.copy(pdf, "figures/environmental/PAR_data_2xcoef_Rf44.pdf", height=4, width=6)
-dev.off()
 
 
 ###################################
@@ -280,14 +273,11 @@ with(Rf10.df, lines(y=Rf10.df$coef.deep, x=Rf10.df$timestamp, type="l", col="ros
 legend("top", lty=1, col=c("orangered", "gray", "rosybrown2"), legend=c("<1m", "2m", "8m"), 
        lwd=2, bty="n", inset=c(0, -0.45), seg.len=1, cex=0.9, xpd=TRUE, horiz=TRUE)
 
-dev.copy(pdf, "figures/environmental/PAR_data_2xcoef_Rf10.pdf", height=4, width=6)
-dev.off()
-
 
 ########
 # combine all coefficients
 all.coefficients<-rbind(Rf42.coeffs, HIMB.coeffs, Rf44.coeffs, Rf10.coeffs)
-write.csv(all.coefficients, "data/environmental/light coeffs.csv")
+write.csv(all.coefficients, "data/environmental/light coeffs_factor.csv")
 
 ###########
 
@@ -312,8 +302,8 @@ plot(d$log.shal~d$coef.shal); abline(lm(d$log.shal~d$coef.shal), col="red")
 plot(d$log.mid~d$coef.mid, main="Reef 10"); abline(lm(d$log.mid~d$coef.mid), col="red")
 plot(d$log.deep~d$coef.deep); abline(lm(d$log.deep~d$coef.deep), col="red")
 
-dev.copy(pdf, "figures/environmental/PAR_coef_ob.ex.pdf", height=6, width=6)
-dev.off()
+#dev.copy(pdf, "figures/environmental/PAR_coef_ob.ex.factor.pdf", height=6, width=6)
+#dev.off()
 
 ########### 
 
@@ -426,7 +416,7 @@ with(All.PAR.df, lines(y=All.PAR.df$Rf44.mid, x=All.PAR.df$timestamp, type="l", 
 par(new=T)
 with(All.PAR.df, lines(y=All.PAR.df$Rf44.deep, x=All.PAR.df$timestamp, type="l", col="palegreen4"))
 legend("topright", lty=1, col=c("palegreen2", "gray", "palegreen4"), legend=c("<1m", "2m", "8m"), 
-       lwd=2, bty="n", inset=c(-0.25, -0.05), seg.len=0.5, cex=0.9, x.intersp=0.2, y.intersp=0.4)
+       lwd=2, bty="n", inset=c(-0.15, -0.05), seg.len=0.5, cex=0.9, x.intersp=0.2, y.intersp=0.4)
 
 
 # Plot it!!
@@ -437,9 +427,9 @@ plot(y=All.PAR.df$Rf42.shall, x=All.PAR.df$timestamp, type="l", col="dodgerblue"
 par(new=T)
 with(All.PAR.df, lines(y=All.PAR.df$Rf42.mid, x=All.PAR.df$timestamp, type="l", col="gray"))
 par(new=T)
-with(All.PAR.df, lines(y=All.PAR.df$Rf42.deep, x=All.PAR.df$timestamp, type="l", col="paleturquoise3"))
-legend("topright", lty=1, col=c("dodgerblue", "gray", "paleturquoise3"), legend=c("<1m", "2m", "8m"), 
-       lwd=2, bty="n", inset=c(-0.25, -0.05), seg.len=0.5, cex=0.9, x.intersp=0.2, y.intersp=0.4)
+with(All.PAR.df, lines(y=All.PAR.df$Rf42.deep, x=All.PAR.df$timestamp, type="l", col="skyblue"))
+legend("topright", lty=1, col=c("dodgerblue", "gray", "skyblue"), legend=c("<1m", "2m", "8m"), 
+       lwd=2, bty="n", inset=c(-0.15, -0.05), seg.len=0.5, cex=0.9, x.intersp=0.2, y.intersp=0.4)
 
 # Plot it!!
 # Reef 10
@@ -449,9 +439,9 @@ plot(y=All.PAR.df$Rf10.shall, x=All.PAR.df$timestamp, type="l", col="orangered",
 par(new=T)
 with(All.PAR.df, lines(y=All.PAR.df$Rf10.mid, x=All.PAR.df$timestamp, type="l", col="gray"))
 par(new=T)
-with(All.PAR.df, lines(y=All.PAR.df$Rf10.deep, x=All.PAR.df$timestamp, type="l", col="sandybrown"))
-legend("topright", lty=1, col=c("orangered", "gray", "sandybrown"), legend=c("<1m", "2m", "8m"), 
-       lwd=2, bty="n", inset=c(-0.25, -0.05), seg.len=0.5, cex=0.9, x.intersp=0.2, y.intersp=0.4)
+with(All.PAR.df, lines(y=All.PAR.df$Rf10.deep, x=All.PAR.df$timestamp, type="l", col="lightsalmon3"))
+legend("topright", lty=1, col=c("orangered", "gray", "lightsalmon3"), legend=c("<1m", "2m", "8m"), 
+       lwd=2, bty="n", inset=c(-0.15, -0.05), seg.len=0.5, cex=0.9, x.intersp=0.2, y.intersp=0.4)
 
 # Plot it!
 # HIMB
@@ -463,10 +453,12 @@ with(All.PAR.df, lines(y=All.PAR.df$HIMB.mid, x=All.PAR.df$timestamp, type="l", 
 par(new=T)
 with(All.PAR.df, lines(y=All.PAR.df$HIMB.deep, x=All.PAR.df$timestamp, type="l", col="plum4"))
 legend("topright", lty=1, col=c("mediumorchid2", "gray", "rosybrown2"), legend=c("<1m", "2m", "8m"), 
-       lwd=2, bty="n", inset=c(-0.25, -0.05), seg.len=0.5, cex=0.9, x.intersp=0.2, y.intersp=0.4)
+       lwd=2, bty="n", inset=c(-0.15, -0.05), seg.len=0.5, cex=0.9, x.intersp=0.2, y.intersp=0.4)
 
 dev.copy(pdf, "figures/environmental/PAR.all depths.pdf", height=7, width=8)
 dev.off()
 
-
+#######
+####### End
+#######
 
