@@ -403,7 +403,6 @@ colnames(All.PAR.df)<-c("timestamp", "month",
                         "HIMB.mid", "HIMB.shall", "HIMB.deep",  
                         "Rf10.mid", "Rf10.shall", "Rf10.deep")
 
-
 # Plot it!!
 # Reef 44
 par(mfrow=c(2,2), mar=c(4,5,2,2))
@@ -456,6 +455,99 @@ legend("topright", lty=1, col=c("mediumorchid2", "gray", "rosybrown2"), legend=c
        lwd=2, bty="n", inset=c(-0.15, -0.05), seg.len=0.5, cex=0.9, x.intersp=0.2, y.intersp=0.4)
 
 dev.copy(pdf, "figures/environmental/PAR.all depths.pdf", height=7, width=8)
+dev.off()
+
+#######
+####### caluclate DLI and compare
+#######
+df<-All.PAR.df
+df$timestamp<-strptime(df$timestamp, format="%Y-%m-%d %H:%M:%S")
+df$timestamp<-as.Date(df$timestamp, format="%Y-%m-%d") # change to DATE ONLY format to calulate range, means
+df[is.na(df)] <- 0
+
+
+df.split <- split(df, f=df$timestamp
+                  < as.Date("2016-06-10", format="%Y-%m-%d")) # split df by date
+
+df.dli<-aggregate(data.frame(Rf42.shall.DLI=df.split[[1]]$Rf42.shall*0.0864,
+                             Rf42.mid.DLI=df.split[[1]]$Rf44.mid*0.0864,
+                             Rf42.deep.DLI=df.split[[1]]$Rf42.deep*0.0864,
+                             Rf44.shall.DLI=df.split[[1]]$Rf44.shall*0.0864,
+                             Rf44.mid.DLI=df.split[[1]]$Rf44.mid*0.0864,
+                             Rf44.deep.DLI=df.split[[1]]$Rf44.deep*0.0864,
+                             HIMB.shall.DLI=df.split[[1]]$HIMB.shall*0.0864,
+                             HIMB.mid.DLI=df.split[[1]]$HIMB.mid*0.0864,
+                             HIMB.deep.DLI=df.split[[1]]$HIMB.deep*0.0864,
+                             Rf10.shall.DLI=df.split[[1]]$Rf10.shall*0.0864,
+                             Rf10.mid.DLI=df.split[[1]]$Rf10.mid*0.0864,
+                             Rf10.deep.DLI=df.split[[1]]$Rf10.deep*0.0864),
+                  by=list(Date=df.split[[1]]$timestamp), FUN=mean)
+
+
+# make a date sequence for entire study
+all.date.time<-as.data.frame(seq(
+  from=as.POSIXct("2016-06-10", tz="HST"),
+  to=as.POSIXct("2017-01-12", tz="HST"),
+  by="1 d"))  
+colnames(all.date.time)[1]<-"Date"
+all.date.time$Date<-strptime(all.date.time$Date, format="%Y-%m-%d")
+all.date.time$Date<-as.Date(all.date.time$Date, format="%Y-%m-%d")
+
+df.dli<-merge(all.date.time, df.dli, by="Date", all.x=T)
+df.dli[df.dli<=0] <- NA
+
+# Plot it!!
+# Reef 44
+par(mfrow=c(2,2), mar=c(4,5,2,2))
+
+plot(y=df.dli$Rf44.shall, x=df.dli$Date, type="l", col="palegreen2", 
+     cex.main=0.7, ylab=(expression(paste("DLI"~(mol~photons~m^-2~d^-1), sep="")))
+     , xlab="", main="Reef 44", cex.main=1, ylim=c(0, 50))
+par(new=T)
+with(df.dli, lines(y=df.dli$Rf44.mid, x=df.dli$Date, type="l", col="gray"))
+par(new=T)
+with(df.dli, lines(y=df.dli$Rf44.deep, x=df.dli$Date, type="l", col="palegreen4"))
+legend("topright", lty=1, col=c("palegreen2", "gray", "palegreen4"), legend=c("<1m", "2m", "8m"), 
+       lwd=2, bty="n", inset=c(-0.15, -0.05), seg.len=0.5, cex=0.9, x.intersp=0.2, y.intersp=0.4)
+
+
+# Plot it!!
+# Reef 42
+plot(y=df.dli$Rf42.shall, x=df.dli$Date, type="l", col="dodgerblue", 
+     cex.main=0.7, ylab=(expression(paste("DLI"~(mol~photons~m^-2~d^-1), sep="")))
+     , xlab="", main="Reef 42", cex.main=1, ylim=c(0, 50))
+par(new=T)
+with(df.dli, lines(y=df.dli$Rf42.mid, x=df.dli$Date, type="l", col="gray"))
+par(new=T)
+with(df.dli, lines(y=df.dli$Rf42.deep, x=df.dli$Date, type="l", col="skyblue"))
+legend("topright", lty=1, col=c("dodgerblue", "gray", "skyblue"), legend=c("<1m", "2m", "8m"), 
+       lwd=2, bty="n", inset=c(-0.15, -0.05), seg.len=0.5, cex=0.9, x.intersp=0.2, y.intersp=0.4)
+
+# Plot it!!
+# Reef 10
+plot(y=df.dli$Rf10.shall, x=df.dli$Date, type="l", col="orangered", 
+     cex.main=0.7, ylab=(expression(paste("DLI"~(mol~photons~m^-2~d^-1), sep="")))
+     , xlab="Dates", main="Reef 10", cex.main=1, ylim=c(0, 50))
+par(new=T)
+with(df.dli, lines(y=df.dli$Rf10.mid, x=df.dli$Date, type="l", col="gray"))
+par(new=T)
+with(df.dli, lines(y=df.dli$Rf10.deep, x=df.dli$Date, type="l", col="lightsalmon3"))
+legend("topright", lty=1, col=c("orangered", "gray", "lightsalmon3"), legend=c("<1m", "2m", "8m"), 
+       lwd=2, bty="n", inset=c(-0.15, -0.05), seg.len=0.5, cex=0.9, x.intersp=0.2, y.intersp=0.4)
+
+# Plot it!
+# HIMB
+plot(y=df.dli$HIMB.shall, x=df.dli$Date, type="l", col="mediumorchid2", 
+     cex.main=0.7, ylab=(expression(paste("DLI"~(mol~photons~m^-2~d^-1), sep="")))
+     , xlab="Dates", main="HIMB", cex.main=1, ylim=c(0, 50))
+par(new=T)
+with(df.dli, lines(y=df.dli$HIMB.mid, x=df.dli$Date, type="l", col="gray"))
+par(new=T)
+with(df.dli, lines(y=df.dli$HIMB.deep, x=df.dli$Date, type="l", col="plum4"))
+legend("topright", lty=1, col=c("mediumorchid2", "gray", "rosybrown2"), legend=c("<1m", "2m", "8m"), 
+       lwd=2, bty="n", inset=c(-0.15, -0.05), seg.len=0.5, cex=0.9, x.intersp=0.2, y.intersp=0.4)
+
+dev.copy(pdf, "figures/environmental/DLIcalc.all depths.pdf", height=7, width=8)
 dev.off()
 
 #######

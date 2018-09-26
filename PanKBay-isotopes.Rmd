@@ -136,7 +136,7 @@ dev.off()
 ```
 
 #### PAR and DLI at 3 depths  
-With PAR as a factor, we can produce a continuous graph of light at 2m and use a model to predict the light at the shallow and deep zone (ca. <1m and 7m). 
+With Depth as a factor (<1m, 2m, 8m), we can produce a continuous graph of light (PAR or DLI) at 2m and use model intercepts to predict the light at the shallow and deep zones (ca. <1m and 8m, respectfully). Here, the model is $lm(log.PAR$ ~ $Depth.factor)$. 
 ```{r light as a factor figure, include=FALSE, results='hide', fig.show='hide'}
 
 
@@ -543,27 +543,27 @@ colnames(All.PAR.df)<-c("timestamp", "month",
 # Reef 44
 par(mfrow=c(2,2), mar=c(4,5,2,2))
 
-plot(y=All.PAR.df$Rf44.shall, x=All.PAR.df$timestamp, type="l", col="palegreen2", 
+plot(y=All.PAR.df$Rf44.shall, x=All.PAR.df$timestamp, type="l", col="palegreen3", 
      cex.main=0.7, ylab=(expression(paste("PAR"~(mu*mol~photons~m^-2~s^-1), sep="")))
      , xlab="", main="Northwest", cex.main=1, ylim=c(0, 2400))
 par(new=T)
 with(All.PAR.df, lines(y=All.PAR.df$Rf44.mid, x=All.PAR.df$timestamp, type="l", col="gray"))
 par(new=T)
 with(All.PAR.df, lines(y=All.PAR.df$Rf44.deep, x=All.PAR.df$timestamp, type="l", col="palegreen4"))
-legend("topright", lty=1, col=c("palegreen2", "gray", "palegreen4"), legend=c("<1m", "2m", "8m"), 
+legend("topright", lty=1, col=c("palegreen3", "gray", "palegreen4"), legend=c("<1m", "2m", "8m"), 
        lwd=2, bty="n", inset=c(0, -0.01), seg.len=1, cex=0.9, x.intersp=0.5, y.intersp=0.8)
 
 
 # Plot it!!
 # Reef 42
-plot(y=All.PAR.df$Rf42.shall, x=All.PAR.df$timestamp, type="l", col="dodgerblue", 
+plot(y=All.PAR.df$Rf42.shall, x=All.PAR.df$timestamp, type="l", col="mediumturquoise", 
      cex.main=0.7, ylab=(expression(paste("PAR"~(mu*mol~photons~m^-2~s^-1), sep="")))
      , xlab="", main="Northeast", cex.main=1, ylim=c(0, 2400))
 par(new=T)
 with(All.PAR.df, lines(y=All.PAR.df$Rf42.mid, x=All.PAR.df$timestamp, type="l", col="gray"))
 par(new=T)
-with(All.PAR.df, lines(y=All.PAR.df$Rf42.deep, x=All.PAR.df$timestamp, type="l", col="skyblue"))
-legend("topright", lty=1, col=c("dodgerblue", "gray", "skyblue"), legend=c("<1m", "2m", "8m"), 
+with(All.PAR.df, lines(y=All.PAR.df$Rf42.deep, x=All.PAR.df$timestamp, type="l", col="dodgerblue2"))
+legend("topright", lty=1, col=c("mediumturquoise", "gray", "dodgerblue2"), legend=c("<1m", "2m", "8m"), 
        lwd=2, bty="n", inset=c(0, -0.01), seg.len=1, cex=0.9, x.intersp=0.5, y.intersp=0.8)
 
 # Plot it!!
@@ -587,7 +587,7 @@ par(new=T)
 with(All.PAR.df, lines(y=All.PAR.df$HIMB.mid, x=All.PAR.df$timestamp, type="l", col="gray"))
 par(new=T)
 with(All.PAR.df, lines(y=All.PAR.df$HIMB.deep, x=All.PAR.df$timestamp, type="l", col="plum4"))
-legend("topright", lty=1, col=c("mediumorchid2", "gray", "rosybrown2"), legend=c("<1m", "2m", "8m"), 
+legend("topright", lty=1, col=c("mediumorchid2", "gray", "plum4"), legend=c("<1m", "2m", "8m"), 
        lwd=2, bty="n", inset=c(0, -0.01), seg.len=1, cex=0.9, x.intersp=0.5, y.intersp=0.8)
 
 dev.copy(pdf, "figures/environmental/PAR.all depths.pdf", height=7, width=8)
@@ -683,8 +683,8 @@ plot(y=df.dli$HIMB.shall, x=df.dli$Date, type="h", col="mediumorchid2",
 par(new=T)
 with(df.dli, lines(y=df.dli$HIMB.mid, x=df.dli$Date, type="h", col="gray"))
 par(new=T)
-with(df.dli, lines(y=df.dli$HIMB.deep, x=df.dli$Date, type="h", col="mediumorchid4"))
-legend("topright", lty=1, col=c("mediumorchid2", "gray", "mediumorchid4"), legend=c("<1m", "2m", "8m"), 
+with(df.dli, lines(y=df.dli$HIMB.deep, x=df.dli$Date, type="h", col="plum4"))
+legend("topright", lty=1, col=c("mediumorchid2", "gray", "plum4"), legend=c("<1m", "2m", "8m"), 
        lwd=2, bty="n", inset=c(0.01, 0), seg.len=1, cex=0.9, x.intersp=0.2, y.intersp=1)
 
 dev.copy(pdf, "figures/environmental/DLIcalc.all depths.pdf", height=7, width=8)
@@ -887,7 +887,8 @@ dev.copy(pdf, "figures/environmental/all.nutrients.pdf", encod="MacRoman", heigh
 dev.off()
 ```
 #### SPM
-Suspended particles were 
+Total (organic + inorganic) suspended particulate matter (SPM) was quantified by collecting and filtering 0.5 L of seawater from each location during each season. Seawater was sieved at 243 μm to remove large debris and filtered onto a pre-combusted (4h, 450°C) GF/F filter (0.7 μm). Salts were removed by light rinsing with ddH~2~O. Filters were dried at 60°C for 24h and re-weighed to closest 0.001 g to obtain total SPM. Masses were normalized to a liter of water.  
+
 ```{r, results='hide', fig.align='center', fig.dim=c(4,4)}
 ###### SPM
 spm<-read.csv("data/environmental/PanKBay_SPM.csv")
