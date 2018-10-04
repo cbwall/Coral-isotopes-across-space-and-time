@@ -139,7 +139,7 @@ colnames(ALL.PAR)
 
 ############################
 # calculate daily integrated light values for each logger
-# multiply calibrated values (umol photons m-2 s-1) by 0.0864 to reach mol photons m-2 s-1
+# multiply calibrated values (umol photons m-2 s-1) by 0.0864 to reach mol photons m-2 d-1
 # umol/s.. /1,000,000 * 24h * 60m * 60s = 0.0864... same as if you integrated over 12h
 # umol/s.. /1,000,000 * 12h * 60m * 60s = 0.0432...
 # since averaging over dark period here, best way is to get DLI across 24h period 

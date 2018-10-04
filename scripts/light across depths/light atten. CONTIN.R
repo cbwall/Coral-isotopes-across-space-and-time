@@ -1,4 +1,4 @@
-# light attenuation with Depth as CONTINUOUS to show light among depth zones
+# light attenuation with Depth CONTINUOUS to show light among depth zones
 
 
 ####################################################
@@ -51,45 +51,21 @@ Rf42.df$log.deep<-log(Rf42.df$Rf42.deep)
 Rf42.df$log.delta.mid.deep<-Rf42.df$log.mid-Rf42.df$log.deep # difference in 2m - 8m light
 Rf42.df$log.delta.mid.shal<-Rf42.df$log.mid-Rf42.df$log.shal # difference in 2m - 1m light
 Rf42.df$dm.depth<-Rf42.depths[3]-Rf42.depths[2] # difference in depth 8m - 2m
-Rf42.df$mm.depth<-Rf42.depths[2]-Rf42.depths[2] # difference in depth 2m - 2m
 Rf42.df$sm.depth<-Rf42.depths[1]-Rf42.depths[2] # difference in depth 1m - 2m
+Rf42.df$mm.depth<-Rf42.depths[2]-Rf42.depths[2] # difference in depth 2m - 2m
 
 new.df<-Rf42.df[8:11]; colnames(new.df)<-c("log.PAR.delta", "log.PAR.delta", "Depth.delta", "Depth.delta")
 new.df1<-rbind(new.df[1], new.df[2]); new.df2<-rbind(new.df[3], new.df[4])
-df.test<-cbind(new.df1, new.df2) # for both columns has delta PAR and depth
+PAR.Rf42<-cbind(new.df1, new.df2) # for both columns has delta PAR and depth
 
-kd.mod<-lm(log.PAR.delta~Depth.delta+0, data=df.test, na.action=na.exclude) # Rf42 dataframe with Depth as a factor
-kd<-coef(kd.mod)[1] # use KD here to calculate light at any depth?
-
-# example
-par(mfrow=c(3,1))
-Rf42.df$Rf42.shallow2<-Rf42.df$Rf42.mid*exp(-kd*Rf42.df$sm.depth)
-plot(Rf42.df$Rf42.shallow2~Rf42.df$Rf42.shallow, main="lm(log.PAR.delta~Depth.delta + 0)", 
-     ylab="expected PAR", xlab="SHALLOW observed PAR")
-abline(lm(Rf42.df$Rf42.shallow2~Rf42.df$Rf42.shallow), col="red"); abline(0, 1, col="green")
-legend("topleft", lty=1, col=c("red", "green"), legend=c("model", "1:1 line"), 
-       lwd=1, bty="n", seg.len=1, cex=1.1, y.intersp=0.5)
-
-Rf42.df$Rf42.mid2<-Rf42.df$Rf42.mid*exp(-kd*Rf42.df$mm.depth)
-plot(Rf42.df$Rf42.mid2~Rf42.df$Rf42.mid, main="lm(log.PAR.delta~Depth.delta + 0)", 
-     ylab="expected PAR", xlab="MID DEPTH observed PAR")
-abline(lm(Rf42.df$Rf42.mid2~Rf42.df$Rf42.mid), col="red"); abline(0, 1, col="green")
-legend("topleft", lty=1, col=c("red", "green"), legend=c("model", "1:1 line"), 
-       lwd=1, bty="n", seg.len=1, cex=1.1, y.intersp=0.5)
-
-Rf42.df$Rf42.deep2<-Rf42.df$Rf42.mid*exp(-kd*Rf42.df$dm.depth)
-plot(Rf42.df$Rf42.deep2~Rf42.df$Rf42.deep, main="lm(log.PAR.delta~Depth.delta + 0)", 
-     ylab="expected PAR", xlab="DEEP observed PAR")
-abline(lm(Rf42.df$Rf42.deep2~Rf42.df$Rf42.deep), col="red"); abline(0, 1, col="green")
-legend("topleft", lty=1, col=c("red", "green"), legend=c("model", "1:1 line"), 
-       lwd=1, bty="n", seg.len=1, cex=1.1, y.intersp=0.3)
-
+Rf42.mod<-lm(log.PAR.delta~Depth.delta+0, data=PAR.Rf42, na.action=na.exclude) # Rf42 dataframe, depth continuous
+Rf42.coef<-coef(Rf42.mod)[1] # use KD here to calculate light at any depth
 
 # making some data
 # notice that you need kd to be (+) here--or do absolute value of depth
-Rf42.df$coef.shal<-Rf42.df$Rf42.mid*exp(-kd*Rf42.df$sm.depth)
-Rf42.df$coef.mid<-Rf42.df$Rf42.mid*exp(-kd*Rf42.df$mm.depth)
-Rf42.df$coef.deep<-Rf42.df$Rf42.mid*exp(-kd*Rf42.df$dm.depth)
+Rf42.df$coef.shal<-Rf42.df$Rf42.mid*exp(-Rf42.coef*Rf42.df$sm.depth)
+Rf42.df$coef.mid<-Rf42.df$Rf42.mid*exp(-Rf42.coef*Rf42.df$mm.depth)
+Rf42.df$coef.deep<-Rf42.df$Rf42.mid*exp(-Rf42.coef*Rf42.df$dm.depth)
 
 ##################
 ##### Figure #####
@@ -141,34 +117,53 @@ HIMB.df$log.deep<-log(HIMB.df$HIMB.deep)
 
 # HIMB Depths
 HIMB.depths<-c(1*0.3048, 6*0.3048, 25*0.3048)
+# with 2m as baseline:  E(depth) = E(2m)*e^(-k_d*(depth - 2m))
+# making some log data
+HIMB.df$log.shal<-log(HIMB.df$HIMB.shallow)
+HIMB.df$log.mid<-log(HIMB.df$HIMB.mid)
+HIMB.df$log.deep<-log(HIMB.df$HIMB.deep)
 
-# making some log data using coefficients
-HIMB.df$coef.shal<-HIMB.df$log.mid*exp(-HIMB.coef*(HIMB.depths[1]))
-HIMB.df$coef.mid<-HIMB.df$log.mid*exp(-HIMB.coef*(HIMB.depths[2]))
-HIMB.df$coef.deep<-HIMB.df$log.mid*exp(-HIMB.coef*(HIMB.depths[3]))
+HIMB.df$log.delta.mid.deep<-HIMB.df$log.mid-HIMB.df$log.deep # difference in 2m - 8m light
+HIMB.df$log.delta.mid.shal<-HIMB.df$log.mid-HIMB.df$log.shal # difference in 2m - 1m light
+HIMB.df$dm.depth<-HIMB.depths[3]-HIMB.depths[2] # difference in depth 8m - 2m
+HIMB.df$sm.depth<-HIMB.depths[1]-HIMB.depths[2] # difference in depth 1m - 2m
+HIMB.df$mm.depth<-HIMB.depths[2]-HIMB.depths[2] # difference in depth 2m - 2m
 
+new.df<-HIMB.df[8:11]; colnames(new.df)<-c("log.PAR.delta", "log.PAR.delta", "Depth.delta", "Depth.delta")
+new.df1<-rbind(new.df[1], new.df[2]); new.df2<-rbind(new.df[3], new.df[4])
+PAR.HIMB<-cbind(new.df1, new.df2) # for both columns has delta PAR and depth
+
+HIMB.mod<-lm(log.PAR.delta~Depth.delta+0, data=PAR.HIMB, na.action=na.exclude) # HIMB dataframe, depth continuous
+HIMB.coef<-coef(HIMB.mod)[1] # use KD here to calculate light at any depth
+
+# making some data
+# notice that you need kd to be (+) here--or do absolute value of depth
+HIMB.df$coef.shal<-HIMB.df$HIMB.mid*exp(-HIMB.coef*HIMB.df$sm.depth)
+HIMB.df$coef.mid<-HIMB.df$HIMB.mid*exp(-HIMB.coef*HIMB.df$mm.depth)
+HIMB.df$coef.deep<-HIMB.df$HIMB.mid*exp(-HIMB.coef*HIMB.df$dm.depth)
 
 ##################
 ##### Figure #####
+# how does data compare?
 
-# plot log data
+##### plot log data collected at each site
 par(mfrow=c(2,1), mar=c(4,4,2,2))
-plot(y=HIMB.df$log.shal, x=HIMB.df$timestamp, type="l", col="mediumorchid2", 
-     main="HIMB logger (top), 2m-coeff (bottom)", cex.main=0.7, ylab="log(PAR)", 
-     xlab="", ylim=c(0,8))
+plot(y=HIMB.df$HIMB.shallow, x=HIMB.df$timestamp, type="l", col="dodgerblue", 
+     main="HIMB logger (top), 2m-coeff (bottom)", cex.main=0.7, 
+     ylab="PAR", xlab="", ylim=c(0,1500))
 par(new=T)
-with(HIMB.df, lines(y=HIMB.df$log.mid, x=HIMB.df$timestamp, type="l", col="gray"))
+with(HIMB.df, lines(y=HIMB.df$HIMB.mid, x=HIMB.df$timestamp, type="l", col="gray"))
 par(new=T)
-with(HIMB.df, lines(y=HIMB.df$log.deep, x=HIMB.df$timestamp, type="l", col="plum4"))
+with(HIMB.df, lines(y=HIMB.df$HIMB.deep, x=HIMB.df$timestamp, type="l", col="paleturquoise3"))
 
-# plot of modeled 1m and 8m using <2m model coeffs. 
-plot(y=HIMB.df$coef.shal, x=HIMB.df$timestamp, type="l", col="mediumorchid2", 
-     cex.main=0.7, ylab="log(PAR)", xlab="", ylim=c(0,8))
+##### plot of modeled 1m and 8m using <1m model coeffs. 
+plot(y=HIMB.df$coef.shal, x=HIMB.df$timestamp, type="l", col="dodgerblue", ylab="PAR", 
+     xlab="Date", ylim=c(0,1500))
 par(new=T)
 with(HIMB.df, lines(y=HIMB.df$coef.mid, x=HIMB.df$timestamp, type="l", col="gray"))
 par(new=T)
-with(HIMB.df, lines(y=HIMB.df$coef.deep, x=HIMB.df$timestamp, type="l", col="plum4"))
-legend("top", lty=1, col=c("mediumorchid2", "gray", "plum4"), legend=c("<1m", "2m", "8m"), 
+with(HIMB.df, lines(y=HIMB.df$coef.deep, x=HIMB.df$timestamp, type="l", col="paleturquoise3"))
+legend("top", lty=1, col=c("dodgerblue", "gray", "paleturquoise3"), legend=c("<1m", "2m", "8m"), 
        lwd=2, bty="n", inset=c(0, -0.5), seg.len=1, cex=1.1, xpd=TRUE, horiz=TRUE)
 
 dev.copy(pdf, "figures/environmental/PAR_data_2xcoef_HIMB.pdf", height=4, width=6)
@@ -206,16 +201,13 @@ PAR.df<-rbind(Rf44.shall, Rf44.mid, Rf44.deep, Rf10.shall, Rf10.mid, Rf10.deep)
 # Break up into each reef
 #####
 PAR.Rf44<-PAR.df[(PAR.df$Site=="Rf44"),] # just Rf44
-PAR.Rf44$Depth<-as.numeric(PAR.Rf44$Depth) # depth as factor
+PAR.Rf44$Depth<-as.numeric(PAR.Rf44$Depth) # depth as numeric
 PAR.Rf44$log.PAR<-log(PAR.Rf44$PAR)
 
-mod<-lm(log.PAR~Depth+0, data=PAR.Rf44, na.action=na.exclude) # R44 dataframe with Depth as a factor
-Rf44.coeff<-coef(mod)[1]
-
-####
 ####
 # make new dataframes for Sites
 Rf44.df<-df[1:4] 
+Rf44.depths<-c(1*0.3048, 6*0.3048, 25*0.3048)
 
 ####
 # making some log data
@@ -223,10 +215,24 @@ Rf44.df$log.shal<-log(Rf44.df$Rf44.shallow)
 Rf44.df$log.mid<-log(Rf44.df$Rf44.mid)
 Rf44.df$log.deep<-log(Rf44.df$Rf44.deep)
 
-# making some log data using coefficients
-Rf44.df$coef.shal<-Rf44.df$log.mid + shal
-Rf44.df$coef.mid<-Rf44.df$log.mid
-Rf44.df$coef.deep<-Rf44.df$log.mid + deep
+Rf44.df$log.delta.mid.deep<-Rf44.df$log.mid-Rf44.df$log.deep # difference in 2m - 8m light
+Rf44.df$log.delta.mid.shal<-Rf44.df$log.mid-Rf44.df$log.shal # difference in 2m - 1m light
+Rf44.df$dm.depth<-Rf44.depths[3]-Rf44.depths[2] # difference in depth 8m - 2m
+Rf44.df$sm.depth<-Rf44.depths[1]-Rf44.depths[2] # difference in depth 1m - 2m
+Rf44.df$mm.depth<-Rf44.depths[2]-Rf44.depths[2] # difference in depth 2m - 2m
+
+new.df<-Rf44.df[8:11]; colnames(new.df)<-c("log.PAR.delta", "log.PAR.delta", "Depth.delta", "Depth.delta")
+new.df1<-rbind(new.df[1], new.df[2]); new.df2<-rbind(new.df[3], new.df[4])
+PAR.Rf44<-cbind(new.df1, new.df2) # for both columns has delta PAR and depth
+
+Rf44.mod<-lm(log.PAR.delta~Depth.delta+0, data=PAR.Rf44, na.action=na.exclude) # Rf44 dataframe, depth continuous
+Rf44.coef<-coef(Rf44.mod)[1] # use KD here to calculate light at any depth
+
+# making some data
+# notice that you need kd to be (+) here--or do absolute value of depth
+Rf44.df$coef.shal<-Rf44.df$Rf44.mid*exp(-Rf44.coef*Rf44.df$sm.depth)
+Rf44.df$coef.mid<-Rf44.df$Rf44.mid*exp(-Rf44.coef*Rf44.df$mm.depth)
+Rf44.df$coef.deep<-Rf44.df$Rf44.mid*exp(-Rf44.coef*Rf44.df$dm.depth)
 
 ##################
 ##### Figure #####
@@ -234,22 +240,22 @@ Rf44.df$coef.deep<-Rf44.df$log.mid + deep
 
 ##### plot log data collected at each site
 par(mfrow=c(2,1), mar=c(4,4,2,2))
-plot(y=Rf44.df$log.shal, x=Rf44.df$timestamp, type="l", col="yellowgreen", 
-     main="Reef 44 logger (top), 2m-coeff (bottom)", cex.main=0.7, 
-     ylab="log(PAR)", xlab="", ylim=c(0,8))
+plot(y=Rf44.df$Rf44.shallow, x=Rf44.df$timestamp, type="l", col="dodgerblue", 
+     main="Rf44 logger (top), 2m-coeff (bottom)", cex.main=0.7, 
+     ylab="PAR", xlab="", ylim=c(0,1500))
 par(new=T)
-with(Rf44.df, lines(y=Rf44.df$log.mid, x=Rf44.df$timestamp, type="l", col="gray"))
+with(Rf44.df, lines(y=Rf44.df$Rf44.mid, x=Rf44.df$timestamp, type="l", col="gray"))
 par(new=T)
-with(Rf44.df, lines(y=Rf44.df$log.deep, x=Rf44.df$timestamp, type="l", col="palegreen4"))
+with(Rf44.df, lines(y=Rf44.df$Rf44.deep, x=Rf44.df$timestamp, type="l", col="paleturquoise3"))
 
-##### plot of modeled 2m and 8m using <1m model coeffs. 
-plot(y=Rf44.df$coef.shal, x=Rf44.df$timestamp, type="l", col="yellowgreen", ylab="log(PAR)", 
-     xlab="", ylim=c(0,8))
+##### plot of modeled 1m and 8m using <1m model coeffs. 
+plot(y=Rf44.df$coef.shal, x=Rf44.df$timestamp, type="l", col="dodgerblue", ylab="PAR", 
+     xlab="Date", ylim=c(0,1500))
 par(new=T)
 with(Rf44.df, lines(y=Rf44.df$coef.mid, x=Rf44.df$timestamp, type="l", col="gray"))
 par(new=T)
-with(Rf44.df, lines(y=Rf44.df$coef.deep, x=Rf44.df$timestamp, type="l", col="palegreen4"))
-legend("top", lty=1, col=c("yellowgreen", "gray", "palegreen4"), legend=c("<1m", "2m", "8m"), 
+with(Rf44.df, lines(y=Rf44.df$coef.deep, x=Rf44.df$timestamp, type="l", col="paleturquoise3"))
+legend("top", lty=1, col=c("dodgerblue", "gray", "paleturquoise3"), legend=c("<1m", "2m", "8m"), 
        lwd=2, bty="n", inset=c(0, -0.5), seg.len=1, cex=1.1, xpd=TRUE, horiz=TRUE)
 
 dev.copy(pdf, "figures/environmental/PAR_data_2xcoef_Rf44.pdf", height=4, width=6)
@@ -261,13 +267,11 @@ dev.off()
 PAR.Rf10<-PAR.df[(PAR.df$Site=="Rf10"),] # just Rf10
 PAR.Rf10$Depth<-as.numeric(PAR.Rf10$Depth) # depth as factor
 
-mod<-lm(log(PAR)~Depth+0, data=PAR.Rf10, na.action=na.exclude) # Rf10 dataframe with Depth as a factor
-Rf10.coeff<-coef(mod)[1]
-
 ####
 ####
 # make new dataframes for Sites
 Rf10.df<-df[, c(1,5:7)]
+Rf10.depths<-c(2*0.3048, 6*0.3048, 26*0.3048)
 
 ####
 # making some log data
@@ -275,33 +279,48 @@ Rf10.df$log.shal<-log(Rf10.df$Rf10.shallow)
 Rf10.df$log.mid<-log(Rf10.df$Rf10.mid)
 Rf10.df$log.deep<-log(Rf10.df$Rf10.deep)
 
-# making some log data using coefficients
-Rf10.df$coef.shal<-Rf10.df$log.mid + shal
-Rf10.df$coef.mid<-Rf10.df$log.mid
-Rf10.df$coef.deep<-Rf10.df$log.mid + deep
+Rf10.df$log.delta.mid.deep<-Rf10.df$log.mid-Rf10.df$log.deep # difference in 2m - 8m light
+Rf10.df$log.delta.mid.shal<-Rf10.df$log.mid-Rf10.df$log.shal # difference in 2m - 1m light
+Rf10.df$dm.depth<-Rf10.depths[3]-Rf10.depths[2] # difference in depth 8m - 2m
+Rf10.df$sm.depth<-Rf10.depths[1]-Rf10.depths[2] # difference in depth 1m - 2m
+Rf10.df$mm.depth<-Rf10.depths[2]-Rf10.depths[2] # difference in depth 2m - 2m
+
+new.df<-Rf10.df[8:11]; colnames(new.df)<-c("log.PAR.delta", "log.PAR.delta", "Depth.delta", "Depth.delta")
+new.df1<-rbind(new.df[1], new.df[2]); new.df2<-rbind(new.df[3], new.df[4])
+PAR.Rf10<-cbind(new.df1, new.df2) # for both columns has delta PAR and depth
+
+Rf10.mod<-lm(log.PAR.delta~Depth.delta+0, data=PAR.Rf10, na.action=na.exclude) # Rf10 dataframe, depth continuous
+Rf10.coef<-coef(Rf10.mod)[1] # use KD here to calculate light at any depth
+
+# making some data
+# notice that you need kd to be (+) here--or do absolute value of depth
+Rf10.df$coef.shal<-Rf10.df$Rf10.mid*exp(-Rf10.coef*Rf10.df$sm.depth)
+Rf10.df$coef.mid<-Rf10.df$Rf10.mid*exp(-Rf10.coef*Rf10.df$mm.depth)
+Rf10.df$coef.deep<-Rf10.df$Rf10.mid*exp(-Rf10.coef*Rf10.df$dm.depth)
 
 ##################
 ##### Figure #####
+# how does data compare?
 
-# plot log data
+##### plot log data collected at each site
 par(mfrow=c(2,1), mar=c(4,4,2,2))
-plot(y=Rf10.df$log.shal, x=Rf10.df$timestamp, type="l", col="orangered", 
-     main="Reef 10 logger (top), 2m-coeff (bottom)", cex.main=0.7, ylab="log(PAR)", 
-     xlab="", ylim=c(0,8))
+plot(y=Rf10.df$Rf10.shallow, x=Rf10.df$timestamp, type="l", col="dodgerblue", 
+     main="Rf10 logger (top), 2m-coeff (bottom)", cex.main=0.7, 
+     ylab="PAR", xlab="", ylim=c(0,1500))
 par(new=T)
-with(Rf10.df, lines(y=Rf10.df$log.mid, x=Rf10.df$timestamp, type="l", col="gray"))
+with(Rf10.df, lines(y=Rf10.df$Rf10.mid, x=Rf10.df$timestamp, type="l", col="gray"))
 par(new=T)
-with(Rf10.df, lines(y=Rf10.df$log.deep, x=Rf10.df$timestamp, type="l", col="rosybrown2"))
+with(Rf10.df, lines(y=Rf10.df$Rf10.deep, x=Rf10.df$timestamp, type="l", col="paleturquoise3"))
 
-# plot of modeled 2m and 8m using <1m model coeffs. 
-plot(y=Rf10.df$coef.shal, x=Rf10.df$timestamp, type="l", col="orangered", 
-     cex.main=0.7, ylab="log(PAR)", xlab="", ylim=c(0,8))
+##### plot of modeled 1m and 8m using <1m model coeffs. 
+plot(y=Rf10.df$coef.shal, x=Rf10.df$timestamp, type="l", col="dodgerblue", ylab="PAR", 
+     xlab="Date", ylim=c(0,1500))
 par(new=T)
 with(Rf10.df, lines(y=Rf10.df$coef.mid, x=Rf10.df$timestamp, type="l", col="gray"))
 par(new=T)
-with(Rf10.df, lines(y=Rf10.df$coef.deep, x=Rf10.df$timestamp, type="l", col="rosybrown2"))
-legend("top", lty=1, col=c("orangered", "gray", "rosybrown2"), legend=c("<1m", "2m", "8m"), 
-       lwd=2, bty="n", inset=c(0, -0.45), seg.len=1, cex=0.9, xpd=TRUE, horiz=TRUE)
+with(Rf10.df, lines(y=Rf10.df$coef.deep, x=Rf10.df$timestamp, type="l", col="paleturquoise3"))
+legend("top", lty=1, col=c("dodgerblue", "gray", "paleturquoise3"), legend=c("<1m", "2m", "8m"), 
+       lwd=2, bty="n", inset=c(0, -0.5), seg.len=1, cex=1.1, xpd=TRUE, horiz=TRUE)
 
 dev.copy(pdf, "figures/environmental/PAR_data_2xcoef_Rf10.pdf", height=4, width=6)
 dev.off()
@@ -309,160 +328,9 @@ dev.off()
 ########
 ########
 # combine all coefficients
-all.coefficients<-rbind(Rf42.coeff, HIMB.coeff, Rf44.coeff, Rf10.coeff)
+all.coefficients<-rbind(Rf42.coef, HIMB.coef, Rf44.coef, Rf10.coef)
 write.csv(all.coefficients, "data/environmental/light coeff_cont.csv")
 
 ###########
-###########
+########### End
 ########### 
-
-
-#########################
-#########################
-#########################
-
-##### 
-##### all PAR
-files <- list.files(path="data/environmental/temp and light/Jun_DecPAR/all PAR", pattern = "csv$", full.names = T)
-tables <- lapply(files, read.csv, header = TRUE)
-All.PAR<-do.call(rbind, tables)
-All.PAR=All.PAR[-1]
-All.PAR$timestamp<-as.POSIXct(All.PAR$timestamp) # fix date
-
-# make a date sequence for entire study
-all.date.time<-as.data.frame(seq(
-  from=as.POSIXct("2016-06-10 00:00:00", tz="HST"),
-  to=as.POSIXct("2017-01-12 00:00:00", tz="HST"),
-  by="15 min"))  
-colnames(all.date.time)[1]<-"timestamp"
-
-# merge the PAR data and the date sequence to make a complete df through time
-PAR.3site<-merge(all.date.time, All.PAR, by="timestamp", all.x=T)
-R10.par<-read.csv("data/environmental/temp and light/Jun_DecPAR/all PAR/Reef 10/Rf10.PAR.csv")
-R10.par<-R10.par[-1]; R10.par$timestamp<-as.POSIXct(R10.par$timestamp)
-
-PAR.4site<-merge(PAR.3site, R10.par, by="timestamp", all.x=T)
-PAR.4site$month <- months(as.Date(PAR.4site$timestamp)) # makes a month column
-PAR.4site<-PAR.4site[, c(1,6, 2:5)]
-
-# determine monthly mean for PAR during deployments at depth
-write.csv(PAR.4site, "data/environmental/temp and light/Jun_DecPAR/All.PAR.csv")
-
-
-###########
-###########
-########### 
-# read in all PAR data at 2m and model what the 1m and 8m data would look like
-df<-PAR.4site # all the instantaneous light data
-df[df<=1] <- NA
-
-coeffs<-read.csv("data/environmental/light coeffs.csv") # modeled coefficients
-colnames(coeffs)<-c("Site", "Intercept", "shal.coeff", "deep.coeff")
-
-# log transform PAR data to determine light at depth, then reverse transform
-
-## example calcs
-# df$log.shal<-df$log.mid - mid.coeff
-# df$log.mid<-df$log.mid
-# df$log.deep<-df$log.mid - mid.coeff + deep.coeff
-
-df$logRf42.mid<-log(df$Rf42.mid)
-df$logRf42.shall<-log(df$Rf42.mid) + coeffs[1,3]
-df$logRf42.deep<-log(df$Rf42.mid) + coeffs[1,4]
-
-df$logHIMB.mid<-log(df$HIMB.mid)
-df$logHIMB.shall<-log(df$HIMB.mid) + coeffs[2,3]
-df$logHIMB.deep<-log(df$HIMB.mid) + coeffs[2,4]
-
-df$logRf44.mid<-log(df$Rf44.mid)
-df$logRf44.shall<-log(df$Rf44.mid) + coeffs[3,3]
-df$logRf44.deep<-log(df$Rf44.mid) + coeffs[3,4]
-
-df$logRf10.mid<-log(df$Rf10.mid)
-df$logRf10.shall<-log(df$Rf10.mid) + coeffs[4,3]
-df$logRf10.deep<-log(df$Rf10.mid) + coeffs[4,4]
-
-
-df$bt.Rf42.mid<-1*exp(df$logRf42.mid)
-df$bt.Rf42.shall<-1*exp(df$logRf42.shall)
-df$bt.Rf42.deep<-1*exp(df$logRf42.deep)
-
-df$bt.Rf44.mid<-1*exp(df$logRf44.mid)
-df$bt.Rf44.shall<-1*exp(df$logRf44.shall)
-df$bt.Rf44.deep<-1*exp(df$logRf44.deep)
-
-df$bt.HIMB.mid<-1*exp(df$logHIMB.mid)
-df$bt.HIMB.shall<-1*exp(df$logHIMB.shall)
-df$bt.HIMB.deep<-1*exp(df$logHIMB.deep)
-
-df$bt.Rf10.mid<-1*exp(df$logRf10.mid)
-df$bt.Rf10.shall<-1*exp(df$logRf10.shall)
-df$bt.Rf10.deep<-1*exp(df$logRf10.deep)
-
-
-All.PAR.df<-df[, (names(df) %in% c("timestamp", "month", 
-                                   "bt.Rf42.shall", "bt.Rf42.mid", "bt.Rf42.deep",
-                                   "bt.Rf44.shall", "bt.Rf44.mid", "bt.Rf44.deep", 
-                                   "bt.HIMB.shall", "bt.HIMB.mid", "bt.HIMB.deep",  
-                                   "bt.Rf10.shall", "bt.Rf10.mid", "bt.Rf10.deep"))]
-
-colnames(All.PAR.df)<-c("timestamp", "month", 
-                        "Rf42.mid", "Rf42.shall", "Rf42.deep",
-                        "Rf44.mid", "Rf44.shall", "Rf44.deep", 
-                        "HIMB.mid", "HIMB.shall", "HIMB.deep",  
-                        "Rf10.mid", "Rf10.shall", "Rf10.deep")
-
-
-# Plot it!!
-# Reef 44
-par(mfrow=c(2,2), mar=c(4,5,2,2))
-
-plot(y=All.PAR.df$Rf44.shall, x=All.PAR.df$timestamp, type="l", col="palegreen2", 
-     cex.main=0.7, ylab=(expression(paste("PAR"~(mu*mol~photons~m^-2~s^-1), sep="")))
-     , xlab="", main="Reef 44", cex.main=1, ylim=c(0, 2400))
-par(new=T)
-with(All.PAR.df, lines(y=All.PAR.df$Rf44.mid, x=All.PAR.df$timestamp, type="l", col="gray"))
-par(new=T)
-with(All.PAR.df, lines(y=All.PAR.df$Rf44.deep, x=All.PAR.df$timestamp, type="l", col="palegreen4"))
-legend("topright", lty=1, col=c("palegreen2", "gray", "palegreen4"), legend=c("<1m", "2m", "8m"), 
-       lwd=2, bty="n", inset=c(-0.25, -0.05), seg.len=0.5, cex=0.9, x.intersp=0.2, y.intersp=0.4)
-
-
-# Plot it!!
-# Reef 42
-plot(y=All.PAR.df$Rf42.shall, x=All.PAR.df$timestamp, type="l", col="dodgerblue", 
-     cex.main=0.7, ylab=(expression(paste("PAR"~(mu*mol~photons~m^-2~s^-1), sep="")))
-     , xlab="", main="Reef 42", cex.main=1, ylim=c(0, 2400))
-par(new=T)
-with(All.PAR.df, lines(y=All.PAR.df$Rf42.mid, x=All.PAR.df$timestamp, type="l", col="gray"))
-par(new=T)
-with(All.PAR.df, lines(y=All.PAR.df$Rf42.deep, x=All.PAR.df$timestamp, type="l", col="paleturquoise3"))
-legend("topright", lty=1, col=c("dodgerblue", "gray", "paleturquoise3"), legend=c("<1m", "2m", "8m"), 
-       lwd=2, bty="n", inset=c(-0.25, -0.05), seg.len=0.5, cex=0.9, x.intersp=0.2, y.intersp=0.4)
-
-# Plot it!!
-# Reef 10
-plot(y=All.PAR.df$Rf10.shall, x=All.PAR.df$timestamp, type="l", col="orangered", 
-     cex.main=0.7, ylab=(expression(paste("PAR"~(mu*mol~photons~m^-2~s^-1), sep="")))
-     , xlab="Dates", main="Reef 10", cex.main=1, ylim=c(0, 2400))
-par(new=T)
-with(All.PAR.df, lines(y=All.PAR.df$Rf10.mid, x=All.PAR.df$timestamp, type="l", col="gray"))
-par(new=T)
-with(All.PAR.df, lines(y=All.PAR.df$Rf10.deep, x=All.PAR.df$timestamp, type="l", col="sandybrown"))
-legend("topright", lty=1, col=c("orangered", "gray", "sandybrown"), legend=c("<1m", "2m", "8m"), 
-       lwd=2, bty="n", inset=c(-0.25, -0.05), seg.len=0.5, cex=0.9, x.intersp=0.2, y.intersp=0.4)
-
-# Plot it!
-# HIMB
-plot(y=All.PAR.df$HIMB.shall, x=All.PAR.df$timestamp, type="l", col="mediumorchid2", 
-     cex.main=0.7, ylab=(expression(paste("PAR"~(mu*mol~photons~m^-2~s^-1), sep="")))
-     , xlab="Dates", main="HIMB", cex.main=1, ylim=c(0, 2400))
-par(new=T)
-with(All.PAR.df, lines(y=All.PAR.df$HIMB.mid, x=All.PAR.df$timestamp, type="l", col="gray"))
-par(new=T)
-with(All.PAR.df, lines(y=All.PAR.df$HIMB.deep, x=All.PAR.df$timestamp, type="l", col="plum4"))
-legend("topright", lty=1, col=c("mediumorchid2", "gray", "rosybrown2"), legend=c("<1m", "2m", "8m"), 
-       lwd=2, bty="n", inset=c(-0.25, -0.05), seg.len=0.5, cex=0.9, x.intersp=0.2, y.intersp=0.4)
-
-dev.copy(pdf, "figures/environmental/PAR.all depths.pdf", height=7, width=8)
-dev.off()

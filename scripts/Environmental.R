@@ -211,7 +211,7 @@ Fig.formatting<-(theme_classic()) +
           margin=unit(c(0.5, 0.5, 0.5, 0.5), "cm"), colour="black", size=10)) +
   theme(legend.key.size = unit(0.4, "cm")) 
 
-pd <- position_dodge(0.71) #offset for error bars and columns
+pd <- position_dodge(0.7) #offset for error bars and columns
 
 # SPM (mg/l)
 Fig.SPM<-ggplot(spm.df, aes(x=Date, y=SPM, fill=Location)) +
@@ -221,6 +221,6 @@ Fig.SPM<-ggplot(spm.df, aes(x=Date, y=SPM, fill=Location)) +
   ylab(expression(paste("SPM", ~(mg~L^-1), sep=""))) +
   scale_x_discrete(labels=Date) +
   scale_y_continuous(expand=c(0,0), limits=c(0, 5)) +
-  scale_fill_manual(values=c("gray92", "gray72", "gray50", "gray10"),
+  scale_fill_manual(values=plot_colors,
                     labels=Reefs)+ Fig.formatting; Fig.SPM
 ggsave(file="figures/environmental/SPM.pdf")

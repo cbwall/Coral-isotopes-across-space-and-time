@@ -12,8 +12,9 @@ output:
     toc: yes
     toc_depth: '4'
 ---
-```{r setup chunk, setup}
-knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE, fig.align='center')
+```{r setup chunk, setup, warning=FALSE, message=FALSE, fig.align='center'}
+require("knitr")
+knitr::opts_chunk$set(warning=FALSE, message=FALSE, fig.align='center')
 
 library(ggplot2)
 library(plyr)
@@ -1342,7 +1343,7 @@ dev.off()
 #### Gravimetric SPM
 Total (organic + inorganic) suspended particulate matter (SPM) was quantified by collecting and filtering 0.5 L of seawater from each location during each season. Seawater was sieved at 243 μm to remove large debris and filtered onto a pre-combusted (4h, 450°C) GF/F filter (0.7 μm). Salts were removed by light rinsing with ddH~2~O. Filters were dried at 60°C for 24h and re-weighed to closest 0.001 g to obtain total SPM. Masses were normalized to a liter of water.  
 
-```{r SPM models and figrues, fig.dim=c(6,4)}
+```{r SPM models and figrues, fig.dim=c(6,3.5)}
 ###### SPM
 spm<-read.csv("data/environmental/PanKBay_SPM.csv")
 spm$SPM..g.l<-spm$SPM..g.l*1000 # change to mg
@@ -1490,14 +1491,14 @@ mix.data<-cbind(mix.N.mean, mix.C.mean[c(2,0)], mix.N.SE[c(2,0)], mix.C.SE[c(2,0
 colors=c("#FF6A6A", "#00B2EE", "#FFB90F", "#3CB371", "#8B7500")
 op<-par(mfrow = c(1,1), mar=c(5,4,1,5),xpd=TRUE, pty="sq")
 
-size.labels=c(expression(paste("> 243"~mu,m)), expression(paste("< 243"~mu,m)), expression(paste("100-243"~mu,m)), expression(paste("10-100"~mu,m)), expression(paste("0-10"~mu,m)))
+size.labels=c(expression(paste("> 243"~mu,m)), expression(paste("< 243"~mu,m)), expression(paste("100-243"~mu,m)), expression(paste("10-100"~mu,m)), expression(paste("< 10"~mu,m)))
 
 #### make the plot
 plot(d15N~d13C, data=mix.data, type="n", ylim=c(4.5,8), xlim=c(-23,-17), tck=-0.03, cex.axis=0.7, cex.lab=0.7,
      ylab=expression(paste(delta^{15}, "N (‰, air)")), xlab=expression(paste(delta^{13}, "C (‰, V-PDB)")))
 legend("topleft", inset=c(0.05,0.0), legend=size.labels, col=colors, pch=19, cex=0.6, bty="n", x.intersp=1.8, y.intersp = 1.4)
-arrows(mix.data$d13C-mix.data$d13C.SE, mix.data$d15N, mix.data$d13C+mix.data$d13C.SE, mix.data$d15N, length=0.0, angle=90, code=3, lwd=0.7)
-arrows(mix.data$d13C, mix.data$d15N-mix.data$d15N.SE, mix.data$d13C, mix.data$d15N+mix.data$d15N.SE, length=0.0, angle=90, code=3, lwd=0.7)
+arrows(mix.data$d13C-mix.data$d13C.SE, mix.data$d15N, mix.data$d13C+mix.data$d13C.SE, mix.data$d15N, length=0.0, angle=90, code=3, lwd=0.7, col=colors)
+arrows(mix.data$d13C, mix.data$d15N-mix.data$d15N.SE, mix.data$d13C, mix.data$d15N+mix.data$d15N.SE, length=0.0, angle=90, code=3, lwd=0.7, col=colors)
 points(d15N~d13C, data=mix.data, pch=19, cex=0.8, col=colors)
 
 dev.copy(pdf, "figures/environmental/iso.sources.KBay.pdf", encod="MacRoman", height=4, width=4)
@@ -1655,9 +1656,9 @@ data.trim$symb..C.N[data.trim$symb..C.N>=12.520270]=NA # set this outlier to NA
 ```
 
 **qPCR figure**
-The distribution of C and D symbiont types is modeled using a logistic regression with dominant symbiont community (C vs. D) as a response and *Light-at-depth*, *Season*, and reef *Location* as a predictor. A  generalized linear model with a binomial distribution and logit link function is used. Model selection (by model AIC values) between a fully crossed model (*crossed*) and additive model (*add*) were compared. The additive mode best fit the data; main effects were tested in *anova* with a Chi-square test.  
+The distribution of C and D symbiont types is modeled using a logistic regression with dominant symbiont community (C vs. D) as a response and *Depth (m)*, *Season*, and reef *Location* as a predictor. A  generalized linear model with a binomial distribution and logit link function is used. Model selection (by model AIC values) between a fully crossed model (*crossed*) and additive model (*add*) were compared. The additive mode best fit the data; main effects were tested in *anova* with a Chi-square test.  
 
-```{r qPCR models, fig.show='hold', fig.dim=c(6,6)}
+```{r qPCR models, fig.dim=c(6,4)}
 ## qPCR figures
 
 #####
@@ -1676,124 +1677,39 @@ Symb<-model.data
 Symb$Location <- factor(Symb$Location, levels = c("F1-R46", "R42", "F8-R10", "HIMB")) # set levels
 
 Symb$Dominant <- ifelse(Symb$Dom=="D", 1, 0)
-add <-glm(Dominant~Light+Season+Location, family = "binomial", data = Symb)
-crossed <-glm(Dominant~Light*Season*Location, family = "binomial", data = Symb)
-# anova(add, crossed) # additive model best
-anova(add, test = "Chisq")
+add <-glm(Dominant~newDepth+Season+Location, family = "binomial", data = Symb)
+crossed <-glm(Dominant~newDepth*Season+Location, family = "binomial", data = Symb)
+AIC(add, crossed) # additive model best
+anova(crossed, test = "Chisq")
 
-results.all<-add
+results.all<-crossed
 
 #summary(results.all)
-plot(allEffects(results.all))
-posthoc<-emmeans(results.all, ~Location, type = "response") # adding 'response' backtransforms data
-CLD(posthoc, Letters=letters)
+plot(allEffects(results.all), par.strip.text=list(cex=0.6))
 
-results.all.mod <-glm(Dominant~Light, family = "binomial", data = Symb)
-fitted.all <- predict(results.all.mod, newdata = list(Light=seq(0,25,0.1)), type = "response")
-
-###### summer only symbionts
-sum.dat<-Symb[(Symb$Season=="summer"),]
-results.sum=glm(Dominant~Light, family = "binomial", data = sum.dat)
-anova(results.sum, test = "Chisq")
-#summary(results.sum)
-fitted.sum <- predict(results.sum, newdata = list(Light=seq(0,25,0.1)), type = "response")
-# plot(fitted.sum, ylab="proportion D", ylim=c(0,1))
-
-###### winter only symbionts
-wint.dat<-Symb[(Symb$Season=="winter"),]
-results.win=glm(Dominant~Light, family = "binomial", data = wint.dat)
-anova(results.win, test = "Chisq")
-#summary(results.win)
-fitted.win <- predict(results.win, newdata = list(Light=seq(0,25,0.1)), type = "response")
-# plot(fitted.win, ylab="proportion D", ylim=c(0,1))
-```
-  
-Logistic regression of the probability of *Montipora capitata* have a clade D-dominant symbiont community (probability of 1.0) versus one dominated by clade C symbiont (probability of 0). Both seasons show similar patterns, although the probability of corals being clade D-dominant increases in winter months as a function of light-at-depth relative to summer months. This likely is explained by much less light in winter months and a reduced magnitude in the attenuation gradient across depth.  
-  
-```{r qPCR figures, results="hide",fig.dim=c(6,6), fig.align='center', fig.cap="**Figure** Probability of *Montipora capitata* hosting clade D symbionts across a light availability (DLI) gradient in summer and winter seasons. Lines represent model fit to data by logistic regression for summer alone, winter alone, and combined (summer + winter) data"}
-
-######
-######
-## Figure of Dominant symbiont clades across seasons
-## **Note** where points equal 0.0 is 100% D, where they equal 0 is 100% C
-par(mar=c(5,4,3,2))
-plot(sum.dat$propD~sum.dat$Light, xlab="Light (DLI)", ylab = "Proportion of Clade D Symbiont", pch=19, col="salmon", xlim=c(0,25), ylim=c(0.0, 1.0), cex=0.5)
-par(new=T)
-plot(wint.dat$propD~wint.dat$Light, pch=19, col="lightskyblue", xlim=c(0,25), ylim=c(0.0, 1.0), xaxt="n", xlab="", ylab="", cex=0.5)
-lines(fitted.all ~ seq(0,25,0.1), col="gray30", lwd=1, lty=2)
-lines(fitted.sum ~ seq(0,25,0.1), col="coral", lwd=1)
-lines(fitted.win ~ seq(0,25,0.1), col="lightskyblue", lwd=1)
-legend("bottomright", pch=c(19,19, NA), lty=c(1,1,2), col=c("coral", "lightskyblue", "gray30"), legend=c("Summer", "Winter", "Combined"), lwd=1, bty="n", x.intersp=1, pt.cex=0.8, y.intersp=2, cex=0.7, inset=c(0.0, 0.15), seg.len=3)
-
-dev.copy(pdf, "figures/symbionts/Symbionts_by_Season_light.pdf", encod="MacRoman", height=4, width=4)
-dev.off()
-```
-  
-Seen another way--**Histograms**. By separating these data into 2 histograms the probability of clade D- (1.0) and clade C-dominance (0.0) can be visualized. Here it is clear that there is a greater probability of finding corals with clade D dominant communites in the shallows during summer times, whereas in winter there is a slightly greater probability of finding clade D in corals with increasing depth/low light.
-```{r Symbiont qPCR and light at depth histograms by seasons, results='hide', fig.dim=c(6,6), fig.cap="**Figure** Histograms of probability of *Montipora capitata* hosting clade D symbionts across a gradient in light availability (DLI) among seasons. Lines represent model fit to data by logistic regression"}
-#######
-#######
-par(mfrow=c(1,2))
-Dom1 <- subset(Symb, !is.na(newDepth) & !is.na(Dominant))
-Dom.sum<-Dom1[(Dom1$Season=="summer"),]
-Dom.win<-Dom1[(Dom1$Season=="winter"),]
-
-logi.hist.plot(Dom.sum$Light, Dom.sum$Dominant, boxp = FALSE, type = "hist", col="coral", xlabel = "Light (DLI)", ylabel = "", ylabel2 = "", main="summer")
-mtext(side = 2, text = "Probability of Clade D", line = 3, cex = 1)
-
-logi.hist.plot(Dom.win$Light, Dom.win$Dominant, boxp = FALSE, type = "hist", col="lightskyblue", xlabel = "Light (DLI)", ylabel = "", ylabel2 = "", main="winter")
-mtext(side = 4, text = "Frequency", line = 0.5, cex=1)
-mtext(side = 4, text = "C                                             D", line = 0.5, cex = 0.8)
-dev.copy(pdf, "figures/symbionts/Symb_Season_Light_logistic.pdf", encod="MacRoman", height=5, width=8)
-dev.off()
-```
-  
-  
-If we use **Depth (m)** as a predictor, main effects in logstic regression (i.e., glm) are comparable to logistic regressions with respect to *light-at-depth* (effect of Depth in glm *p* <0.001), but seasonal effects are absent (Season effect is *p* = 0.747).  
-
-Predictions of depth effects on the proability of clade D dominance using a glm with *depth alone* in both seasons, together and separately, are seen in the figure.
-  
-```{r Depth as predictor in qPCR, results='hide', fig.dim=c(6,6), fig.align='center', fig.cap="**Figure** Probability of *Montipora capitata* hosting clade D symbionts across a **DEPTH gradient** in summer and winter seasons. Lines represent model fit to data by logistic regression for summer alone, winter alone, and combined (summer + winter) data"}
-#########################
-#########################
-
-# this code runs the same as above, except using colony depth as a predictor instead of light-at-depth
-
-
-# Depth as a predictor
-# qPCR and symbionts
-
-#########################
-###### Plot Dominant Symbiont and Depth (both seasons)
-Symb<-model.data
-Symb$Dominant <- ifelse(Symb$Dom=="D", 1, 0)
-add<-glm(Dominant~newDepth+Season+Location, family = "binomial", data = Symb)
-crossed<-glm(Dominant~newDepth*Season*Location, family = "binomial", data = Symb)
-#AIC(add, crossed)
-
-anova(add, test = "Chisq")
-#summary(add)
-
-results.all<-add
-
-results.all.mod<-glm(Dominant~newDepth, family = "binomial", data = Symb)
+results.all.mod <-glm(Dominant~newDepth, family = "binomial", data = Symb)
 fitted.all <- predict(results.all.mod, newdata = list(newDepth=seq(0,10,0.1)), type = "response")
 
 ###### summer only symbionts
 sum.dat<-Symb[(Symb$Season=="summer"),]
-results.sum<-glm(Dominant~newDepth, family = "binomial", data = sum.dat)
-#anova(results.sum, test = "Chisq")
+results.sum=glm(Dominant~newDepth, family = "binomial", data = sum.dat)
+anova(results.sum, test = "Chisq")
 #summary(results.sum)
 fitted.sum <- predict(results.sum, newdata = list(newDepth=seq(0,10,0.1)), type = "response")
 # plot(fitted.sum, ylab="proportion D", ylim=c(0,1))
 
 ###### winter only symbionts
 wint.dat<-Symb[(Symb$Season=="winter"),]
-results.win<-glm(Dominant~newDepth, family = "binomial", data = wint.dat)
-#anova(results.win, test = "Chisq")
+results.win=glm(Dominant~newDepth, family = "binomial", data = wint.dat)
+anova(results.win, test = "Chisq")
 #summary(results.win)
 fitted.win <- predict(results.win, newdata = list(newDepth=seq(0,10,0.1)), type = "response")
 # plot(fitted.win, ylab="proportion D", ylim=c(0,1))
+```
+  
+Logistic regression of the probability of *Montipora capitata* have a clade D-dominant symbiont community (probability of 1.0) versus one dominated by clade C symbiont (probability of 0). Both seasons show similar patterns, although the probability of corals being clade D-dominant increases in winter months as a function of Depth relative to summer months.  
+  
+```{r qPCR figures, results="hide",fig.dim=c(5,4), fig.cap="**Figure** Probability of *Montipora capitata* hosting clade D symbionts across a depth gradient in summer and winter seasons. Lines represent model fit to data by logistic regression for summer alone, winter alone, and combined (summer + winter) data"}
 
 ######
 ######
@@ -1806,19 +1722,20 @@ plot(wint.dat$propD~wint.dat$newDepth, pch=19, col="lightskyblue", xlim=c(0,10),
 lines(fitted.all ~ seq(0,10,0.1), col="gray30", lwd=1, lty=2)
 lines(fitted.sum ~ seq(0,10,0.1), col="coral", lwd=1)
 lines(fitted.win ~ seq(0,10,0.1), col="lightskyblue", lwd=1)
-legend("topright", pch=c(19,19, NA), lty=c(1,1,2), col=c("coral", "lightskyblue", "gray30"), legend=c("Summer", "Winter", "Combined"), lwd=1, bty="n", x.intersp=1, pt.cex=0.7, y.intersp=2, cex=0.5, inset=c(0, 0.15), seg.len=3)
+legend("bottomright", pch=c(19,19, NA), lty=c(1,1,2), col=c("coral", "lightskyblue", "gray30"), legend=c("Summer", "Winter", "Combined"), lwd=1, bty="n", x.intersp=1, pt.cex=0.8, y.intersp=2, cex=0.7, inset=c(0.0, 0.15), seg.len=3)
 
-dev.copy(pdf, "figures/symbionts/Symbionts_by_Season.pdf", encod="MacRoman", height=4, width=4)
+dev.copy(pdf, "figures/symbionts/Symbionts_by_Season_depth.pdf", encod="MacRoman", height=4, width=4)
 dev.off()
 ```
-
-```{r histogram by depth, results='hide'}
+  
+Seen another way--**Histograms**. By separating these data into 2 histograms the probability of clade D- (1.0) and clade C-dominance (0.0) can be visualized. Here it is clear that there is a greater probability of finding corals with clade D dominant communites at shallow depths, whereas in winter there is a slightly greater probability of finding clade D in corals with increasing depth.
+```{r Symbiont qPCR and light at depth histograms by seasons, results='hide', fig.dim=c(6,4), fig.cap="**Figure** Histograms of probability of *Montipora capitata* hosting clade D symbionts across a depth gradient among seasons. Lines represent model fit to data by logistic regression"}
 #######
 #######
 par(mfrow=c(1,2))
-Dom1 <- subset(Symb, !is.na(newDepth) & !is.na(Dominant))
-Dom.sum<-Dom1[(Dom1$Season=="summer"),]
-Dom.win<-Dom1[(Dom1$Season=="winter"),]
+Dom <- subset(Symb, !is.na(newDepth) & !is.na(Dominant))
+Dom.sum<-Dom[(Dom$Season=="summer"),]
+Dom.win<-Dom[(Dom$Season=="winter"),]
 
 logi.hist.plot(Dom.sum$newDepth, Dom.sum$Dominant, boxp = FALSE, type = "hist", col="coral", xlabel = "Depth (m)", ylabel = "", ylabel2 = "", main="summer")
 mtext(side = 2, text = "Probability of Clade D", line = 3, cex = 1)
@@ -1826,7 +1743,84 @@ mtext(side = 2, text = "Probability of Clade D", line = 3, cex = 1)
 logi.hist.plot(Dom.win$newDepth, Dom.win$Dominant, boxp = FALSE, type = "hist", col="lightskyblue", xlabel = "Depth (m)", ylabel = "", ylabel2 = "", main="winter")
 mtext(side = 4, text = "Frequency", line = 0.5, cex=1)
 mtext(side = 4, text = "C                                             D", line = 0.5, cex = 0.8)
-dev.copy(pdf, "figures/symbionts/Symb_Season_Depth_logistic.pdf", encod="MacRoman", height=5, width=8)
+dev.copy(pdf, "figures/symbionts/Symb_Season_Light_logistic.pdf", encod="MacRoman", height=5, width=8)
+dev.off()
+```
+
+  
+```{r Light at depth as predictor in qPCR, results='hide', fig.dim=c(6,6), fig.align='center', fig.cap="**Figure** Probability of *Montipora capitata* hosting clade D symbionts across a **LIGHT gradient** in summer and winter seasons. Lines represent model fit to data by logistic regression for summer alone, winter alone, and combined (summer + winter) data", eval=FALSE}
+#
+#########################
+#########################
+
+# this code runs the same as above, except using colony LIGHT-AT-DEPTH as a predictor instead of depth
+
+# Depth as a predictor
+# qPCR and symbionts
+
+#########################
+###### Plot Dominant Symbiont and Depth (both seasons)
+Symb<-model.data
+Symb$Dominant <- ifelse(Symb$Dom=="D", 1, 0)
+add<-glm(Dominant~Light+Season+Location, family = "binomial", data = Symb)
+crossed<-glm(Dominant~Light*Season*Location, family = "binomial", data = Symb)
+#AIC(add, crossed)
+
+anova(add, test = "Chisq")
+#summary(add)
+
+results.all<-add
+
+results.all.mod<-glm(Dominant~Light, family = "binomial", data = Symb)
+fitted.all <- predict(results.all.mod, newdata = list(Light=seq(0,25,0.1)), type = "response")
+
+###### summer only symbionts
+sum.dat<-Symb[(Symb$Season=="summer"),]
+results.sum<-glm(Dominant~Light, family = "binomial", data = sum.dat)
+#anova(results.sum, test = "Chisq")
+#summary(results.sum)
+fitted.sum <- predict(results.sum, newdata = list(Light=seq(0,25,0.1)), type = "response")
+# plot(fitted.sum, ylab="proportion D", ylim=c(0,1))
+
+###### winter only symbionts
+wint.dat<-Symb[(Symb$Season=="winter"),]
+results.win<-glm(Dominant~Light, family = "binomial", data = wint.dat)
+#anova(results.win, test = "Chisq")
+#summary(results.win)
+fitted.win <- predict(results.win, newdata = list(Light=seq(0,25,0.1)), type = "response")
+# plot(fitted.win, ylab="proportion D", ylim=c(0,1))
+
+######
+######
+## Figure of Dominant symbiont clades across seasons
+## **Note** where points equal 0.0 is 100% D, where they equal 0 is 100% C
+par(mar=c(5,4,3,2))
+plot(sum.dat$propD~sum.dat$Light, xlab="Depth (m)", ylab = "Proportion of Clade D Symbiont", pch=19, col="salmon", xlim=c(0,25), ylim=c(0.0, 1.0), cex=0.5)
+par(new=T)
+plot(wint.dat$propD~wint.dat$newDepth, pch=19, col="lightskyblue", xlim=c(0,25), ylim=c(0.0, 1.0), xaxt="n", xlab="", ylab="", cex=0.5)
+lines(fitted.all ~ seq(0,25,0.1), col="gray30", lwd=1, lty=2)
+lines(fitted.sum ~ seq(0,25,0.1), col="coral", lwd=1)
+lines(fitted.win ~ seq(0,25,0.1), col="lightskyblue", lwd=1)
+legend("topright", pch=c(19,19, NA), lty=c(1,1,2), col=c("coral", "lightskyblue", "gray30"), legend=c("Summer", "Winter", "Combined"), lwd=1, bty="n", x.intersp=1, pt.cex=0.7, y.intersp=2, cex=0.5, inset=c(0, 0.15), seg.len=3)
+
+dev.copy(pdf, "figures/symbionts/Symbionts_by_Season_light.pdf", encod="MacRoman", height=4, width=4)
+dev.off()
+
+
+#######
+#######
+par(mfrow=c(1,2))
+Dom <- subset(Symb, !is.na(Light) & !is.na(Dominant))
+Dom.sum<-Dom[(Dom$Season=="summer"),]
+Dom.win<-Dom[(Dom$Season=="winter"),]
+
+logi.hist.plot(Dom.sum$Light, Dom.sum$Dominant, boxp = FALSE, type = "hist", col="coral", xlabel = "Light-at-depth (DLI)", ylabel = "", ylabel2 = "", main="summer")
+mtext(side = 2, text = "Probability of Clade D", line = 3, cex = 1)
+
+logi.hist.plot(Dom.win$Light, Dom.win$Dominant, boxp = FALSE, type = "hist", col="lightskyblue", xlabel = "Light-at-depth (DLI)", ylabel = "", ylabel2 = "", main="winter")
+mtext(side = 4, text = "Frequency", line = 0.5, cex=1)
+mtext(side = 4, text = "C                                             D", line = 0.5, cex = 0.8)
+dev.copy(pdf, "figures/symbionts/Symb_Season_Light_logistic.pdf", encod="MacRoman", height=5, width=8)
 dev.off()
 ```
 
