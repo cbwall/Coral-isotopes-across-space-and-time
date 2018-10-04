@@ -1709,20 +1709,20 @@ fitted.win <- predict(results.win, newdata = list(newDepth=seq(0,10,0.1)), type 
   
 Logistic regression of the probability of *Montipora capitata* have a clade D-dominant symbiont community (probability of 1.0) versus one dominated by clade C symbiont (probability of 0). Both seasons show similar patterns, although the probability of corals being clade D-dominant increases in winter months as a function of Depth relative to summer months.  
   
-```{r qPCR figures, results="hide",fig.dim=c(5,4), fig.cap="**Figure** Probability of *Montipora capitata* hosting clade D symbionts across a depth gradient in summer and winter seasons. Lines represent model fit to data by logistic regression for summer alone, winter alone, and combined (summer + winter) data"}
+```{r qPCR figures, results="hide",fig.dim=c(4,4), fig.cap="**Figure** Probability of *Montipora capitata* hosting clade D symbionts across a depth gradient in summer and winter seasons. Lines represent model fit to data by logistic regression for summer alone, winter alone, and combined (summer + winter) data"}
 
 ######
 ######
 ## Figure of Dominant symbiont clades across seasons
 ## **Note** where points equal 0.0 is 100% D, where they equal 0 is 100% C
 par(mar=c(5,4,3,2))
-plot(sum.dat$propD~sum.dat$newDepth, xlab="Depth (m)", ylab = "Proportion of Clade D Symbiont", pch=19, col="salmon", xlim=c(0,10), ylim=c(0.0, 1.0), cex=0.5)
+plot(sum.dat$propD~sum.dat$newDepth, xlab="Depth (m)", ylab = "Proportion of Clade D Symbiont", pch=19, col="salmon", xlim=c(0,10), ylim=c(0.0, 1.0), cex=0.5, cex.lab=0.8)
 par(new=T)
-plot(wint.dat$propD~wint.dat$newDepth, pch=19, col="lightskyblue", xlim=c(0,10), ylim=c(0.0, 1.0), xaxt="n", xlab="", ylab="", cex=0.5)
+plot(wint.dat$propD~wint.dat$newDepth, pch=19, col="lightskyblue", xlim=c(0,10), ylim=c(0.0, 1.0), xaxt="n", xlab="", ylab="", cex=0.5, cex.lab=0.8)
 lines(fitted.all ~ seq(0,10,0.1), col="gray30", lwd=1, lty=2)
 lines(fitted.sum ~ seq(0,10,0.1), col="coral", lwd=1)
 lines(fitted.win ~ seq(0,10,0.1), col="lightskyblue", lwd=1)
-legend("bottomright", pch=c(19,19, NA), lty=c(1,1,2), col=c("coral", "lightskyblue", "gray30"), legend=c("Summer", "Winter", "Combined"), lwd=1, bty="n", x.intersp=1, pt.cex=0.8, y.intersp=2, cex=0.7, inset=c(0.0, 0.15), seg.len=3)
+legend("topright", pch=c(19,19, NA), lty=c(1,1,2), col=c("coral", "lightskyblue", "gray30"), legend=c("Summer", "Winter", "Combined"), lwd=1, bty="n", x.intersp=1, pt.cex=0.8, y.intersp=2, cex=0.5, inset=c(-0.005, -0.01), seg.len=4)
 
 dev.copy(pdf, "figures/symbionts/Symbionts_by_Season_depth.pdf", encod="MacRoman", height=4, width=4)
 dev.off()
@@ -1795,13 +1795,13 @@ fitted.win <- predict(results.win, newdata = list(Light=seq(0,25,0.1)), type = "
 ## Figure of Dominant symbiont clades across seasons
 ## **Note** where points equal 0.0 is 100% D, where they equal 0 is 100% C
 par(mar=c(5,4,3,2))
-plot(sum.dat$propD~sum.dat$Light, xlab="Depth (m)", ylab = "Proportion of Clade D Symbiont", pch=19, col="salmon", xlim=c(0,25), ylim=c(0.0, 1.0), cex=0.5)
+plot(sum.dat$propD~sum.dat$Light, xlab="Depth (m)", ylab = "Proportion of Clade D Symbiont", pch=19, col="salmon", xlim=c(0,25), ylim=c(0.0, 1.0), cex=0.5, cex.lab=0.8)
 par(new=T)
 plot(wint.dat$propD~wint.dat$newDepth, pch=19, col="lightskyblue", xlim=c(0,25), ylim=c(0.0, 1.0), xaxt="n", xlab="", ylab="", cex=0.5)
 lines(fitted.all ~ seq(0,25,0.1), col="gray30", lwd=1, lty=2)
 lines(fitted.sum ~ seq(0,25,0.1), col="coral", lwd=1)
 lines(fitted.win ~ seq(0,25,0.1), col="lightskyblue", lwd=1)
-legend("topright", pch=c(19,19, NA), lty=c(1,1,2), col=c("coral", "lightskyblue", "gray30"), legend=c("Summer", "Winter", "Combined"), lwd=1, bty="n", x.intersp=1, pt.cex=0.7, y.intersp=2, cex=0.5, inset=c(0, 0.15), seg.len=3)
+legend("bottomright", pch=c(19,19, NA), lty=c(1,1,2), col=c("coral", "lightskyblue", "gray30"), legend=c("Summer", "Winter", "Combined"), lwd=1, bty="n", x.intersp=1, pt.cex=0.7, y.intersp=2, cex=0.5, inset=c(0.1, 0.15), seg.len=4)
 
 dev.copy(pdf, "figures/symbionts/Symbionts_by_Season_light.pdf", encod="MacRoman", height=4, width=4)
 dev.off()
