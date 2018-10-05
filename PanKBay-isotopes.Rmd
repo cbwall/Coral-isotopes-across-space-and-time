@@ -665,6 +665,7 @@ all.date.time$Date<-as.Date(all.date.time$Date, format="%Y-%m-%d")
 df.dli<-merge(all.date.time, df.dli, by="Date", all.x=T)
 df.dli[df.dli<=0] <- NA
 
+
 #####################
 # Plot it!!
 # Reef 44
@@ -719,9 +720,58 @@ legend("topright", lty=1, col=c("mediumorchid2", "gray", "plum4"), legend=c("<1m
 
 dev.copy(pdf, "figures/environmental/DLIcalc.all depths.pdf", height=7, width=8)
 dev.off()
-
 ```
-  
+
+```{r bar plot of DLI a depths, fig.dim=c(4,4), fig.cap="**Figure** Daily Light Integral (DLI) for four reef locations at three depths. DLI estimated from light attenuation coefficents using depth as a fixed effect against baseline loggers at 2 m depth"}
+
+DLI.summary<-read.csv("data/environmental/temp and light/Jun_DecPAR/DLI.3depth.summary.csv")
+DLI.summary$Location<-factor(DLI.summary$Location, levels=c("NW", "NE", "SW", "SE"))
+DLI.summary$Depth.zone<-factor(DLI.summary$Depth.zone, levels=c("shallow", "mid", "deep"))
+
+#####
+# figure formatting script
+Fig.formatting<-(theme_classic()) +
+  theme(text=element_text(size=10),
+        axis.line=element_blank(),
+        legend.justification=c(1,1), legend.position=c(1,1),
+        legend.background = element_rect("transparent", colour=NA),
+        legend.text=element_text(size=10),
+        legend.title = element_blank(),
+        panel.border = element_rect(fill=NA, colour = "black", size=0.8),
+        aspect.ratio=1, 
+        axis.ticks = element_line(colour = 'black', size = 0.4),
+        axis.ticks.length=unit(0.25, "cm"),
+        axis.text.y=element_text(
+          margin=unit(c(0.5, 0.5, 0.5, 0.5), "cm"), colour="black", size=10), 
+        axis.text.x=element_text(
+          margin=unit(c(0.5, 0.5, 0.5, 0.5), "cm"), colour="black", size=10)) +
+theme(legend.spacing.x = unit(0.2, 'cm'),
+      legend.key.size = unit(0.4, "cm"))
+
+pd <- position_dodge(0.7) #offset for error bars and columns
+#####
+
+Location.label<-c("NW", "NE", "SW", "SE")
+Depth.label<-c("<1m", "2m", "8m")
+plot_colors2<-c("lightskyblue", "dodgerblue", "deepskyblue4")
+plot_stat<-c("slategray", "dodgerblue2", "steelblue1", "slategray", "dodgerblue2", "steelblue1",
+             "slategray", "dodgerblue2", "steelblue1","slategray", "dodgerblue2", "steelblue1")
+
+# DLI by site and depth
+Fig.DLI<-ggplot(DLI.summary, aes(x=Location, y=DLI.mean, fill=Depth.zone)) +
+  geom_bar(stat="identity", col=plot_stat, position = pd, width=0.7, size=0.3) +
+  geom_errorbar(aes(ymin=DLI.mean-DLI.se, ymax=DLI.mean+DLI.se),
+                size=0.4, width=0, position=pd, col=plot_stat) +
+  xlab("Locations") +
+  ylab(expression(paste("DLI", ~(mol~photons~m^-2~d^-1), sep=""))) +
+  scale_x_discrete(labels=Location.label) +
+  scale_y_continuous(expand=c(0,0), limits=c(0, 35)) +
+  scale_fill_manual(values=alpha(c(plot_colors2), 0.6), 
+                    labels=Depth.label)+ Fig.formatting; Fig.DLI
+
+ggsave(file="figures/environmental/DLI.bar.pdf", height=4, width=4)
+```
+
 #### Attenuation and Light-at-Depth
 A periodic deployment of loggers (October and November) at ca. <1m and ca. 7m were used to model the relationship between 2m light and light at other depths.  
   
@@ -1344,7 +1394,7 @@ dev.off()
 #### Gravimetric SPM
 Total (organic + inorganic) suspended particulate matter (SPM) was quantified by collecting and filtering 0.5 L of seawater from each location during each season. Seawater was sieved at 243 μm to remove large debris and filtered onto a pre-combusted (4h, 450°C) GF/F filter (0.7 μm). Salts were removed by light rinsing with ddH~2~O. Filters were dried at 60°C for 24h and re-weighed to closest 0.001 g to obtain total SPM. Masses were normalized to a liter of water.  
 
-```{r SPM models and figrues, fig.dim=c(6,3.5)}
+```{r SPM models and figures, fig.dim=c(6,3.5)}
 ###### SPM
 spm<-read.csv("data/environmental/PanKBay_SPM.csv")
 spm$SPM..g.l<-spm$SPM..g.l*1000 # change to mg
@@ -1353,6 +1403,8 @@ colnames(spm)[4]="SPM.mg"
 spm$Location<-ordered(spm$Location, c("NW", "NE", "SW", "SE"))
 
 mod<-lm(SPM.mg~Location+Date, data=spm); Anova(mod, type=2)
+posthoc<-emmeans(mod, ~Location)
+CLD(posthoc, Letters=letters)
 plot(allEffects(mod), par.strip.text=list(cex=0.7))
 
 rm(mean) # this will remove 'mean' from library and let the function below proceed.
@@ -1397,7 +1449,7 @@ pd <- position_dodge(0.7) #offset for error bars and columns
 # SPM (mg/l)
 Fig.SPM<-ggplot(spm.df, aes(x=Date, y=SPM, fill=Location)) +
   geom_bar(colour=c("plum","lightcoral", "skyblue3","mediumturquoise","plum","lightcoral", "skyblue3", "mediumturquoise"),
-           stat="identity", position = pd, width=0.7, size=0.4) +
+           stat="identity", position = pd, width=0.7, size=0.3) +
   geom_errorbar(aes(ymin=SPM-se, ymax=SPM+se), 
                 colour=c("plum","lightcoral", "skyblue3","mediumturquoise","plum","lightcoral", "skyblue3","mediumturquoise"),
                 size=0.4, width=0, position=pd) +
@@ -1417,15 +1469,17 @@ Plankton tows and seawater collections to parameterized particulates and plankte
 ```{r seawater isotopes}
 SWiso<-read.csv("data/isotopes_SW_all times.csv")
 
-mod<-(lm(d13C~Location+Time.point+SW.fraction..um, data=SWiso)); Anova(mod, type=2) # no location effect
-mod<-(lm(d15N~Location+Time.point+SW.fraction..um, data=SWiso)); Anova(mod, type=2) # no location effect
+mod<-(lm(d13C~Location+Season+SW.fraction..um, data=SWiso)); Anova(mod, type=2) # no location effect
+mod<-(lm(d15N~Location+Season+SW.fraction..um, data=SWiso)); Anova(mod, type=2) # no location effect
+posthoc<-emmeans(mod, ~Season)
+CLD(posthoc, Letters=letters)
 
 SWiso$Reef<-factor(SWiso$Reef, levels=c("F1-46", "R42", "F2-R25", "R25", "F8-R10", "HIMB"))
 SWiso$Location<-factor(SWiso$Location, levels=c("NW", "NE", "CW", "CE", "SW", "SE"))
 SWiso$SW.fraction..um<-factor(SWiso$SW.fraction..um, levels=c(">243", "<243", "100-243", "10-100", "0-10"))
 
-winter.data<-SWiso[(SWiso$Time.point=="winter"),]
-summer.data<-SWiso[(SWiso$Time.point=="summer"),]
+winter.data<-SWiso[(SWiso$Season=="winter"),]
+summer.data<-SWiso[(SWiso$Season=="summer"),]
 ```
   
 These box plots show the seasonal isotope values for carbon and nitrogen according to size fractions.
@@ -1485,6 +1539,15 @@ plot(d15N~Location, data=winter.data, ylim=c(3,10),
   
 Pooling the isotope data across sites and seasons (where effects were absent or negligible), this planktonic foodweb for carbon and nitrogen illustrates differences in the food sources and their isotopic composition.  
 ```{r SW isotope figure, results="hide", fig.cap="**Figure** *Isotope values for size-fractioned seawater particles and plankters pooled across seasons and reef sites*", fig.dim=c(4.5,4.5), fig.align='center'}
+
+mod<-lm(d13C~SW.fraction..um, data=SWiso); Anova(mod, type=2)
+posthoc<-emmeans(mod, ~SW.fraction..um)
+CLD(posthoc, Letters=letters)
+
+mod<-lm(d15N~SW.fraction..um, data=SWiso); Anova(mod, type=2)
+posthoc<-emmeans(mod, ~SW.fraction..um)
+CLD(posthoc, Letters=letters)
+
 
 rm(mean)
 ####
@@ -1667,7 +1730,7 @@ data.trim$symb..C.N[data.trim$symb..C.N>=12.520270]=NA # set this outlier to NA
 **qPCR figure**
 The distribution of C and D symbiont types is modeled using a logistic regression with dominant symbiont community (C vs. D) as a response and *Depth (m)*, *Season*, and reef *Location* as a predictor. A  generalized linear model with a binomial distribution and logit link function is used. Model selection (by model AIC values) between a fully crossed model (*crossed*) and additive model (*add*) were compared. The additive mode best fit the data; main effects were tested in *anova* with a Chi-square test.  
 
-```{r qPCR models, fig.dim=c(6,4)}
+```{r qPCR models Depth predictor, fig.dim=c(6,4)}
 ## qPCR figures
 
 #####
@@ -1677,7 +1740,7 @@ model.data<-data.trim[,c(17, 1:5, 18:25, 7:16, 26:29)]
 #########################
 #########################
 
-# Plots with Light at depth as the predictor
+# Plots with DEPTH as the predictor
 # qPCR and symbionts
 
 #########################
@@ -1805,7 +1868,7 @@ fitted.win <- predict(results.win, newdata = list(Light=seq(0,25,0.1)), type = "
 ## Figure of Dominant symbiont clades across seasons
 ## **Note** where points equal 0.0 is 100% D, where they equal 0 is 100% C
 par(mar=c(5,4,3,2))
-plot(sum.dat$propD~sum.dat$Light, xlab="Depth (m)", ylab = "Proportion of Clade D Symbiont", pch=19, col="salmon", xlim=c(0,25), ylim=c(0.0, 1.0), cex=0.5, cex.lab=0.8)
+plot(sum.dat$propD~sum.dat$Light, xlab="Light (DLI)", ylab = "Proportion of Clade D Symbiont", pch=19, col="salmon", xlim=c(0,25), ylim=c(0.0, 1.0), cex=0.5, cex.lab=0.8)
 par(new=T)
 plot(wint.dat$propD~wint.dat$newDepth, pch=19, col="lightskyblue", xlim=c(0,25), ylim=c(0.0, 1.0), xaxt="n", xlab="", ylab="", cex=0.5)
 lines(fitted.all ~ seq(0,25,0.1), col="gray30", lwd=1, lty=2)
@@ -1882,15 +1945,12 @@ for(i in c(11:23)){
 Y<-model.data$biomass
 full<-lmer(Y~Season*Light*Dom+ (1|Location), data=model.data, na.action=na.exclude)
 summary(full)
+rand(full)
+
 print(anova(full, type=2), digits=4)
-
-ranef(full)
-fixef(full)
-sjp.lmer(full, y.offset = .4)
-#sjp.lmer(full, vars = "Seasonwinter", type = "ri.slope")
-
 posthoc<-emmeans(full, ~Light:Season)
 CLD(posthoc, Letters=letters)
+
 plot(allEffects(full), ylab="biomass", par.strip.text=list(cex=0.7))
 ```
   
@@ -1900,15 +1960,16 @@ plot(allEffects(full), ylab="biomass", par.strip.text=list(cex=0.7))
 Y<-model.data$chltot
 full<-lmer(Y~Season*Light*Dom+ (1|Location), data=model.data, na.action=na.exclude)
 summary(full)
+rand(full)
 print(anova(full, type=2), digits=4)
 
-posthoc<-emmeans(full, ~Dom:Light:Season)
+posthoc<-emmeans(full, ~Season)
+CLD(posthoc, Letters=letters)
+
+posthoc<-emmeans(full, ~Dom|Season)
 CLD(posthoc, Letters=letters)
 
 plot(allEffects(full), ylab="total chlor", par.strip.text=list(cex=0.7))
-ranef(full)
-fixef(full)
-sjp.lmer(full, y.offset = .4)
 ```
   
 **Chlorophyll per symbiont cell**
@@ -1920,13 +1981,14 @@ add<-lmer(Y~Season+Light+Dom+ (1|Location), data=model.data, na.action=na.exclud
 anova(full, add) #use additive model
 
 summary(add)
+rand(add)
 print(anova(add, type=2), digits=5)
 
 plot(allEffects(add), ylab="chla cell", par.strip.text=list(cex=0.7))
-ranef(add)
-rand(add)
-fixef(add)
-sjp.lmer(full, y.offset = .4)
+#ranef(add)
+#rand(add)
+#fixef(add)
+#sjp.lmer(add, y.offset = .4)
 ```
   
 #### Isotope models  
@@ -1939,13 +2001,10 @@ add<-lmer(Y~Season+Light+Dom+ (1|Location), data=model.data, na.action=na.exclud
 anova(full, add) #use additive model
 
 summary(add)
+rand(add)
 print(anova(add, type=2), digits=5)
 
 plot(allEffects(add), ylab="d13Chost", par.strip.text=list(cex=0.7))
-ranef(add)
-rand(add)
-fixef(add)
-sjp.lmer(full, y.offset = .4)
 ```
   
 **symbiont d13C**
@@ -1956,14 +2015,11 @@ full<-lmer(Y~Season*Light*Dom+ (1|Location), data=model.data, na.action=na.exclu
 add<-lmer(Y~Season+Light+Dom+ (1|Location), data=model.data, na.action=na.exclude)
 anova(full, add) #use additive model
 
-summary(add)
-print(anova(add, type=2), digits=5)
+summary(full)
+rand(full)
+print(anova(full, type=2), digits=5)
 
-plot(allEffects(add), ylab="d13Csymb", par.strip.text=list(cex=0.7))
-ranef(add)
-rand(add)
-fixef(add)
-sjp.lmer(full, y.offset = .4)
+plot(allEffects(full), ylab="d13Csymb", par.strip.text=list(cex=0.7))
 ```
   
 **host-symbiont d13C**
@@ -1975,13 +2031,16 @@ add<-lmer(Y~Season+Light+Dom+ Season:Light +Season:Dom +(1|Location), data=model
 anova(full, add) #use add model
 
 summary(add)
+rand(add)
 print(anova(add, type=2), digits=4)
 
-plot(allEffects(add), ylab="d13C-hs", par.strip.text=list(cex=0.7))
-ranef(add)
-rand(add)
-fixef(add)
-sjp.lmer(add, y.offset = .4)
+posthoc<-emmeans(add, ~Dom|Season)
+CLD(posthoc, Letters=letters)
+
+posthoc<-emmeans(add, ~Dom)
+CLD(posthoc, Letters=letters)
+
+plot(allEffects(full), ylab="d13C-hs", par.strip.text=list(cex=0.7))
 ```
   
 **skeleton d13C**
@@ -1993,11 +2052,12 @@ add<-lmer(Y~Season+Light+Dom+ (1|Location), data=model.data, na.action=na.exclud
 anova(full, add) #use full model
 
 summary(add)
+rand(add)
 print(anova(add, type=2), digits=4)
 
 posthoc<-emmeans(add, ~Season)
 CLD(posthoc, Letters=letters)
-plot(allEffects(full), ylab="d13C-skel", par.strip.text=list(cex=0.7))
+plot(allEffects(add), ylab="d13C-skel", par.strip.text=list(cex=0.7))
 ```
   
 **host d15N**
@@ -2011,11 +2071,7 @@ anova(full, add) #use add model
 summary(add)
 print(anova(add, type=2), digits=4)
 
-plot(allEffects(full), ylab="d15Nhost", par.strip.text=list(cex=0.7))
-ranef(add)
-rand(add)
-fixef(add)
-sjp.lmer(add, y.offset = .4)
+plot(allEffects(add), ylab="d15Nhost", par.strip.text=list(cex=0.7))
 ```
   
 **symbiont d15N**
@@ -2027,16 +2083,13 @@ add<-lmer(Y~Season+Light+Dom+Season:Light+ Season:Dom+ Light:Dom + (1|Location),
 anova(full, add) #use full model
 
 summary(add)
+rand(add)
 print(anova(add, type=2), digits=3)
 
-posthoc<-emmeans(full, ~Season*Dom)
+posthoc<-emmeans(add, ~Dom|Season)
 CLD(posthoc, Letters=letters)
 
 plot(allEffects(full), ylab="d15Nsymb", par.strip.text=list(cex=0.7))
-ranef(add)
-rand(add)
-fixef(add)
-sjp.lmer(add, y.offset = .4)
 ```
   
 **host-symbiont d15N**
@@ -2048,16 +2101,13 @@ add<-lmer(Y~Season+Light+Dom+ Season:Dom+  (1|Location), data=model.data, na.act
 anova(full, add) #use full model
 
 summary(add)
+rand(add)
 print(anova(add, type=2), digits=3)
 
-posthoc<-emmeans(full, ~Season*Dom)
+posthoc<-emmeans(add, ~Dom|Season)
 CLD(posthoc, Letters=letters)
 
 plot(allEffects(add), ylab="d15N-hs", par.strip.text=list(cex=0.7))
-ranef(add)
-rand(add)
-fixef(add)
-sjp.lmer(add, y.offset = .4)
 ```
   
 **host C:N**
@@ -2069,13 +2119,10 @@ add<-lmer(Y~Season+Light+Dom+ (1|Location), data=model.data, na.action=na.exclud
 anova(full, add) #use full model
 
 summary(add)
+rand(add)
 print(anova(add, type=2), digits=4)
 
 plot(allEffects(add), ylab="C:N host", par.strip.text=list(cex=0.7))
-ranef(add)
-rand(add)
-fixef(add)
-sjp.lmer(add, y.offset = .4)
 ```
   
 **symbiont C:N**
@@ -2087,6 +2134,7 @@ add<-lmer(Y~Season+Light+Dom+ (1|Location), data=model.data, na.action=na.exclud
 anova(full, add) #use full model
 
 summary(add)
+rand(add)
 print(anova(add, type=2), digits=5)
 
 plot(allEffects(full), ylab="C:N symb", par.strip.text=list(cex=0.7))
