@@ -2783,7 +2783,8 @@ ablineclip((intercept+ coef(summary(mod))["Seasonwinter",1]+ coef(summary(mod))[
 dev.copy(pdf, "figures/isotope/PanKB.d15Nh-s.pdf", width=6, height=4, encod="MacRoman")
 dev.off()
 ```
-```{r isotopes host symb N, results="hide"}
+
+```{r isotopes host  CN, results="hide"}
 ##################
 # Fig: C.N host season and depth
 ##################       
@@ -2846,7 +2847,7 @@ dev.copy(pdf, "figures/isotope/PanKB.C.Nhost.pdf", width=6, height=4, encod="Mac
 dev.off()
 ```
 
-```{r isotopes host symb N, results="hide"}
+```{r isotopes symb CN, results="hide"}
 ##################
 # Fig: C.N symb season and depth
 ##################       
