@@ -1,0 +1,17 @@
+* Block Type = 96well
+* Chemistry = TAQMAN
+* Experiment File Name = E:\ceht0hostcd.eds
+* Experiment Run End Time = Not Started
+* Instrument Type = steponeplus
+* Passive Reference = ROX
+
+[Results]
+Well	Sample Name	Target Name	Task	Reporter	Quencher	Cт	Cт Mean	Cт SD	Quantity	Quantity Mean	Quantity SD	Automatic Ct Threshold	Ct Threshold	Automatic Baseline	Baseline Start	Baseline End	Comments	HIGHSD	NOAMP
+H4	R10_15	C	UNKNOWN	VIC	NFQ-MGB	29.1416	29.0517	0.2974				false	0.01	false	3	15		Y	N
+H4	R10_15	D	UNKNOWN	FAM	NFQ-MGB	30.498	29.7836	0.6693				false	0.01	false	5	15		Y	N
+H5	R10_15	C	UNKNOWN	VIC	NFQ-MGB	28.6446	29.0517	0.2974				false	0.01	false	3	15		Y	N
+H5	R10_15	D	UNKNOWN	FAM	NFQ-MGB	29.5252	29.7836	0.6693				false	0.01	false	5	15		Y	N
+H6	R10_15	C	UNKNOWN	VIC	NFQ-MGB	29.0665	29.0517	0.2974				false	0.01	false	3	15		Y	N
+H6	R10_15	D	UNKNOWN	FAM	NFQ-MGB	30.1313	29.7836	0.6693				false	0.01	false	5	15		Y	N
+H7	R10_15	C	UNKNOWN	VIC	NFQ-MGB	29.3539	29.0517	0.2974				false	0.01	false	3	15		Y	N
+H7	R10_15	D	UNKNOWN	FAM	NFQ-MGB	28.9799	29.7836	0.6693				false	0.01	false	5	15		Y	N

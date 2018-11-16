@@ -17,6 +17,8 @@ require("knitr")
 knitr::opts_chunk$set(warning=FALSE, message=FALSE, fig.align='center')
 
 library(ggplot2)
+library(broom)
+library(tidyverse)
 library(plyr)
 library(dplyr)
 library(plotrix)
@@ -48,6 +50,7 @@ Corals were collected across in summer and winter 2016 across several different 
 #########################
 # Sea level correction
 #########################
+rm(list=ls())
 
 #### attach data files
 data<-read.csv("data/mastersheet_PanKBAY.csv") # master file
@@ -1338,7 +1341,7 @@ plot_colors<-c("mediumseagreen", "dodgerblue", "salmon", "orchid")
 
 # figure layout
 layout(matrix(c(1,2,3,4), nrow=1, byrow=TRUE))
-par(mar=c(5,5,7,1))
+par(mar=c(5,4.5,7,1.5))
 
 ###############
 # Silicate
@@ -1625,6 +1628,8 @@ data$chlcell<- (data$ug.chl.a.ml*10^6+data$ug.chl.c2.ml*10^6)/data$cells.ml
 #########
 
 # qPCR
+
+library(devtools)
 # Use steponeR to import data and calculate proporation of C and D symbionts
 source_url("https://raw.githubusercontent.com/jrcunning/steponeR/master/steponeR.R")
 Mcap.plates <- list.files(path="data/qPCR", pattern = "txt$", full.names = T); Mcap.plates
@@ -1782,7 +1787,7 @@ fitted.win <- predict(results.win, newdata = list(newDepth=seq(0,10,0.1)), type 
   
 Logistic regression of the probability of *Montipora capitata* have a clade D-dominant symbiont community (probability of 1.0) versus one dominated by clade C symbiont (probability of 0). Both seasons show similar patterns, although the probability of corals being clade D-dominant increases in winter months as a function of Depth relative to summer months.  
   
-```{r qPCR figures, results="hide",fig.dim=c(4,4), fig.cap="**Figure** Probability of *Montipora capitata* hosting clade D symbionts across a depth gradient in summer and winter seasons. Lines represent model fit to data by logistic regression for summer alone, winter alone, and combined (summer + winter) data"}
+```{r qPCR figures, results="hide",fig.dim=c(6,4), fig.cap="**Figure** Probability of *Montipora capitata* hosting clade D symbionts across a depth gradient in summer and winter seasons. Lines represent model fit to data by logistic regression for summer alone, winter alone, and combined (summer + winter) data"}
 
 ######
 ######
@@ -1915,7 +1920,8 @@ model.data$zoox<-log(model.data$zoox)
 model.data$chlcell<-log(model.data$chlcell)
 model.data$host..C.N<-log(model.data$host..C.N)
 model.data$symb..C.N<-log(model.data$symb..C.N)
-model.data$d13C..host.sym<-sign(model.data$d13C..host.sym)*log(abs(model.data$d13C..host.sym)+1)
+
+#model.data$d13C..host.sym<-sign(model.data$d13C..host.sym)*log(abs(model.data$d13C..host.sym)+1)
 
 ## tests for assumptions
 for(i in c(11:23)){
@@ -1944,32 +1950,56 @@ for(i in c(11:23)){
 ######### biomass ---- 
 Y<-model.data$biomass
 full<-lmer(Y~Season*Light*Dom+ (1|Location), data=model.data, na.action=na.exclude)
-summary(full)
-rand(full)
+add<-lmer(Y~Season+Light+Dom+ (1|Location), data=model.data, na.action=na.exclude)
+anova(full, add) #use additive model
 
-print(anova(full, type=2), digits=4)
-posthoc<-emmeans(full, ~Light:Season)
-CLD(posthoc, Letters=letters)
+summary(add)
+rand(add)
 
-plot(allEffects(full), ylab="biomass", par.strip.text=list(cex=0.7))
+print(anova(add, type=2), digits=5)
+
+plot(allEffects(add), ylab="biomass", par.strip.text=list(cex=0.7))
 ```
   
+  
+**Symbiont density**
+```{r symbiont density}
+######### chltotal-- 
+Y<-model.data$zoox
+full<-lmer(Y~Season*Light*Dom+ (1|Location), data=model.data, na.action=na.exclude)
+add<-lmer(Y~Season+Light+Dom+Season:Light + (1|Location), data=model.data, na.action=na.exclude)
+anova(full, add) #use additive model
+
+summary(add)
+rand(add)
+print(anova(add, type=2), digits=5)
+
+posthoc<-emmeans(add, ~Dom)
+CLD(posthoc, Letters=letters)
+
+plot(allEffects(add), ylab="symbiont density", par.strip.text=list(cex=0.7))
+```
+  
+
 **Chlorophyll a**
 ```{r chlorophyll a}
 ######### chltotal-- 
 Y<-model.data$chltot
 full<-lmer(Y~Season*Light*Dom+ (1|Location), data=model.data, na.action=na.exclude)
-summary(full)
-rand(full)
-print(anova(full, type=2), digits=4)
+add<-lmer(Y~Season+Light+Dom+Season:Dom + (1|Location), data=model.data, na.action=na.exclude)
+anova(full, add) #use additive model
 
-posthoc<-emmeans(full, ~Season)
+summary(add)
+rand(add)
+print(anova(add, type=2), digits=5)
+
+posthoc<-emmeans(add, ~Season)
 CLD(posthoc, Letters=letters)
 
-posthoc<-emmeans(full, ~Dom|Season)
+posthoc<-emmeans(add, ~Dom|Season)
 CLD(posthoc, Letters=letters)
 
-plot(allEffects(full), ylab="total chlor", par.strip.text=list(cex=0.7))
+plot(allEffects(add), ylab="total chlor", par.strip.text=list(cex=0.7))
 ```
   
 **Chlorophyll per symbiont cell**
@@ -1997,12 +2027,18 @@ plot(allEffects(add), ylab="chla cell", par.strip.text=list(cex=0.7))
 ########## host..d13C -- 
 Y<-model.data$host..d13C
 full<-lmer(Y~Season*Light*Dom+ (1|Location), data=model.data, na.action=na.exclude)
-add<-lmer(Y~Season+Light+Dom+ (1|Location), data=model.data, na.action=na.exclude)
+add<-lmer(Y~Season+Light+Dom+ Season:Dom+ Season:Light+(1|Location), data=model.data, na.action=na.exclude)
 anova(full, add) #use additive model
 
 summary(add)
 rand(add)
-print(anova(add, type=2), digits=5)
+print(anova(add), digits=5)
+
+posthoc<-emmeans(add, ~Dom)
+CLD(posthoc, Letters=letters)
+
+posthoc<-emmeans(add, ~Dom| Season)
+CLD(posthoc, Letters=letters)
 
 plot(allEffects(add), ylab="d13Chost", par.strip.text=list(cex=0.7))
 ```
@@ -2012,14 +2048,20 @@ plot(allEffects(add), ylab="d13Chost", par.strip.text=list(cex=0.7))
 ########## symb..d13C --
 Y<-model.data$symb..d13C
 full<-lmer(Y~Season*Light*Dom+ (1|Location), data=model.data, na.action=na.exclude)
-add<-lmer(Y~Season+Light+Dom+ (1|Location), data=model.data, na.action=na.exclude)
+add<-lmer(Y~Season+Light+Dom+ Season:Dom +(1|Location), data=model.data, na.action=na.exclude)
 anova(full, add) #use additive model
 
-summary(full)
-rand(full)
-print(anova(full, type=2), digits=5)
+summary(add)
+rand(add)
+print(anova(add, type=2), digits=5)
 
-plot(allEffects(full), ylab="d13Csymb", par.strip.text=list(cex=0.7))
+posthoc<-emmeans(add, ~Dom)
+CLD(posthoc, Letters=letters)
+
+posthoc<-emmeans(add, ~Dom| Season)
+CLD(posthoc, Letters=letters)
+
+plot(allEffects(add), ylab="d13Csymb", par.strip.text=list(cex=0.7))
 ```
   
 **host-symbiont d13C**
@@ -2034,13 +2076,13 @@ summary(add)
 rand(add)
 print(anova(add, type=2), digits=4)
 
-posthoc<-emmeans(add, ~Dom|Season)
-CLD(posthoc, Letters=letters)
-
 posthoc<-emmeans(add, ~Dom)
 CLD(posthoc, Letters=letters)
 
-plot(allEffects(full), ylab="d13C-hs", par.strip.text=list(cex=0.7))
+posthoc<-emmeans(add, ~Dom|Season)
+CLD(posthoc, Letters=letters)
+
+plot(allEffects(add), ylab="d13C-hs", par.strip.text=list(cex=0.7))
 ```
   
 **skeleton d13C**
@@ -2049,7 +2091,7 @@ plot(allEffects(full), ylab="d13C-hs", par.strip.text=list(cex=0.7))
 Y<-model.data$d13C..skel
 full<-lmer(Y~Season*Light*Dom+ (1|Location), data=model.data, na.action=na.exclude)
 add<-lmer(Y~Season+Light+Dom+ (1|Location), data=model.data, na.action=na.exclude)
-anova(full, add) #use full model
+anova(full, add) #use add model
 
 summary(add)
 rand(add)
@@ -2065,7 +2107,7 @@ plot(allEffects(add), ylab="d13C-skel", par.strip.text=list(cex=0.7))
 ####### host..d15N --
 Y<-model.data$host..d15N
 full<-lmer(Y~Season*Light*Dom+ (1|Location), data=model.data, na.action=na.exclude)
-add<-lmer(Y~Season+Light+Dom+Season:Light+ Season:Dom+ Light:Dom +(1|Location), data=model.data, na.action=na.exclude)
+add<-lmer(Y~Season+Light+Dom+(1|Location), data=model.data, na.action=na.exclude)
 anova(full, add) #use add model
 
 summary(add)
@@ -2079,17 +2121,17 @@ plot(allEffects(add), ylab="d15Nhost", par.strip.text=list(cex=0.7))
 ######## symb..d15N --
 Y<-model.data$symb..d15N
 full<-lmer(Y~Season*Light*Dom+ (1|Location), data=model.data, na.action=na.exclude)
-add<-lmer(Y~Season+Light+Dom+Season:Light+ Season:Dom+ Light:Dom + (1|Location), data=model.data, na.action=na.exclude)
-anova(full, add) #use full model
+add<-lmer(Y~Season+Light+Dom+ Season:Dom+ Light:Dom + (1|Location), data=model.data, na.action=na.exclude)
+anova(full, add) #use add model
 
 summary(add)
 rand(add)
-print(anova(add, type=2), digits=3)
+print(anova(add, type=2), digits=4)
 
 posthoc<-emmeans(add, ~Dom|Season)
 CLD(posthoc, Letters=letters)
 
-plot(allEffects(full), ylab="d15Nsymb", par.strip.text=list(cex=0.7))
+plot(allEffects(add), ylab="d15Nsymb", par.strip.text=list(cex=0.7))
 ```
   
 **host-symbiont d15N**
@@ -2098,11 +2140,11 @@ plot(allEffects(full), ylab="d15Nsymb", par.strip.text=list(cex=0.7))
 Y<-model.data$d15N..host.sym
 full<-lmer(Y~Season*Light*Dom+ (1|Location), data=model.data, na.action=na.exclude)
 add<-lmer(Y~Season+Light+Dom+ Season:Dom+  (1|Location), data=model.data, na.action=na.exclude)
-anova(full, add) #use full model
+anova(full, add) #use add model
 
 summary(add)
 rand(add)
-print(anova(add, type=2), digits=3)
+print(anova(add, type=2), digits=4)
 
 posthoc<-emmeans(add, ~Dom|Season)
 CLD(posthoc, Letters=letters)
@@ -2116,7 +2158,7 @@ plot(allEffects(add), ylab="d15N-hs", par.strip.text=list(cex=0.7))
 Y<-model.data$host..C.N
 full<-lmer(Y~Season*Light*Dom+ (1|Location), data=model.data, na.action=na.exclude)
 add<-lmer(Y~Season+Light+Dom+ (1|Location), data=model.data, na.action=na.exclude)
-anova(full, add) #use full model
+anova(full, add) #use add model
 
 summary(add)
 rand(add)
@@ -2131,25 +2173,26 @@ plot(allEffects(add), ylab="C:N host", par.strip.text=list(cex=0.7))
 Y<-model.data$symb..C.N
 full<-lmer(Y~Season*Light*Dom+ (1|Location), data=model.data, na.action=na.exclude)
 add<-lmer(Y~Season+Light+Dom+ (1|Location), data=model.data, na.action=na.exclude)
-anova(full, add) #use full model
+anova(full, add) #use add model
 
 summary(add)
 rand(add)
 print(anova(add, type=2), digits=5)
 
-plot(allEffects(full), ylab="C:N symb", par.strip.text=list(cex=0.7))
+plot(allEffects(add), ylab="C:N symb", par.strip.text=list(cex=0.7))
 ```
 
 ### Figures
 
 #### Physiology
-```{r physiology figures, results="hide", eval=FALSE}
+```{r physiology figure dataframes, results="hide"}
 #########################
 # Physiology
 df.fig<-data.trim
+table(df.fig$Dom:df.fig$Season)
+
 # figure layout
-layout(matrix(c(1,1,2,3), 2,2, byrow=TRUE))
-par(mar=c(5,4.5,2,2))
+par(mfrow=c(1,2),mar=c(5,4.5,2,2))
 
 ##################
 ################## 
@@ -2158,500 +2201,710 @@ par(mar=c(5,4.5,2,2))
 data.summer<-df.fig[df.fig$Season=="summer", ]
 data.winter<-df.fig[df.fig$Season=="winter", ]
 
-## Site relationship
-F8.R10.df<-df.fig[df.fig$Reef=="F8-R10", ]
-F1.R46.df<-df.fig[df.fig$Reef=="F1-R46", ]
-HIMB.df<-df.fig[df.fig$Reef=="HIMB", ]
-R42.df<-df.fig[df.fig$Reef=="R42", ]
-
 ## Symbiont relationship
 C.sum.df<-df.fig[(df.fig$Dom=="C" & df.fig$Season=="summer") ,]
-C.win.df<-df.fig[(df.fig$Dom=="C" & df.fig$Season=="winter") ,]; C.win.df<-na.omit(C.win.df)
-D.sum.df<-df.fig[(df.fig$Dom=="D" & df.fig$Season=="summer") ,]; D.sum.df<-na.omit(D.sum.df)
-D.win.df<-df.fig[(df.fig$Dom=="D" & df.fig$Season=="winter") ,]; D.win.df<-na.omit(D.win.df)
+C.win.df<-df.fig[(df.fig$Dom=="C" & df.fig$Season=="winter") ,]
 
+D.sum.df<-df.fig[(df.fig$Dom=="D" & df.fig$Season=="summer") ,]
+D.win.df<-df.fig[(df.fig$Dom=="D" & df.fig$Season=="winter") ,]
+
+##transformations
+# model.data$zoox<-log(model.data$zoox)
+# model.data$chlcell<-log(model.data$chlcell)
+# model.data$host..C.N<-log(model.data$host..C.N)
+# model.data$symb..C.N<-log(model.data$symb..C.N)
+```
+
+```{r chlorophylls figure, results="hide"}
 ##################
 # Fig: chlorophyll (total) over season and depth
 ################## 
+par(mfrow=c(1,2),mar=c(5,4.5,2,2))
 
-plot(chltot~newDepth, data=data.winter,col="dodgerblue3", pch=16, cex=0.7, 
-     xlab="Depth (m)", ylab=expression(paste("chlorophyll", ~(mu*g~cm^-2), sep="")), 
-     main="chl: Depth and Season",
-     xlim=c(0,11), ylim=c(1,17))
-abline((lm(chltot~newDepth, data=data.winter)), col='dodgerblue3', lwd=2)
-points(chltot~newDepth, data=data.summer, col="tomato2", pch=16, cex=0.7)
-abline((lm(chltot~newDepth, data=data.summer)), col='tomato2', lwd=2)
-legend("topright", c("summer", "winter"), lty=c(1,1), lwd=c(2,2), 
-       col=c("tomato2", "dodgerblue3"), cex=1, y.intersp = 0.3, x.intersp = 0.4, bty="n", inset=c(-0.08, -0.1))
+# model 
+mod<-lmer(chltot~Season+Light+Dom+Season:Dom + (1|Location), data=model.data, na.action=na.exclude)
+fixed_params <- tidy(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
+# slope of C.wint chltot is slope -0.0280, intercept 5.315
 
-###### density plot: by season
-plot(density(data.winter$chltot), ylim=c(0,0.3), xlim=c(0, 18), col="dodgerblue3", main="chl: Seasons", 
-     xlab=expression(paste("chlorophyll", ~(mu*g~cm^-2), sep="")))
-lines(density(data.summer$chltot), col="tomato2")
-legend("topright", c("summer", "winter"), lty=c(1,1), lwd=c(2,2), 
-       col=c("tomato2", "dodgerblue3"), cex=1, y.intersp = 0.3, x.intersp = 0.4, bty="n", inset=c(-0.35, -0.1))
+intercept<-coef(summary(mod))[1] # intercept
+coef(summary(mod))["Seasonwinter",1] # winter, summer = 0
+coef(summary(mod))["Light",1] # light relationship (slope for all figures)
+coef(summary(mod))["DomD",1] # domD, domC = 0
+coef(summary(mod))["Seasonwinter:DomD",1] #D in winter, winter C = 0, summer C = 0
 
+# C summer
+plot(chltot~Light, data=C.sum.df, col='red3', ylim=c(0, 15), xlim=c(0, 25), yaxt="n", xaxt="n", cex=0.8, pch=21, bg="salmon", ylab="", xlab ="", main="Summer", cex.main=0.7)
+ablineclip(intercept, coef(summary(mod))["Light",1], col="salmon", x1 = min(C.sum.df$Light), x2 = max(C.sum.df$Light), lwd=2)
+legend("topright", c("clade C", "clade D"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8,
+       y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.1, 0))
+legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.34, 0))
+par(new=T)
 
-###### density plot: by Site
-plot(density(F1.R46.df$chltot), ylim=c(0,0.3), xlim=c(0, 18), col="tomato2", main="chl: Sites", 
-     xlab=expression(paste("chlorophyll", ~(mu*g~cm^-2), sep="")), ylab="Density")
-lines(density(R42.df$chltot), col="skyblue3")
-lines(density(F8.R10.df$chltot), col="springgreen4")
-lines(density(HIMB.df$chltot), col="purple")
-legend("topright", c("Fringe-Reef 46", "Patch-Reef 42", "Fringe-Reef 10", "HIMB"), lty=c(1,1), lwd=c(2,2), y.intersp = 0.3, x.intersp = 0.4,
-       col=c("sienna1", "skyblue3", "springgreen4", "purple"), cex=0.8, bty='n', inset=c(-0.5, -0.1))
-dev.copy(pdf, "figures/physiology/PanKB.chl.pdf", width=9, height=7)
+# D summer
+plot(chltot~Light, data=D.sum.df, col='blue', ylim=c(0, 15), xlim=c(0, 25), cex=0.8, pch=21, bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab=expression(paste("total chlorophyll", ~(mu*g~cm^-2), sep="")), cex.axis=0.8,
+     cex.lab=0.8)
+ablineclip((intercept+ coef(summary(mod))["DomD",1]), coef(summary(mod))["Light",1], col="deepskyblue1", x1 = min(D.sum.df$Light), x2 = max(D.sum.df$Light), lwd=2)
 
+# C winter
+plot(chltot~Light, data=C.win.df, col='red3', ylim=c(0, 15), xlim=c(0, 15), yaxt="n", xaxt="n",cex=0.8, pch=21, bg="salmon", ylab="", xlab ="", main="Winter", cex.main=0.7)
+ablineclip((intercept + coef(summary(mod))["Seasonwinter",1]), coef(summary(mod))["Light",1], col="salmon", x1 = min(C.win.df$Light), x2 = max(C.win.df$Light), lwd=2)
+par(new=T)
 
+# D winter
+plot(chltot~Light, data=D.win.df, col='blue', ylim=c(0, 15), xlim=c(0, 15), cex=0.8, pch=21, bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab="",
+     cex.lab=0.8)
+ablineclip((intercept+ coef(summary(mod))["Seasonwinter",1]+ coef(summary(mod))["DomD",1] + coef(summary(mod))["Seasonwinter:DomD",1]) , coef(summary(mod))["Light",1], col="deepskyblue1", x1 = min(D.win.df$Light), x2 = max(D.win.df$Light), lwd=2)
 
-##################
-# Fig: chlorophyll (total) over season and depth
-################## 
+dev.copy(pdf, "figures/physiology/PanKB.chla.pdf", width=6, height=4)
+dev.off()
+```
 
-plot(chltot~Light, data=C.sum.df,col="tomato2", pch=16, cex=0.7, 
-     xlab="Light (DLI)", ylab=expression(paste("chlorophyll", ~(mu*g~cm^-2), sep="")), 
-     main="chl: Light and Season",
-     xlim=c(0,20), ylim=c(1,12))
-abline((lm(chltot~Light, data=C.sum.df)), col='tomato2', lwd=2)
-points(chltot~Light, data=C.win.df, col="dodgerblue3", pch=16, cex=0.7)
-abline((lm(chltot~Light, data=C.win.df)), col='dodgerblue3', lwd=2)
-points(chltot~Light, data=D.sum.df, col="mediumseagreen", pch=16, cex=0.7)
-abline((lm(chltot~Light, data=D.sum.df)), col='mediumseagreen', lwd=2)
-points(chltot~Light, data=D.win.df, col="orchid", pch=16, cex=0.7)
-abline((lm(chltot~Light, data=D.win.df)), col='orange', lwd=2)
-legend("topright", c("C-sum", "C-win", "D-sum", "D-win"), lty=c(1,1), lwd=c(2,2), 
-       col=c("tomato2", "dodgerblue3","mediumseagreen", "orange"), cex=1, y.intersp = 0.3, x.intersp = 0.4, bty="n", inset=c(-0.08, -0.05))
-
-plot(density(C.sum.df$chltot), col="tomato2", pch=16, cex=0.7, 
-     xlab="Light (DLI)", ylab=expression(paste("chlorophyll", ~(mu*g~cm^-2), sep="")), 
-     main="chl: Light and Season", ylim=c(0, 0.4), xlim=c(0,15), lwd=2)
-lines(density(C.win.df$chltot), col="dodgerblue3", lwd=2)
-lines(density(D.sum.df$chltot), col="orange", lwd=2)
-lines(density(D.win.df$chltot), col="mediumseagreen", lwd=2)
-legend("topright", c("C-sum", "C-win", "D-sum", "D-win"), lty=c(1,1), lwd=c(2,2), 
-       col=c("tomato2", "dodgerblue3", "orange", "mediumseagreen"), cex=1, y.intersp = 0.3, x.intersp = 0.4, bty="n", inset=c(-0.08, -0.05))
-
-
-###### density plot: by season
-plot(density(data.winter$chltot), ylim=c(0,0.3), xlim=c(0, 18), col="dodgerblue3", main="chl: Seasons", 
-     xlab=expression(paste("chlorophyll", ~(mu*g~cm^-2), sep="")))
-lines(density(data.summer$chltot), col="tomato2")
-legend("topright", c("summer", "winter"), lty=c(1,1), lwd=c(2,2), 
-       col=c("tomato2", "dodgerblue3"), cex=1, y.intersp = 0.3, x.intersp = 0.4, bty="n", inset=c(-0.35, -0.1))
-
-
-###### density plot: by Site
-plot(density(F1.R46.df$chltot), ylim=c(0,0.3), xlim=c(0, 18), col="tomato2", main="chl: Sites", 
-     xlab=expression(paste("chlorophyll", ~(mu*g~cm^-2), sep="")), ylab="Density")
-lines(density(R42.df$chltot), col="skyblue3")
-lines(density(F8.R10.df$chltot), col="springgreen4")
-lines(density(HIMB.df$chltot), col="purple")
-legend("topright", c("Fringe-Reef 46", "Patch-Reef 42", "Fringe-Reef 10", "HIMB"), lty=c(1,1), lwd=c(2,2), y.intersp = 0.3, x.intersp = 0.4,
-       col=c("sienna1", "skyblue3", "springgreen4", "purple"), cex=0.8, bty='n', inset=c(-0.5, -0.1))
-dev.copy(pdf, "figures/physiology/PanKB.chl.pdf", width=9, height=7)
-
-
-
-
-
+```{r chlorophyll cell figure, results="hide"}
 ##################
 # Fig: chlorophyll/cell over season and depth
 ##################  
-plot(chlcell~newDepth, data=data.winter,col="dodgerblue3", pch=16, cex=0.7, 
-     xlab="Depth (m)", 
-     ylab=expression(paste("pg chlorophyll cell"^-1, sep="")), main="chl/cell: Depth and Season",
-     xlim=c(0,10), ylim=c(0,15))
-abline((lm(chlcell~newDepth, data=data.winter)), col='dodgerblue3', lwd=2)
-points(chlcell~newDepth, data=data.summer, col="tomato2", pch=16, cex=0.7)
-abline((lm(chlcell~newDepth, data=data.summer)), col='tomato2', lwd=2)
-legend("topright", c("summer", "winter"), lty=c(1,1), lwd=c(2,2), 
-       col=c("tomato2", "dodgerblue3"), cex=1, y.intersp = 0.3, x.intersp = 0.4, bty="n", inset=c(-0.08, -0.1))
+par(mfrow=c(1,2),mar=c(5,4.5,2,2))
 
-###### density plot: by season
-plot(density(data.winter$chlcell), ylim=c(0,0.4), xlim=c(0, 15), col="dodgerblue3", main="chl/cell: Seasons", xlab=expression(paste("pg chlorophyll cell"^-1, sep="")))
-lines(density(data.summer$chlcell), col="tomato2")
-legend("topright", c("summer", "winter"), lty=c(1,1), lwd=c(2,2), 
-       col=c("tomato2", "dodgerblue3"), cex=1, y.intersp = 0.3, x.intersp = 0.4, bty="n", inset=c(-0.35, -0.1))
+# model.data$chlcell<-log(model.data$chlacell)
+mod<-lmer(chlcell~Season+Light+Dom+ (1|Location), data=model.data, na.action=na.exclude)
+intercept<-coef(summary(mod))[1] # intercept
+fixed_params <- tidy(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
 
-###### density plot: by Site
-plot(density(F1.R46.df$chlcell), ylim=c(0,0.4), xlim=c(0,15), col="tomato2", main="chl/cell: Sites", xlab=expression(paste("pg chlorophyll cell"^-1, sep="")))
-lines(density(R42.df$chlcell), col="skyblue3")
-lines(density(F8.R10.df$chlcell), col="springgreen4")
-lines(density(HIMB.df$chlcell), col="purple")
-legend("topright", c("Fringe-Reef 46", "Patch-Reef 42", "Fringe-Reef 10", "HIMB"), lty=c(1,1), lwd=c(2,2), y.intersp = 0.3, x.intersp = 0.4,
-       col=c("sienna1", "skyblue3", "springgreen4", "purple"), cex=0.8, bty='n', inset=c(-0.5, -0.1))
+##### back transformed
+x_light=seq(1,23, 0.5)
+ypred= exp(intercept+ coef(summary(mod))["Light",1]*x_light)
 
-dev.copy(pdf, "figures/physiology/PanKB.chlcell.pdf", width=9, height=7)
+# C summer
+plot(chlcell~Light, data=C.sum.df, col='red3', ylim=c(0, 15), xlim=c(0, 25), yaxt="n", xaxt="n", cex=0.8,
+     pch=21, bg="salmon", ylab="", xlab ="")
+lines(x_light, ypred, col="salmon", lwd=2)
+legend("topright", c("clade C", "clade D"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8,
+       y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.1, 0))
+legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.34, 0))
+par(new=T)
+
+# D summer
+x_light=seq(5,24, 0.5)
+ypred= exp(intercept+ coef(summary(mod))["DomD",1]+coef(summary(mod))["Light",1]*x_light)
+
+plot(chlcell~Light, data=D.sum.df, col='blue', ylim=c(0, 15), xlim=c(0, 25), cex=0.8, pch=21,
+     bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))),
+     ylab=(expression(paste("cell-specific chlorophyll (",~pg~cell^-1, ")", sep=""))), 
+     cex.axis=0.8, cex.lab=0.8, main="Summer", cex.main=0.7)
+lines(x_light, ypred, col="deepskyblue1", lwd=2)
 
 
+# C winter
+x_light=seq(0.3,14, 0.5)
+ypred= exp(intercept + coef(summary(mod))["Seasonwinter",1] + coef(summary(mod))["Light",1]*x_light)
 
+plot(chlcell~Light, data=C.win.df, col='red3', ylim=c(0, 15), xlim=c(0, 15), yaxt="n", xaxt="n",cex=0.8,
+     pch=21, bg="salmon", ylab="", xlab ="")
+lines(x_light, ypred, col="salmon", lwd=2)
+
+par(new=T)
+
+# D winter
+x_light=seq(1.5,14, 0.5)
+ypred= exp(intercept+ coef(summary(mod))["Seasonwinter",1] + coef(summary(mod))["DomD",1] +
+             coef(summary(mod))["Light",1]*x_light)
+
+plot(chlcell~Light, data=D.win.df, col='blue', ylim=c(0, 15), xlim=c(0, 15), cex=0.8, pch=21,
+     bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))),
+     ylab="",
+     cex.axis=0.8, cex.lab=0.8, main="Winter", cex.main=0.7)
+lines(x_light, ypred, col="deepskyblue1", lwd=2)
+
+dev.copy(pdf, "figures/physiology/PanKB.chlacell.pdf", width=6, height=4)
+dev.off()
+
+```
+   
+**symbiont figures**
+```{r symbiont figure, results="hide"}
 ##################
 # Fig: symbionts over season and depth
-##################        
+##################  
+par(mfrow=c(1,2),mar=c(5,4.5,2,2))
 
-plot((zoox/10^6)~newDepth, data=data.winter,col="dodgerblue3", pch=16, cex=0.7, 
-     xlab="Depth (m)", ylab=(expression(paste(~italic("Symbiodinium") ~(10^6~cells~cm^-2), sep=""))), xlim=c(0,10), ylim=c(0, 6),
-     main= "zoox: Depth and Season")
-abline((lm((zoox/10^6)~newDepth, data=data.winter)), col='dodgerblue3', lwd=2)
-points((zoox/10^6)~newDepth, data=data.summer, col="tomato2", pch=16, cex=0.7)
-abline((lm((zoox/10^6)~newDepth, data=data.summer)), col='tomato2', lwd=2)
-legend("topright", c("summer", "winter"), lty=c(1,1), lwd=c(2,2), 
-       col=c("tomato2", "dodgerblue3"), y.intersp = 0.3, x.intersp = 0.4, cex=1, bty="n", inset=c(-0.08, -0.1))
+# model.data$zoox<-log(model.data$zoox)
+mod<-lmer(zoox~Season+Light+Dom+Season:Light + (1|Location), data=model.data, na.action=na.exclude)
+intercept<-coef(summary(mod))[1] # intercept
+fixed_params <- tidy(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
 
-###### density plot: by season
-plot(density(data.summer$zoox/10^6), col="tomato2", main="zoox: Seasons", 
-     xlab=(expression(paste(~italic("Symbiodinium") ~(10^6~cells~cm^-2), sep=""))), xlim=c(0, 7))
-lines(density(data.winter$zoox/10^6), col="dodgerblue3")
-legend('topright', c("summer", "winter"), lty=c(1,1), lwd=c(2,2), 
-       col=c("tomato2", "dodgerblue3"), y.intersp = 0.3, x.intersp = 0.4, cex=1, bty="n", inset=c(-0.35, -0.1))
+#### log data
+# C summer
+plot(log(zoox)~Light, data=C.sum.df, col='red3', ylim=c(13, 17), xlim=c(0, 25), yaxt="n", xaxt="n", cex=0.8, pch=21, bg="salmon", ylab="", xlab ="")
+ablineclip(intercept, coef(summary(mod))["Light",1], col="salmon", 
+           x1 = min(C.sum.df$Light), x2 = max(C.sum.df$Light), lwd=2)
+legend("topright", c("clade C", "clade D"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8,
+       y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.1, 0))
+legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.34, 0))
 
-###### density plot: by Site
-plot(density(F1.R46.df$zoox/10^6), col="tomato2", main="zoox: Sites", 
-     xlab=(expression(paste(~italic("Symbiodinium") ~(10^6~cells~cm^-2), sep=""))), xlim=c(0, 7))
-lines(density(R42.df$zoox/10^6), col="skyblue3")
-lines(density(F8.R10.df$zoox/10^6), col="springgreen4")
-lines(density(HIMB.df$zoox/10^6), col="purple")
-legend("topright", c("Fringe-Reef 46", "Patch-Reef 42", "Fringe-Reef 10", "HIMB"), lty=c(1,1), lwd=c(2,2), y.intersp = 0.3, x.intersp = 0.4,
-       col=c("sienna1", "skyblue3", "springgreen4", "purple"), cex=0.8, bty='n', inset=c(-0.5, -0.1))
+par(new=T)
 
-dev.copy(pdf, "figures/physiology/PanKB.zoox.pdf", width=9, height=7)
+# D summer
+plot(log(zoox)~Light, data=D.sum.df, col='blue', ylim=c(13, 17), xlim=c(0, 25), bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))),
+     ylab=expression(paste("symbionts ", "(",cells~cm^-2~")", sep="")), 
+     cex.axis=0.8, cex.lab=0.8, cex=0.8, pch=21, main="Summer", cex.main=0.7)
+ablineclip((intercept + coef(summary(mod))["DomD",1]), coef(summary(mod))["Light",1], col="deepskyblue1",
+            x1 = min(D.sum.df$Light), x2 = max(D.sum.df$Light), lwd=2)
+
+# C winter
+plot(log(zoox)~Light, data=C.win.df, col='red3', ylim=c(13, 17), xlim=c(0, 15), yaxt="n", xaxt="n",cex=0.8, pch=21, bg="salmon", ylab="", xlab ="")
+ablineclip((intercept + coef(summary(mod))["Seasonwinter",1]), 
+           (coef(summary(mod))["Light",1]+ coef(summary(mod))["Seasonwinter:Light",1]), col="salmon",
+            x1 = min(D.win.df$Light), x2 = max(D.win.df$Light),lwd=2)
+par(new=T)
+
+# D winter
+plot(log(zoox)~Light, data=D.win.df, col='blue', ylim=c(13, 17), xlim=c(0, 15), bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab=expression(paste("symbionts ", "(",cells~cm^-2~")", sep="")), cex.axis=0.8,
+     cex.lab=0.8, cex=0.8, pch=21, main="Winter", cex.main=0.7)
+ablineclip((intercept+ coef(summary(mod))["Seasonwinter",1]+ coef(summary(mod))["DomD",1] + coef(summary(mod))["Seasonwinter:Light",1]), 
+           (coef(summary(mod))["Light",1]+ coef(summary(mod))["Seasonwinter:Light",1]), 
+           col="deepskyblue1", x1 = min(D.win.df$Light), x2 = max(D.win.df$Light), lwd=2)
+
+dev.copy(pdf, "figures/physiology/PanKB.zooxlog.pdf", width=6, height=4)
+dev.off()
 
 
+####################    
+##### back transformed
+x_light=seq(1,23, 0.5)
+ypred= exp(intercept+ coef(summary(mod))["Light",1]*x_light)
 
+# C summer
+plot(zoox~Light, data=C.sum.df, col='red3', ylim=c(0, 6000000), xlim=c(0, 25), yaxt="n", xaxt="n", cex=0.8, pch=21, bg="salmon", ylab="", xlab ="")
+lines(x_light, ypred, col="salmon", lwd=2)
+legend("topright", c("clade C", "clade D"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8,
+       y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.1, 0))
+legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.34, 0))
+par(new=T)
+
+# D summer
+x_light=seq(5,24, 0.5)
+ypred= exp(intercept+ coef(summary(mod))["DomD",1]+coef(summary(mod))["Light",1]*x_light)
+
+plot(zoox~Light, data=D.sum.df, col='blue', ylim=c(0, 6000000), xlim=c(0, 25), cex=0.8, pch=21, bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab=expression(paste("symbionts ", "(",cells~cm^-2~")", sep="")), 
+     cex.axis=0.8, cex.lab=0.8, main="Summer", cex.main=0.7)
+lines(x_light, ypred, col="deepskyblue1", lwd=2)
+
+
+# C winter
+x_light=seq(0.3,14, 0.5)
+ypred= exp(intercept + coef(summary(mod))["Seasonwinter",1]+ coef(summary(mod))["Light",1]+ coef(summary(mod))["Seasonwinter:Light",1]*x_light)
+
+plot(zoox~Light, data=C.win.df, col='red3', ylim=c(0, 6000000), xlim=c(0, 15), yaxt="n", xaxt="n",cex=0.8, pch=21, bg="salmon", ylab="", xlab ="")
+lines(x_light, ypred, col="salmon", lwd=2)
+
+par(new=T)
+
+# D winter
+x_light=seq(1.5,14, 0.5)
+ypred= exp(intercept+ coef(summary(mod))["Seasonwinter",1]+ coef(summary(mod))["Light",1]+ coef(summary(mod))["DomD",1] + coef(summary(mod))["Seasonwinter:Light",1]*x_light)
+
+plot(zoox~Light, data=D.win.df, col='blue', ylim=c(0, 6000000), xlim=c(0, 15), cex=0.8, pch=21, bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))),
+     ylab="", cex.axis=0.8,
+     cex.axis=0.8, cex.lab=0.8, main="Winter", cex.main=0.7)
+lines(x_light, ypred, col="deepskyblue1", lwd=2)
+
+dev.copy(pdf, "figures/physiology/PanKB.zoox.pdf", width=6, height=4)
+dev.off()
+```
+
+```{r biomass figure, results="hide"}
 ##################
 # Fig: biomass over season and depth
 ################## 
+par(mfrow=c(1,2),mar=c(5,4.5,2,2))
+mod<-lmer(biomass~Season+Light+Dom+ (1|Location), data=model.data, na.action=na.exclude)
+intercept<-coef(summary(mod))[1] # intercept
+fixed_params <- tidy(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
 
-plot(biomass~newDepth, data=data.winter,col="dodgerblue3", pch=16, cex=0.7, 
-     xlab="Depth (m)", ylab = expression(paste("Total biomass", ~(mg~cm^-2), sep="")),
-     xlim=c(0,10), ylim=c(5,60), 
-     main="biomass: Depth and Season")
-abline((lm(biomass~newDepth, data=data.winter)), col='dodgerblue3', lwd=2)
-points(biomass~newDepth, data=data.summer, col="tomato2", pch=16, cex=0.7)
-abline((lm(biomass~newDepth, data=data.summer)), col='tomato2', lwd=2)
-legend("topright", c("summer", "winter"), lty=c(1,1), lwd=c(2,2), 
-       col=c("tomato2", "dodgerblue3"), cex=1, y.intersp = 0.3, x.intersp = 0.4, bty="n", inset=c(-0.08, -0.1))
+# C summer
+plot(biomass~Light, data=C.sum.df, col='red3', ylim=c(0, 80), xlim=c(0, 25), yaxt="n", xaxt="n", cex=0.8, pch=21, bg="salmon", ylab="", xlab ="", main="Summer", cex.main=0.7)
+ablineclip(intercept, coef(summary(mod))["Light",1], col="salmon", x1 = min(C.sum.df$Light), x2 = max(C.sum.df$Light), lwd=2)
+legend("topright", c("clade C", "clade D"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8,
+       y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.1, 0))
+legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.34, 0))
+par(new=T)
 
+# D summer
+plot(biomass~Light, data=D.sum.df, col='blue', ylim=c(0, 80), xlim=c(0, 25), cex=0.8, pch=21, bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab=expression(paste("total chlorophyll", ~(mu*g~cm^-2), sep="")), cex.axis=0.8,
+     cex.lab=0.8)
+ablineclip((intercept+ coef(summary(mod))["DomD",1]), coef(summary(mod))["Light",1], col="deepskyblue1", x1 = min(D.sum.df$Light), x2 = max(D.sum.df$Light), lwd=2)
 
-###### density plot: by season
-plot(density(data.winter$biomass), ylim=c(0,0.08), xlim=c(0, 70), col="dodgerblue3", main="biomass: Seasons", xlab=expression(paste("Total biomass", ~(mg~cm^-2), sep="")))
-lines(density(data.summer$biomass), col="tomato2")
-legend("topright", c("summer", "winter"), lty=c(1,1), lwd=c(2,2), 
-       col=c("tomato2", "dodgerblue3"), cex=1, y.intersp = 0.3, x.intersp = 0.4, bty="n", inset=c(-0.35, -0.1))
+# C winter
+plot(biomass~Light, data=C.win.df, col='red3', ylim=c(0, 80), xlim=c(0, 15), yaxt="n", xaxt="n",
+     cex=0.8, pch=21, bg="salmon", ylab="", xlab ="", main="Winter", cex.main=0.7)
+ablineclip((intercept + coef(summary(mod))["Seasonwinter",1]), coef(summary(mod))["Light",1], col="salmon", x1 = min(C.win.df$Light), x2 = max(C.win.df$Light), lwd=2)
+par(new=T)
 
+# D winter
+plot(biomass~Light, data=D.win.df, col='blue', ylim=c(0, 80), xlim=c(0, 15), cex=0.8, pch=21, bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab="", cex.axis=0.8, cex.lab=0.8)
+ablineclip((intercept+ coef(summary(mod))["Seasonwinter",1]+ coef(summary(mod))["DomD",1]) , coef(summary(mod))["Light",1], col="deepskyblue1", x1 = min(D.win.df$Light), x2 = max(D.win.df$Light), lwd=2)
 
-###### density plot: by Site
-plot(density(F1.R46.df$biomass), ylim=c(0,0.1), xlim=c(0,70), col="tomato2", main="biomass: Sites", 
-     xlab=expression(paste("Total biomass", ~(mg~cm^-2), sep="")))
-lines(density(R42.df$biomass), col="skyblue3")
-lines(density(F8.R10.df$biomass), col="springgreen4")
-lines(density(HIMB.df$biomass), col="purple")
-legend("topright", c("Fringe-Reef 46", "Patch-Reef 42", "Fringe-Reef 10", "HIMB"), lty=c(1,1), lwd=c(2,2), 
-       y.intersp = 0.3, x.intersp = 0.4,
-       col=c("sienna1", "skyblue3", "springgreen4", "purple"), cex=0.8, bty='n', inset=c(-0.5, -0.1))
-
-dev.copy(pdf, "figures/physiology/PanKB.biomass.pdf", width=9, height=7)
+dev.copy(pdf, "figures/physiology/PanKB.biomass.pdf", width=6, height=4)
+dev.off()
 ```
 
 #### Isotopes
-```{r isotope figures, eval=FALSE}
-### ISOTOPES ##
-############### 
-
+```{r isotopes d13C host figure, results="hide"}
 ##################
 # Fig: d13C host over season and depth
 ##################        
+par(mfrow=c(1,2),mar=c(5,4.5,2,2))
 
-plot(host..d13C~newDepth, data=na.omit(data.winter),col="dodgerblue3", pch=16, cex=0.7, 
-     xlab="Depth (m)", ylab = expression(paste(delta^{13}, C[H], " (\u2030, V-PDB)")),
-     xlim=c(0,10), ylim=c(-20,-10),
-     main= "d13C host: Depth and Season")
-abline(lm(host..d13C~newDepth, data=na.omit(data.winter)), col='dodgerblue3', lwd=2)
-points(host..d13C~newDepth, data=na.omit(data.summer), col="tomato2", pch=16, cex=0.7)
-abline(lm(host..d13C~newDepth, data=na.omit(data.summer)), col='tomato2', lwd=2)
-legend("topright", c("summer", "winter"), lty=c(1,1), lwd=c(2,2), 
-       col=c("tomato2", "dodgerblue3"), y.intersp = 0.3, x.intersp = 0.4, cex=1, bty="n", inset=c(-0.08, -0.1))
+# model.data$host..d13C
+mod<-lmer(host..d13C~Season+Light+Dom+ Season:Dom+ Season:Light+(1|Location), data=model.data, na.action=na.exclude)
+intercept<-coef(summary(mod))[1] # intercept
+fixed_params <- tidy(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
 
-###### density plot: by season
-plot(density(na.omit(data.summer$host..d13C)), col="tomato2", main="d13C-host: Seasons", 
-     xlab=expression(paste(delta^{13}, C[H], " (\u2030, V-PDB)")), xlim=c(-20, -8))
-lines(density(na.omit(data.winter$host..d13C)), col="dodgerblue3")
-legend("topright", c("summer", "winter"), lty=c(1,1), lwd=c(2,2), 
-       col=c("tomato2", "dodgerblue3"), y.intersp = 0.3, x.intersp = 0.4, cex=1, bty="n", inset=c(-0.35, -0.1))
+# C summer
+plot(host..d13C~Light, data=C.sum.df, col='red3', ylim=c(-20, -10), xlim=c(0, 25), yaxt="n", xaxt="n", cex=0.8, pch=21, bg="salmon", ylab="", xlab ="", main="Summer", cex.main=0.7)
+ablineclip(intercept, coef(summary(mod))["Light",1], col="salmon", 
+           x1 = min(C.sum.df$Light), x2 = max(C.sum.df$Light), lwd=2)
+legend("topright", c("clade C", "clade D"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8,
+       y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.1, 0))
+legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.34, 0))
+par(new=T)
 
-###### density plot: by Site
-plot(density(na.omit(F1.R46.df$host..d13C)), col="tomato2", main="d13C-host: Sites", 
-     xlab=expression(paste(delta^{13}, C[H], " (\u2030, V-PDB)")), ylim=c(0,0.4), xlim=c(-20, -8))
-lines(density(na.omit(R42.df$host..d13C)), col="skyblue3")
-lines(density(na.omit(F8.R10.df$host..d13C)), col="springgreen4")
-lines(density(na.omit(HIMB.df$host..d13C)), col="purple")
-legend("topright" ,c("Fringe-Reef 46", "Patch-Reef 42", "Fringe-Reef 10", "HIMB"), lty=c(1,1), lwd=c(2,2), y.intersp = 0.3, x.intersp = 0.4,
-       col=c("sienna1", "skyblue3", "springgreen4", "purple"), cex=0.8, bty='n', inset=c(-0.5, -0.1))
+# D summer
+plot(host..d13C~Light, data=D.sum.df, col='blue', ylim=c(-20, -10), xlim=c(0, 25), cex=0.8, pch=21, bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab=(expression(paste(delta^{13}, C[H], " (\u2030, V-PDB)"))), cex.axis=0.8,
+     cex.lab=0.8)
+ablineclip((intercept+ coef(summary(mod))["DomD",1]), coef(summary(mod))["Light",1], col="deepskyblue1", x1 = min(D.sum.df$Light), x2 = max(D.sum.df$Light), lwd=2)
 
-dev.copy(pdf, "figures/isotope/PanKB.d13C-host.pdf", width=9, height=7, encod="MacRoman")
+# C winter
+plot(host..d13C~Light, data=C.win.df, col='red3', ylim=c(-20, -10), xlim=c(0, 15), yaxt="n", xaxt="n",
+     cex=0.8, pch=21, bg="salmon", ylab="", xlab ="", main="Winter", cex.main=0.7)
+ablineclip((intercept + coef(summary(mod))["Seasonwinter",1]),   (coef(summary(mod))["Light",1]+coef(summary(mod))["Seasonwinter:Light",1]), col="salmon", x1 = min(C.win.df$Light), x2 = max(C.win.df$Light), lwd=2)
+par(new=T)
 
+# D winter
+plot(host..d13C~Light, data=D.win.df, col='blue', ylim=c(-20, -10), xlim=c(0, 15), cex=0.8, pch=21, bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab="", cex.axis=0.8, cex.lab=0.8)
+ablineclip((intercept+ coef(summary(mod))["Seasonwinter",1]+ coef(summary(mod))["DomD",1]+ coef(summary(mod))["Seasonwinter:DomD",1]), (coef(summary(mod))["Light",1]+coef(summary(mod))["Seasonwinter:Light",1]), 
+      col="deepskyblue1", x1 = min(D.win.df$Light), x2 = max(D.win.df$Light), lwd=2)
 
+dev.copy(pdf, "figures/isotope/PanKB.d13C-host.pdf", width=6, height=4, encod="MacRoman")
+dev.off()
+```
 
+```{r isotopes d13C symb figure, results="hide"}
 ##################
 # Fig: d13C symb over season and depth
 ##################        
+par(mfrow=c(1,2),mar=c(5,4.5,2,2))
 
-plot(symb..d13C~newDepth, data=na.omit(data.winter),col="dodgerblue3", pch=16, cex=0.7, 
-     xlab="Depth (m)", ylab = expression(paste(delta^{13}, C[S], " (\u2030, V-PDB)")),
-     xlim=c(0,10), ylim=c(-20,-10),
-     main= "d13C symb: Depth and Season")
-abline(lm(symb..d13C~newDepth, data=na.omit(data.winter)), col='dodgerblue3', lwd=2)
-points(symb..d13C~newDepth, data=na.omit(data.summer), col="tomato2", pch=16, cex=0.7)
-abline(lm(symb..d13C~newDepth, data=na.omit(data.summer)), col='tomato2', lwd=2)
-legend("topright", c("summer", "winter"), lty=c(1,1), lwd=c(2,2), 
-       col=c("tomato2", "dodgerblue3"), y.intersp = 0.3, x.intersp = 0.4, cex=1, bty="n", inset=c(-0.08, -0.1))
+# model.data$symb..d13C
+mod<-lmer(symb..d13C~Season+Light+Dom+ Season:Dom+ Season:Light+(1|Location), data=model.data, na.action=na.exclude)
+intercept<-coef(summary(mod))[1] # intercept
+fixed_params <- tidy(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
 
-###### density plot: by season
-plot(density(na.omit(data.summer$symb..d13C)), col="tomato2", main="d13C-symb: Seasons", 
-     xlab=expression(paste(delta^{13}, C[S], " (\u2030, V-PDB)")), xlim=c(-20, -8))
-lines(density(na.omit(data.winter$symb..d13C)), col="dodgerblue3")
-legend("topright", c("summer", "winter"), lty=c(1,1), lwd=c(2,2), 
-       col=c("tomato2", "dodgerblue3"), y.intersp = 0.3, x.intersp = 0.4, cex=1, bty="n", inset=c(-0.35, -0.1))
+# C summer
+plot(symb..d13C~Light, data=C.sum.df, col='red3', ylim=c(-20, -10), xlim=c(0, 25), yaxt="n", xaxt="n", cex=0.8, pch=21, bg="salmon", ylab="", xlab ="", main="Summer", cex.main=0.7)
+ablineclip(intercept, coef(summary(mod))["Light",1], col="salmon", 
+           x1 = min(C.sum.df$Light), x2 = max(C.sum.df$Light), lwd=2)
+legend("topright", c("clade C", "clade D"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8,
+       y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.1, 0))
+legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.34, 0))
+par(new=T)
 
-###### density plot: by Site
-plot(density(na.omit(F1.R46.df$symb..d13C)), col="tomato2", main="d13C-symb: Sites", 
-     xlab=expression(paste(delta^{13}, C[S], " (\u2030, V-PDB)")), ylim=c(0,0.4), xlim=c(-20, -8))
-lines(density(na.omit(R42.df$symb..d13C)), col="skyblue3")
-lines(density(na.omit(F8.R10.df$symb..d13C)), col="springgreen4")
-lines(density(na.omit(HIMB.df$symb..d13C)), col="purple")
-legend("topright" ,c("Fringe-Reef 46", "Patch-Reef 42", "Fringe-Reef 10", "HIMB"), lty=c(1,1), lwd=c(2,2), y.intersp = 0.3, x.intersp = 0.4,
-       col=c("sienna1", "skyblue3", "springgreen4", "purple"), cex=0.8, bty='n', inset=c(-0.5, -0.1))
+# D summer
+plot(symb..d13C~Light, data=D.sum.df, col='blue', ylim=c(-20, -10), xlim=c(0, 25), cex=0.8, pch=21, bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab=(expression(paste(delta^{13}, C[S], " (\u2030, V-PDB)"))), cex.axis=0.8,
+     cex.lab=0.8)
+ablineclip((intercept+ coef(summary(mod))["DomD",1]), coef(summary(mod))["Light",1], col="deepskyblue1", x1 = min(D.sum.df$Light), x2 = max(D.sum.df$Light), lwd=2)
 
-dev.copy(pdf, "figures/isotope/PanKB.d13C-symb.pdf", width=9, height=7, encod="MacRoman")
+# C winter
+plot(symb..d13C~Light, data=C.win.df, col='red3', ylim=c(-20, -10), xlim=c(0, 15), yaxt="n", xaxt="n",
+     cex=0.8, pch=21, bg="salmon", ylab="", xlab ="", main="Winter", cex.main=0.7)
+ablineclip((intercept + coef(summary(mod))["Seasonwinter",1]), (coef(summary(mod))["Light",1]+ coef(summary(mod))["Seasonwinter:Light",1]), col="salmon", x1 = min(C.win.df$Light), x2 = max(C.win.df$Light), lwd=2)
+par(new=T)
 
+# D winter
+plot(symb..d13C~Light, data=D.win.df, col='blue', ylim=c(-20, -10), xlim=c(0, 15), cex=0.8, pch=21, bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab="", cex.axis=0.8, cex.lab=0.8)
+ablineclip((intercept+ coef(summary(mod))["Seasonwinter",1]+ coef(summary(mod))["DomD",1]+ coef(summary(mod))["Seasonwinter:DomD",1]),
+(coef(summary(mod))["Light",1]+coef(summary(mod))["Seasonwinter:Light",1]), col="deepskyblue1", x1 = min(D.win.df$Light), x2 = max(D.win.df$Light), lwd=2)
 
+dev.copy(pdf, "figures/isotope/PanKB.d13C-symb.pdf", width=6, height=4, encod="MacRoman")
+dev.off()
+```
+
+```{r isotopes skeleton, results="hide"}
 ##################
 # Fig: d13C skeleton over season and depth
 ##################        
+par(mfrow=c(1,2),mar=c(5,4.5,2,2))
 
-plot(d13C..skel~newDepth, data=na.omit(data.winter),col="dodgerblue3", pch=16, cex=0.7, 
-     xlab="Depth (m)", ylab = expression(paste(delta^{13}, C[Skel], " (\u2030, V-PDB)")),
-     xlim=c(0,10), ylim=c(-6,2),
-     main= "d13C skel: Depth and Season")
-abline(lm(d13C..skel~newDepth, data=na.omit(data.winter)), col='dodgerblue3', lwd=2)
-points(d13C..skel~newDepth, data=na.omit(data.summer), col="tomato2", pch=16, cex=0.7)
-abline(lm(d13C..skel~newDepth, data=na.omit(data.summer)), col='tomato2', lwd=2)
-legend("topright", c("summer", "winter"), lty=c(1,1), lwd=c(2,2), 
-       col=c("tomato2", "dodgerblue3"), y.intersp = 0.3, x.intersp = 0.4, cex=1, bty="n", inset=c(-0.08, -0.1))
+# model.data$d13C..skel
+mod<-lmer(d13C..skel~Season+Light+Dom+ (1|Location), data=model.data, na.action=na.exclude)
+intercept<-coef(summary(mod))[1] # intercept
+fixed_params <- tidy(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
 
-###### density plot: by season
-plot(density(na.omit(data.summer$d13C..skel)), col="tomato2", main="d13C-skel: Seasons", 
-     xlab=expression(paste(delta^{13}, C[Skel], " (\u2030, V-PDB)")), ylim=c(0, 0.5), xlim=c(-8, 6))
-lines(density(na.omit(data.winter$d13C..skel)), col="dodgerblue3")
-legend("topright", c("summer", "winter"), lty=c(1,1), lwd=c(2,2), 
-       col=c("tomato2", "dodgerblue3"), y.intersp = 0.3, x.intersp = 0.4, cex=1, bty="n", inset=c(-0.35, -0.1))
+# C summer
+plot(d13C..skel~Light, data=C.sum.df, col='red3', ylim=c(-8, 4), xlim=c(0, 25), yaxt="n", xaxt="n", cex=0.8, pch=21, bg="salmon", ylab="", xlab ="", main="Summer", cex.main=0.7)
+ablineclip(intercept, coef(summary(mod))["Light",1], col="salmon", 
+           x1 = min(C.sum.df$Light), x2 = max(C.sum.df$Light), lwd=2)
+legend("topright", c("clade C", "clade D"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8,
+       y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.1, 0))
+legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.34, 0))
+par(new=T)
 
-###### density plot: by Site
-plot(density(na.omit(F1.R46.df$d13C..skel)), col="tomato2", main="d13C-skel: Sites", 
-     xlab=expression(paste(delta^{13}, C[Skel], " (\u2030, V-PDB)")), ylim=c(0,0.5), xlim=c(-8, 6))
-lines(density(na.omit(R42.df$d13C..skel)), col="skyblue3")
-lines(density(na.omit(F8.R10.df$d13C..skel)), col="springgreen4")
-lines(density(na.omit(HIMB.df$d13C..skel)), col="purple")
-legend("topright", c("Fringe-Reef 46", "Patch-Reef 42", "Fringe-Reef 10", "HIMB"), lty=c(1,1), lwd=c(2,2), y.intersp = 0.3, x.intersp = 0.4,
-       col=c("sienna1", "skyblue3", "springgreen4", "purple"), cex=0.8, bty='n', inset=c(-0.5, -0.1))
+# D summer
+plot(d13C..skel~Light, data=D.sum.df, col='blue', ylim=c(-8, 4), xlim=c(0, 25), cex=0.8, pch=21, bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab=(expression(paste(delta^{13}, C[Sk], " (\u2030, V-PDB)"))), cex.axis=0.8,
+     cex.lab=0.8)
+ablineclip((intercept+ coef(summary(mod))["DomD",1]), coef(summary(mod))["Light",1], col="deepskyblue1", x1 = min(D.sum.df$Light), x2 = max(D.sum.df$Light), lwd=2)
 
-dev.copy(pdf, "figures/isotope/PanKB.d13C-skel.pdf", width=9, height=7, encod="MacRoman")
+# C winter
+plot(d13C..skel~Light, data=C.win.df, col='red3', ylim=c(-8, 4), xlim=c(0, 15), yaxt="n", xaxt="n",
+     cex=0.8, pch=21, bg="salmon", ylab="", xlab ="", main="Winter", cex.main=0.7)
+ablineclip((intercept + coef(summary(mod))["Seasonwinter",1]), coef(summary(mod))["Light",1], col="salmon", x1 = min(C.win.df$Light), x2 = max(C.win.df$Light), lwd=2)
+par(new=T)
 
+# D winter
+plot(d13C..skel~Light, data=D.win.df, col='blue', ylim=c(-8, 4), xlim=c(0, 15), cex=0.8, pch=21, bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab="", cex.axis=0.8, cex.lab=0.8)
+ablineclip((intercept+ coef(summary(mod))["Seasonwinter",1]+ coef(summary(mod))["DomD",1]),
+       coef(summary(mod))["Light",1], 
+      col="deepskyblue1", x1 = min(D.win.df$Light), x2 = max(D.win.df$Light), lwd=2)
 
+dev.copy(pdf, "figures/isotope/PanKB.d13C-skel.pdf", width=6, height=4, encod="MacRoman")
+dev.off()
+```
+
+```{r isotopes host and symbiont, results="hide"}
 ##################
 # Fig: d13C host-symb over season and depth
 ##################        
+par(mfrow=c(1,2),mar=c(5,4.5,2,2))
 
-plot(d13C..host.sym~newDepth, data=na.omit(data.winter),col="dodgerblue3", pch=16, cex=0.7, 
-     xlab="Depth (m)", ylab = expression(paste(delta^{13}, C[H-S], " (\u2030, V-PDB)")), 
-     xlim=c(0,10), ylim=c(-2.5,3),
-     main= "d13C h-s: Depth and Season")
-abline(lm(d13C..host.sym~newDepth, data=na.omit(data.winter)), col='dodgerblue3', lwd=2)
-points(d13C..host.sym~newDepth, data=na.omit(data.summer), col="tomato2", pch=16, cex=0.7)
-abline(lm(d13C..host.sym~newDepth, data=na.omit(data.summer)), col='tomato2', lwd=2)
-legend("topright", c("summer", "winter"), lty=c(1,1), lwd=c(2,2), 
-       col=c("tomato2", "dodgerblue3"), y.intersp = 0.3, x.intersp = 0.4, cex=1, bty="n", inset=c(-0.08, -0.1))
+# model.data$d13C..host.sym
+mod<-lmer(d13C..host.sym~Season+Light+Dom+ Season:Light +Season:Dom +(1|Location), data=model.data, na.action=na.exclude)
+intercept<-coef(summary(mod))[1] # intercept
+fixed_params <- tidy(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
 
-###### density plot: by season
-plot(density(na.omit(data.summer$d13C..host.sym)), col="tomato2", main="d13C h-s: Seasons", 
-     xlab=expression(paste(delta^{13}, C[H-S], " (\u2030, V-PDB)")), ylim=c(0,1.5), xlim=c(-3, 5))
-lines(density(na.omit(data.winter$d13C..host.sym)), col="dodgerblue3")
-legend("topright", c("summer", "winter"), lty=c(1,1), lwd=c(2,2), 
-       col=c("tomato2", "dodgerblue3"), y.intersp = 0.3, x.intersp = 0.4, cex=1, bty="n", inset=c(-0.35, -0.1))
+# C summer
+plot(d13C..host.sym~Light, data=C.sum.df, col='red3', ylim=c(-3, 3), xlim=c(0, 25), yaxt="n", xaxt="n", cex=0.8, pch=21, bg="salmon", ylab="", xlab ="", main="Summer", cex.main=0.7)
+ablineclip(intercept, coef(summary(mod))["Light",1], col="salmon", 
+           x1 = min(C.sum.df$Light), x2 = max(C.sum.df$Light), lwd=2)
+legend("topright", c("clade C", "clade D"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8,
+       y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.1, 0))
+legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.34, 0))
+par(new=T)
 
-###### density plot: by Site
-plot(density(na.omit(F1.R46.df$d13C..host.sym)), col="tomato2", main="d13C h-s: Sites", 
-     expression(paste(delta^{13}, C[H-S], " (\u2030, V-PDB)")), ylim=c(0,1.7), xlim=c(-3,5))
-lines(density(na.omit(R42.df$d13C..host.sym)), col="skyblue3")
-lines(density(na.omit(F8.R10.df$d13C..host.sym)), col="springgreen4")
-lines(density(na.omit(HIMB.df$d13C..host.sym)), col="purple")
-legend("topright",c("Fringe-Reef 46", "Patch-Reef 42", "Fringe-Reef 10", "HIMB"), lty=c(1,1), lwd=c(2,2), y.intersp = 0.3, x.intersp = 0.4,
-       col=c("sienna1", "skyblue3", "springgreen4", "purple"), cex=0.8, bty='n', inset=c(-0.5, -0.1))
+# D summer
+plot(d13C..host.sym~Light, data=D.sum.df, col='blue', ylim=c(-3, 3), xlim=c(0, 25), cex=0.8, pch=21, bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab=(expression(paste(delta^{13}, C[H-S], " (\u2030, V-PDB)"))), cex.axis=0.8,
+     cex.lab=0.8)
+ablineclip((intercept+ coef(summary(mod))["DomD",1]), coef(summary(mod))["Light",1], col="deepskyblue1", x1 = min(D.sum.df$Light), x2 = max(D.sum.df$Light), lwd=2)
 
-dev.copy(pdf, "figures/isotope/PanKB.d13Ch-s.pdf", width=9, height=7, encod="MacRoman")
+# C winter
+plot(d13C..host.sym~Light, data=C.win.df, col='red3', ylim=c(-3, 3), xlim=c(0, 15), yaxt="n", xaxt="n",
+     cex=0.8, pch=21, bg="salmon", ylab="", xlab ="", main="Winter", cex.main=0.7)
+ablineclip((intercept + coef(summary(mod))["Seasonwinter",1]), (coef(summary(mod))["Light",1]+coef(summary(mod))["Seasonwinter:Light",1]), col="salmon", x1 = min(C.win.df$Light), x2 = max(C.win.df$Light), lwd=2)
+par(new=T)
 
+# D winter
+plot(d13C..host.sym~Light, data=D.win.df, col='blue', ylim=c(-3, 3), xlim=c(0, 15), cex=0.8, pch=21, bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab="", cex.axis=0.8, cex.lab=0.8)
+ablineclip((intercept+ coef(summary(mod))["Seasonwinter",1]+ coef(summary(mod))["DomD",1]+
+              coef(summary(mod))["Seasonwinter:DomD",1]),
+           (coef(summary(mod))["Light",1]+ coef(summary(mod))["Seasonwinter:Light",1]), 
+      col="deepskyblue1", x1 = min(D.win.df$Light), x2 = max(D.win.df$Light), lwd=2)
 
+dev.copy(pdf, "figures/isotope/PanKB.d13Ch-s.pdf", width=6, height=4, encod="MacRoman")
+dev.off()
+```
 
-
+```{r isotopes host nitrogen, results="hide"}
 ##################
 # Fig: d15N host over season and depth
 ##################        
+par(mfrow=c(1,2),mar=c(5,4.5,2,2))
 
-plot(host..d15N~newDepth, data=na.omit(data.winter),col="dodgerblue3", pch=16, cex=0.7, 
-     xlab="Depth (m)", ylab = expression(paste(delta^{15}, N[H], " (\u2030, air)")), xlim=c(0,10), ylim=c(2,8),
-     main= "d15N host: Depth and Season")
-abline(lm(host..d15N~newDepth, data=na.omit(data.winter)), col='dodgerblue3', lwd=2)
-points(host..d15N~newDepth, data=na.omit(data.summer), col="tomato2", pch=16, cex=0.7)
-abline(lm(host..d15N~newDepth, data=na.omit(data.summer)), col='tomato2', lwd=2)
-legend("topright", c("summer", "winter"), lty=c(1,1), lwd=c(2,2), 
-       col=c("tomato2", "dodgerblue3"), y.intersp = 0.3, x.intersp = 0.4, cex=1, bty="n", inset=c(-0.08, -0.1))
+# model.data$host..d15N
+mod<-lmer(host..d15N~Season+Light+Dom+(1|Location), data=model.data, na.action=na.exclude)
+intercept<-coef(summary(mod))[1] # intercept
+fixed_params <- tidy(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
 
-###### density plot: by season
-plot(density(na.omit(data.summer$host..d15N)), col="tomato2", main="d15N-host: Seasons", 
-     xlab=expression(paste(delta^{15}, N[H], " (\u2030, air)")), xlim=c(0, 12), ylim=c(0, 1))
-lines(density(na.omit(data.winter$host..d15N)), col="dodgerblue3")
-legend("topright", c("summer", "winter"), lty=c(1,1), lwd=c(2,2), 
-       col=c("tomato2", "dodgerblue3"), y.intersp = 0.3, x.intersp = 0.4, cex=1, bty="n", inset=c(-0.35, -0.1))
+# C summer
+plot(host..d15N~Light, data=C.sum.df, col='red3', ylim=c(2, 8), xlim=c(0, 25), yaxt="n", xaxt="n", cex=0.8, pch=21, bg="salmon", ylab="", xlab ="", main="Summer", cex.main=0.7)
+ablineclip(intercept, coef(summary(mod))["Light",1], col="salmon", 
+           x1 = min(C.sum.df$Light), x2 = max(C.sum.df$Light), lwd=2)
+legend("topright", c("clade C", "clade D"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8,
+       y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.1, 0))
+legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.34, 0))
+par(new=T)
 
-###### density plot: by Site
-plot(density(na.omit(F1.R46.df$host..d15N)), col="tomato2", main="d15N-host: Sites", xlab=expression(paste(delta^{15}, N[H], " (\u2030, air)")), ylim=c(0,2), xlim=c(0, 12))
-lines(density(na.omit(R42.df$host..d15N)), col="skyblue3")
-lines(density(na.omit(F8.R10.df$host..d15N)), col="springgreen4")
-lines(density(na.omit(HIMB.df$host..d15N)), col="purple")
-legend("topright" ,c("Fringe-Reef 46", "Patch-Reef 42", "Fringe-Reef 10", "HIMB"), lty=c(1,1), lwd=c(2,2), y.intersp = 0.3, x.intersp = 0.4,
-       col=c("sienna1", "skyblue3", "springgreen4", "purple"), cex=0.8, bty='n', inset=c(-0.5, -0.1))
+# D summer
+plot(host..d15N~Light, data=D.sum.df, col='blue', ylim=c(2, 8), xlim=c(0, 25), cex=0.8, pch=21, bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab=(expression(paste(delta^{15}, N[H], " (\u2030, Air)"))), cex.axis=0.8,
+     cex.lab=0.8)
+ablineclip((intercept+ coef(summary(mod))["DomD",1]), coef(summary(mod))["Light",1], col="deepskyblue1", x1 = min(D.sum.df$Light), x2 = max(D.sum.df$Light), lwd=2)
 
-dev.copy(pdf, "figures/isotope/PanKB.d15N-host.pdf", width=9, height=7, encod="MacRoman")
+# C winter
+plot(host..d15N~Light, data=C.win.df, col='red3', ylim=c(2, 8), xlim=c(0, 15), yaxt="n", xaxt="n",
+     cex=0.8, pch=21, bg="salmon", ylab="", xlab ="", main="Winter", cex.main=0.7)
+ablineclip((intercept + coef(summary(mod))["Seasonwinter",1]), coef(summary(mod))["Light",1], col="salmon", x1 = min(C.win.df$Light), x2 = max(C.win.df$Light), lwd=2)
+par(new=T)
 
+# D winter
+plot(host..d15N~Light, data=D.win.df, col='blue', ylim=c(2, 8), xlim=c(0, 15), cex=0.8, pch=21, bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab="", cex.axis=0.8, cex.lab=0.8)
+ablineclip((intercept+ coef(summary(mod))["Seasonwinter",1]+ coef(summary(mod))["DomD",1]),
+           coef(summary(mod))["Light",1], 
+      col="deepskyblue1", x1 = min(D.win.df$Light), x2 = max(D.win.df$Light), lwd=2)
 
+dev.copy(pdf, "figures/isotope/PanKB.d15N-host.pdf", width=6, height=4, encod="MacRoman")
+dev.off()
+```
+
+```{r isotopes symb nitrogen, results="hide"}
 ##################
 # Fig: d15N symb over season and depth
 ##################        
+par(mfrow=c(1,2),mar=c(5,4.5,2,2))
 
-plot(symb..d15N~newDepth, data=na.omit(data.winter),col="dodgerblue3", pch=16, cex=0.7, 
-     xlab="Depth (m)", ylab =expression(paste(delta^{15}, N[S], " (\u2030, air)")),
-     xlim=c(0,10), ylim=c(2,7),
-     main= "d15N symb: Depth and Season")
-abline(lm(symb..d15N~newDepth, data=na.omit(data.winter)), col='dodgerblue3', lwd=2)
-points(symb..d15N~newDepth, data=na.omit(data.summer), col="tomato2", pch=16, cex=0.7)
-abline(lm(symb..d15N~newDepth, data=na.omit(data.summer)), col='tomato2', lwd=2)
-legend("topright", c("summer", "winter"), lty=c(1,1), lwd=c(2,2), 
-       col=c("tomato2", "dodgerblue3"), y.intersp = 0.3, x.intersp = 0.4, cex=1, bty="n", inset=c(-0.08, -0.1))
+# model.data$symb..d15N
+mod<-lmer(symb..d15N~Season+Light+Dom+ Season:Dom+ Light:Dom +(1|Location), data=model.data, na.action=na.exclude)
+intercept<-coef(summary(mod))[1] # intercept
+fixed_params <- tidy(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
 
-###### density plot: by season
-plot(density(na.omit(data.summer$symb..d15N)), col="tomato2", main="d15N-symb: Seasons", 
-     xlab= expression(paste(delta^{15}, N[S], " (\u2030, air)")), xlim=c(0, 9), ylim=c(0, 0.9))
-lines(density(na.omit(data.winter$symb..d15N)), col="dodgerblue3")
-legend("topright", c("summer", "winter"), lty=c(1,1), lwd=c(2,2), 
-       col=c("tomato2", "dodgerblue3"), y.intersp = 0.3, x.intersp = 0.4, cex=1, bty="n", inset=c(-0.35, -0.1))
+# C summer
+plot(symb..d15N~Light, data=C.sum.df, col='red3', ylim=c(2, 8), xlim=c(0, 25), yaxt="n", xaxt="n", cex=0.8, pch=21, bg="salmon", ylab="", xlab ="", main="Summer", cex.main=0.7)
+ablineclip(intercept, coef(summary(mod))["Light",1], col="salmon", 
+           x1 = min(C.sum.df$Light), x2 = max(C.sum.df$Light), lwd=2)
+legend("topright", c("clade C", "clade D"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8,
+       y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.1, 0))
+legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.34, 0))
+par(new=T)
 
-###### density plot: by Site
-plot(density(na.omit(F1.R46.df$symb..d15N)), col="tomato2", main="d15N-symb: Sites", 
-     xlab= expression(paste(delta^{15}, N[S], " (\u2030, air)")),  xlim=c(0, 9), ylim=c(0,1.8))
-lines(density(na.omit(R42.df$symb..d15N)), col="skyblue3")
-lines(density(na.omit(F8.R10.df$symb..d15N)), col="springgreen4")
-lines(density(na.omit(HIMB.df$symb..d15N)), col="purple")
-legend("topright" ,c("Fringe-Reef 46", "Patch-Reef 42", "Fringe-Reef 10", "HIMB"), lty=c(1,1), lwd=c(2,2), y.intersp = 0.3, x.intersp = 0.4,
-       col=c("sienna1", "skyblue3", "springgreen4", "purple"), cex=0.8, bty='n', inset=c(-0.5, -0.1))
+# D summer
+plot(symb..d15N~Light, data=D.sum.df, col='blue', ylim=c(2, 8), xlim=c(0, 25), cex=0.8, pch=21, bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab=(expression(paste(delta^{15}, N[S], " (\u2030, Air)"))), cex.axis=0.8,
+     cex.lab=0.8)
+ablineclip((intercept+ coef(summary(mod))["DomD",1]), 
+           (coef(summary(mod))["Light",1]+ coef(summary(mod))["Light:DomD",1]), col="deepskyblue1", x1 = min(D.sum.df$Light), x2 = max(D.sum.df$Light), lwd=2)
 
-dev.copy(pdf, "figures/isotope/PanKB.d15N-symb.pdf", width=9, height=7, encod="MacRoman")
+# C winter
+plot(symb..d15N~Light, data=C.win.df, col='red3', ylim=c(2, 8), xlim=c(0, 15), yaxt="n", xaxt="n",
+     cex=0.8, pch=21, bg="salmon", ylab="", xlab ="", main="Winter", cex.main=0.7)
+ablineclip((intercept + coef(summary(mod))["Seasonwinter",1]), coef(summary(mod))["Light",1], col="salmon", x1 = min(C.win.df$Light), x2 = max(C.win.df$Light), lwd=2)
+par(new=T)
 
+# D winter
+plot(symb..d15N~Light, data=D.win.df, col='blue', ylim=c(2, 8), xlim=c(0, 15), cex=0.8, pch=21, bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab="", cex.axis=0.8, cex.lab=0.8)
+ablineclip((intercept+ coef(summary(mod))["Seasonwinter",1]+ coef(summary(mod))["DomD",1]+
+              coef(summary(mod))["Seasonwinter:DomD",1]),
+           (coef(summary(mod))["Light",1]+ coef(summary(mod))["Light:DomD",1]), 
+      col="deepskyblue1", x1 = min(D.win.df$Light), x2 = max(D.win.df$Light), lwd=2)
 
+dev.copy(pdf, "figures/isotope/PanKB.d15N-symb.pdf", width=6, height=4, encod="MacRoman")
+dev.off()
+```
 
+```{r isotopes host symb N, results="hide"}
 ##################
 # Fig: d15N host.symb over season and depth
 ##################        
+par(mfrow=c(1,2),mar=c(5,4.5,2,2))
 
-plot(d15N..host.sym~newDepth, data=na.omit(data.winter),col="dodgerblue3", pch=16, cex=0.7, 
-     xlab="Depth (m)", ylab = expression(paste(delta^{15}, N[H-S], " (\u2030, air)")),
-     xlim=c(0,10), ylim=c(-1,2),
-     main= "d15N h-s: Depth and Season")
-abline(lm(d15N..host.sym~newDepth, data=na.omit(data.winter)), col='dodgerblue3', lwd=2)
-points(d15N..host.sym~newDepth, data=na.omit(data.summer), col="tomato2", pch=16, cex=0.7)
-abline(lm(d15N..host.sym~newDepth, data=na.omit(data.summer)), col='tomato2', lwd=2)
-legend("topright", c("summer", "winter"), lty=c(1,1), lwd=c(2,2), 
-       col=c("tomato2", "dodgerblue3"), y.intersp = 0.3, x.intersp = 0.4, cex=1, bty="n", inset=c(-0.08, -0.1))
+# model.data$d15N..host.sym
+mod<-lmer(d15N..host.sym~Season+Light+Dom+ Season:Dom +(1|Location), data=model.data, na.action=na.exclude)
+intercept<-coef(summary(mod))[1] # intercept
+fixed_params <- tidy(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
 
-###### density plot: by season
-plot(density(na.omit(data.summer$d15N..host.sym)), col="tomato2", main="d15N h-s: Seasons", 
-     xlab=expression(paste(delta^{15}, N[H-S], " (\u2030, air)")), xlim=c(-1, 3), ylim=c(0,2))
-lines(density(na.omit(data.winter$d15N..host.sym)), col="dodgerblue3")
-legend("topright", c("summer", "winter"), lty=c(1,1), lwd=c(2,2), 
-       col=c("tomato2", "dodgerblue3"), y.intersp = 0.3, x.intersp = 0.3, cex=1, bty="n", inset=c(-0.35, -0.1))
+# C summer
+plot(d15N..host.sym~Light, data=C.sum.df, col='red3', ylim=c(-1,2), xlim=c(0, 25), yaxt="n", xaxt="n", cex=0.8, pch=21, bg="salmon", ylab="", xlab ="", main="Summer", cex.main=0.7)
+ablineclip(intercept, coef(summary(mod))["Light",1], col="salmon", 
+           x1 = min(C.sum.df$Light), x2 = max(C.sum.df$Light), lwd=2)
+legend("topright", c("clade C", "clade D"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8,
+       y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.1, 0))
+legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.34, 0))
+par(new=T)
 
-###### density plot: by Site
-plot(density(na.omit(F1.R46.df$d15N..host.sym)), col="tomato2", main="d15N h-s: Sites", xlab=expression(paste(delta^{15}, N[H-S], " (\u2030, air)")), ylim=c(0,2), xlim=c(-1,3))
-lines(density(na.omit(R42.df$d15N..host.sym)), col="skyblue3")
-lines(density(na.omit(F8.R10.df$d15N..host.sym)), col="springgreen4")
-lines(density(na.omit(HIMB.df$d15N..host.sym)), col="purple")
-legend("topright" ,c("Fringe-Reef 46", "Patch-Reef 42", "Fringe-Reef 10", "HIMB"), lty=c(1,1), lwd=c(2,2), y.intersp = 0.3, x.intersp = 0.4,
-       col=c("sienna1", "skyblue3", "springgreen4", "purple"), cex=0.8, bty='n', inset=c(-0.5, -0.1))
+# D summer
+plot(d15N..host.sym~Light, data=D.sum.df, col='blue', ylim=c(-1,2), xlim=c(0, 25), cex=0.8, pch=21, bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab=(expression(paste(delta^{15}, N[H-S], " (\u2030, Air)"))), cex.axis=0.8,
+     cex.lab=0.8)
+ablineclip((intercept+ coef(summary(mod))["DomD",1]), 
+           coef(summary(mod))["Light",1], col="deepskyblue1", x1 = min(D.sum.df$Light), x2 = max(D.sum.df$Light), lwd=2)
 
-dev.copy(pdf, "figures/isotope/PanKB.d15Nh-s.pdf", width=9, height=7, encod="MacRoman")
+# C winter
+plot(d15N..host.sym~Light, data=C.win.df, col='red3', ylim=c(-1,2), xlim=c(0, 15), yaxt="n", xaxt="n",
+     cex=0.8, pch=21, bg="salmon", ylab="", xlab ="", main="Winter", cex.main=0.7)
+ablineclip((intercept + coef(summary(mod))["Seasonwinter",1]), coef(summary(mod))["Light",1], col="salmon", x1 = min(C.win.df$Light), x2 = max(C.win.df$Light), lwd=2)
+par(new=T)
+
+# D winter
+plot(d15N..host.sym~Light, data=D.win.df, col='blue', ylim=c(-1,2), xlim=c(0, 15), cex=0.8, pch=21, bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab="", cex.axis=0.8, cex.lab=0.8)
+ablineclip((intercept+ coef(summary(mod))["Seasonwinter",1]+ coef(summary(mod))["DomD",1]+
+              coef(summary(mod))["Seasonwinter:DomD",1]),
+           coef(summary(mod))["Light",1], 
+      col="deepskyblue1", x1 = min(D.win.df$Light), x2 = max(D.win.df$Light), lwd=2)
 
 
-
+dev.copy(pdf, "figures/isotope/PanKB.d15Nh-s.pdf", width=6, height=4, encod="MacRoman")
+dev.off()
+```
+```{r isotopes host symb N, results="hide"}
 ##################
 # Fig: C.N host season and depth
 ##################       
-plot(host..C.N~newDepth, data=na.omit(data.winter),col="dodgerblue3", pch=16, cex=0.7, 
-     xlab="Depth (m)", ylab = expression(paste("C:N"[H])),
-     xlim=c(0,10), ylim=c(5,10),
-     main= "C:N-host Depth and Season")
-abline(lm(host..C.N~newDepth, data=na.omit(data.winter)), col='dodgerblue3', lwd=2)
-points(host..C.N~newDepth, data=na.omit(data.summer), col="tomato2", pch=16, cex=0.7)
-abline(lm(host..C.N~newDepth, data=na.omit(data.summer)), col='tomato2', lwd=2)
-legend("topright", c("summer", "winter"), lty=c(1,1), lwd=c(2,2), 
-       col=c("tomato2", "dodgerblue3"), y.intersp = 0.3, x.intersp = 0.4, cex=1, bty="n", inset=c(-0.08, -0.1))
+      
+par(mfrow=c(1,2),mar=c(5,4.5,2,2))
 
-###### density plot: by season
-plot(density(na.omit(data.summer$host..C.N)), col="tomato2", main="C:N-host Depth and Season", 
-     xlab=expression(paste("C:N"[H])), ylim=c(0, 1), xlim=c(4, 10))
-lines(density(na.omit(data.winter$host..C.N)), col="dodgerblue3")
-legend("topright", c("summer", "winter"), lty=c(1,1), lwd=c(2,2), 
-       col=c("tomato2", "dodgerblue3"), y.intersp = 0.3, x.intersp = 0.4, cex=1, bty="n", inset=c(-0.35, -0.1))
+# log(model.data$host..C.N)
+mod<-lmer(host..C.N~Season+Light+Dom+ (1|Location), data=model.data, na.action=na.exclude)
+intercept<-coef(summary(mod))[1] # intercept
+fixed_params <- tidy(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
 
-###### density plot: by Site
-plot(density(na.omit(F1.R46.df$host..C.N)), col="tomato2", main="C:N-host Depth and Season", 
-     xlab=expression(paste("C:N"[H])), ylim=c(0,1.5), xlim=c(4, 10))
-lines(density(na.omit(R42.df$host..C.N)), col="skyblue3")
-lines(density(na.omit(F8.R10.df$host..C.N)), col="springgreen4")
-lines(density(na.omit(HIMB.df$host..C.N)), col="purple")
-legend("topright", c("Fringe-Reef 46", "Patch-Reef 42", "Fringe-Reef 10", "HIMB"), lty=c(1,1), lwd=c(2,2), y.intersp = 0.3, x.intersp = 0.4,
-       col=c("sienna1", "skyblue3", "springgreen4", "purple"), cex=0.8, bty='n', inset=c(-0.5, -0.1))
+##### back transformed
+x_light=seq(1,23, 0.5)
+ypred= exp(intercept+ coef(summary(mod))["Light",1]*x_light)
 
-dev.copy(pdf, "figures/isotope/PanKB.C.Nhost.pdf", width=9, height=7, encod="MacRoman")
+# C summer
+plot(host..C.N~Light, data=C.sum.df, col='red3', ylim=c(5, 12), xlim=c(0, 25), yaxt="n", xaxt="n", cex=0.8,
+     pch=21, bg="salmon", ylab="", xlab ="")
+lines(x_light, ypred, col="salmon", lwd=2)
+legend("topright", c("clade C", "clade D"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8,
+       y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.1, 0))
+legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.34, 0))
+par(new=T)
+
+# D summer
+x_light=seq(5,24, 0.5)
+ypred= exp(intercept+ coef(summary(mod))["DomD",1]+coef(summary(mod))["Light",1]*x_light)
+
+plot(host..C.N~Light, data=D.sum.df, col='blue', ylim=c(5, 12), xlim=c(0, 25), cex=0.8, pch=21,
+     bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))),
+     ylab=(expression(paste("C:N"[H]), sep="")), 
+     cex.axis=0.8, cex.lab=0.8, main="Summer", cex.main=0.7)
+lines(x_light, ypred, col="deepskyblue1", lwd=2)
 
 
+# C winter
+x_light=seq(0.3,14, 0.5)
+ypred= exp(intercept + coef(summary(mod))["Seasonwinter",1] + coef(summary(mod))["Light",1]*x_light)
 
+plot(host..C.N~Light, data=C.win.df, col='red3', ylim=c(5, 12), xlim=c(0, 15), yaxt="n", xaxt="n",cex=0.8,
+     pch=21, bg="salmon", ylab="", xlab ="")
+lines(x_light, ypred, col="salmon", lwd=2)
+
+par(new=T)
+
+# D winter
+x_light=seq(1.5,14, 0.5)
+ypred= exp(intercept+ coef(summary(mod))["Seasonwinter",1] + coef(summary(mod))["DomD",1] +
+             coef(summary(mod))["Light",1]*x_light)
+
+plot(host..C.N~Light, data=D.win.df, col='blue', ylim=c(5, 12), xlim=c(0, 15), cex=0.8, pch=21,
+     bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))),
+     ylab="",
+     cex.axis=0.8, cex.lab=0.8, main="Winter", cex.main=0.7)
+lines(x_light, ypred, col="deepskyblue1", lwd=2)
+
+dev.copy(pdf, "figures/isotope/PanKB.C.Nhost.pdf", width=6, height=4, encod="MacRoman")
+dev.off()
+```
+
+```{r isotopes host symb N, results="hide"}
 ##################
 # Fig: C.N symb season and depth
 ##################       
-plot(symb..C.N~newDepth, data=na.omit(data.winter),col="dodgerblue3", pch=16, cex=0.7, 
-     xlab="Depth (m)", ylab = expression(paste("C:N"[S])),
-     xlim=c(0,10), ylim=c(5,14),
-     main= "C:N-symb Depth and Season")
-abline(lm(symb..C.N~newDepth, data=na.omit(data.winter)), col='dodgerblue3', lwd=2)
-points(symb..C.N~newDepth, data=na.omit(data.summer), col="tomato2", pch=16, cex=0.7)
-abline(lm(symb..C.N~newDepth, data=na.omit(data.summer)), col='tomato2', lwd=2)
-legend("topright", c("summer", "winter"), lty=c(1,1), lwd=c(2,2), 
-       col=c("tomato2", "dodgerblue3"), y.intersp = 0.3, x.intersp = 0.4, cex=1, bty="n", inset=c(-0.08, -0.1))
+      
+par(mfrow=c(1,2),mar=c(5,4.5,2,2))
 
-###### density plot: by season
-plot(density(na.omit(data.summer$symb..C.N)), col="tomato2", main="C:N-symb Depth and Season", 
-     xlab=expression(paste("C:N"[S])), ylim=c(0, 0.8), xlim=c(5, 15))
-lines(density(na.omit(data.winter$symb..C.N)), col="dodgerblue3")
-legend("topright", c("summer", "winter"), lty=c(1,1), lwd=c(2,2), 
-       col=c("tomato2", "dodgerblue3"), y.intersp = 0.3, x.intersp = 0.4, cex=1, bty="n", inset=c(-0.35, -0.1))
+# log(model.data$host..C.N)
+mod<-lmer(symb..C.N~Season+Light+Dom+ (1|Location), data=model.data, na.action=na.exclude)
+intercept<-coef(summary(mod))[1] # intercept
+fixed_params <- tidy(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
 
-###### density plot: by Site
-plot(density(na.omit(F1.R46.df$symb..C.N)), col="tomato2", main="C:N-symb Depth and Season", 
-     xlab=expression(paste("C:N"[S])), ylim=c(0,0.8), xlim=c(5, 15))
-lines(density(na.omit(R42.df$symb..C.N)), col="skyblue3")
-lines(density(na.omit(F8.R10.df$symb..C.N)), col="springgreen4")
-lines(density(na.omit(HIMB.df$symb..C.N)), col="purple")
-legend("topright", c("Fringe-Reef 46", "Patch-Reef 42", "Fringe-Reef 10", "HIMB"), lty=c(1,1), lwd=c(2,2), y.intersp = 0.3, x.intersp = 0.4,
-       col=c("sienna1", "skyblue3", "springgreen4", "purple"), cex=0.8, bty='n', inset=c(-0.5, -0.1))
+##### back transformed
+x_light=seq(1,23, 0.5)
+ypred= exp(intercept+ coef(summary(mod))["Light",1]*x_light)
 
-dev.copy(pdf, "figures/isotope/PanKB.C.Nsym.pdf", width=9, height=7, encod="MacRoman")
+# C summer
+plot(symb..C.N~Light, data=C.sum.df, col='red3', ylim=c(5, 12), xlim=c(0, 25), yaxt="n", xaxt="n", cex=0.8,
+     pch=21, bg="salmon", ylab="", xlab ="")
+lines(x_light, ypred, col="salmon", lwd=2)
+legend("topright", c("clade C", "clade D"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8,
+       y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.1, 0))
+legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.34, 0))
+par(new=T)
+
+# D summer
+x_light=seq(5,24, 0.5)
+ypred= exp(intercept+ coef(summary(mod))["DomD",1]+coef(summary(mod))["Light",1]*x_light)
+
+plot(symb..C.N~Light, data=D.sum.df, col='blue', ylim=c(5, 12), xlim=c(0, 25), cex=0.8, pch=21,
+     bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))),
+     ylab=(expression(paste("C:N"[S]), sep="")), 
+     cex.axis=0.8, cex.lab=0.8, main="Summer", cex.main=0.7)
+lines(x_light, ypred, col="deepskyblue1", lwd=2)
+
+
+# C winter
+x_light=seq(0.3,14, 0.5)
+ypred= exp(intercept + coef(summary(mod))["Seasonwinter",1] + coef(summary(mod))["Light",1]*x_light)
+
+plot(symb..C.N~Light, data=C.win.df, col='red3', ylim=c(5, 12), xlim=c(0, 15), yaxt="n", xaxt="n",cex=0.8,
+     pch=21, bg="salmon", ylab="", xlab ="")
+lines(x_light, ypred, col="salmon", lwd=2)
+
+par(new=T)
+
+# D winter
+x_light=seq(1.5,14, 0.5)
+ypred= exp(intercept+ coef(summary(mod))["Seasonwinter",1] + coef(summary(mod))["DomD",1] +
+             coef(summary(mod))["Light",1]*x_light)
+
+plot(symb..C.N~Light, data=D.win.df, col='blue', ylim=c(5, 12), xlim=c(0, 15), cex=0.8, pch=21,
+     bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))),
+     ylab="",
+     cex.axis=0.8, cex.lab=0.8, main="Winter", cex.main=0.7)
+lines(x_light, ypred, col="deepskyblue1", lwd=2)
+
+dev.copy(pdf, "figures/isotope/PanKB.C.Nsym.pdf", width=6, height=4, encod="MacRoman")
+dev.off()
 ```
