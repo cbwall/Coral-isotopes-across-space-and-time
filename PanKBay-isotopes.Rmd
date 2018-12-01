@@ -60,7 +60,7 @@ HI <- spTransform(HI, CRS("+proj=longlat +datum=NAD83"))
 sites<-read.csv("data/environmental/Reefs_lat_long.csv", header=TRUE, na.string=NA)
 ```
 
-```{r Map fig, results="hide", message="hide", warning="hide", fig.height=5, fig.width=5, fig.align = 'center', fig.cap="**Figure 1a.** *Study site locations in Kāne‘ohe Bay on the windward side of the island of O'ahu, Hawai'i*"}
+```{r Map fig, results="hide", message="hide", warning="hide", fig.height=4.6, fig.width=5, fig.align = 'center', fig.cap="**Figure 1a.** *Study site locations in Kāne‘ohe Bay on the windward side of the island of O'ahu, Hawai'i*"}
 # Make figure and export
 
 ###############
@@ -80,10 +80,10 @@ text(x=-157.857, y=seq(21.35, 21.55, 0.05), labels=seq(21.35, 21.55, 0.05),cex=0
 axis(side=4, at=seq(21.35, 21.55, 0.05), line=0, tck=0.02, labels=FALSE) # left
 
 ## add points to map, needs to be 'longitude-latitude formatted'
-points(sites[,c(3,2)], pch=21, cex=1.2, col="black", bg="salmon")
+points(sites[,c(3,2)], pch=21, cex=1.3, col="black", bg="salmon")
 text(sites[,c(3,2)], labels=c("SE\npatch reef", "SW\nfringe reef", "NE\npatch reef", "NW\nfringe reef"), pos=c(3,3,1,3), cex=0.5)
 
-par(new=T, mar=c(14,14,1,1))
+par(new=T, mar=c(15,15,1,1))
 plot(HI, xlim=c(-158.27, -157.6), ylim=c(21.25, 21.72), lwd=0.4, col="gray", bg="white")  # Oahu
 rect(-157.87, 21.39, -157.71, 21.53, lwd=0.8)
 box()
@@ -3077,7 +3077,7 @@ summary(lm(host..d15N~host..d13C, data=D.win.df)) # not significant
 
 # C summer plot
 plot(host..d15N~host..d13C, data=C.sum.df, col='red3', xlim=c(-20, -12), ylim=c(2.5, 6.5), cex=0.7, pch=21, bg="salmon", main="Summer--host", cex.main=0.7, xaxt="n",
-     ylab=(expression(paste(delta^{15}, N, " (\u2030, Air)"))), 
+     ylab=(expression(paste(delta^{15}, N, " (\u2030, Air)"))),
      xlab=(expression(paste(delta^{13}, C, " (\u2030, V-PDB)"))), cex.axis=0.8,
      cex.lab=0.8)
 Axis(side=1, at = seq(-20, -12, by = 2), cex.axis=0.8)
@@ -3145,6 +3145,91 @@ dev.copy(pdf, "figures/isotope/PanKB.CN.scat.pdf", width=7, height=3, encod="Mac
 dev.off()
 ```
 
+```{r C and N isotope scatter depth, results="hide", fig.align='center'}
+      
+par(mfrow=c(1,2),mar=c(5,4.5,2,2))
+
+shallow.sum<-df.fig[df.fig$depth.bin.small=="<4m" & df.fig$Season=="summer", ]
+deep.sum<-df.fig[df.fig$depth.bin.small==">4m" & df.fig$Season=="summer",]
+
+shallow.wint<-df.fig[df.fig$depth.bin.small=="<4m" & df.fig$Season=="winter", ]
+deep.wint<-df.fig[df.fig$depth.bin.small==">4m" & df.fig$Season=="winter",]
+
+
+####### hosts
+### shallow summer
+plot(host..d15N~host..d13C, data=shallow.sum, col='red3', xlim=c(-20, -12), ylim=c(2.5, 6.5), cex=0.7, pch=21, bg="salmon", main="Summer--host", cex.main=0.7, xaxt="n",
+     ylab=(expression(paste(delta^{15}, N, " (\u2030, Air)"))),
+     xlab=(expression(paste(delta^{13}, C, " (\u2030, V-PDB)"))), cex.axis=0.8,
+     cex.lab=0.8)
+Axis(side=1, at = seq(-20, -12, by = 2), cex.axis=0.8)
+legend("topright", c(" < 4m", " > 4m"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8,
+       y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.1, 0))
+legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.3, 0))
+ablineclip(lm(host..d15N~host..d13C, data=shallow.sum), col='salmon', x1 = min(shallow.sum$host..d13C), x2 = max(shallow.sum$host..d13C), lwd=2)
+
+# deep summer
+par(new=T)
+plot(host..d15N~host..d13C, data=deep.sum, col='blue', xlim=c(-20, -12), ylim=c(2.5, 6.5), cex=0.7, pch=21, bg="deepskyblue1", xaxt="n", yaxt="n", ylab="", xlab ="", cex.main=0.7)
+ablineclip(lm(host..d15N~host..d13C, data=deep.sum), col='deepskyblue1', x1 = min(deep.sum$host..d13C), x2 = max(deep.sum$host..d13C), lwd=2)
+
+
+### shallow winter
+plot(host..d15N~host..d13C, data=shallow.wint, col='red3', xlim=c(-20, -12), ylim=c(2.5, 6.5), cex=0.7, pch=21, bg="salmon", main="Winter--host", cex.main=0.7, xaxt="n", ylab="",
+     xlab=(expression(paste(delta^{13}, C, " (\u2030, V-PDB)"))), cex.axis=0.8,
+     cex.lab=0.8)
+Axis(side=1, at = seq(-20, -12, by = 2), cex.axis=0.8)
+legend("topright", c(" < 4m", " > 4m"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8,
+       y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.1, 0))
+legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.3, 0))
+ablineclip(lm(host..d15N~host..d13C, data=shallow.wint), col='salmon', x1 = min(shallow.wint$host..d13C), x2 = max(shallow.wint$host..d13C), lwd=2)
+
+# deep winter
+par(new=T)
+plot(host..d15N~host..d13C, data=deep.wint, col='blue', xlim=c(-20, -12), ylim=c(2.5, 6.5), cex=0.7, pch=21, bg="deepskyblue1", xaxt="n", yaxt="n", ylab="", xlab ="", cex.main=0.7)
+ablineclip(lm(host..d15N~host..d13C, data=deep.wint), col='deepskyblue1', x1 = min(deep.wint$host..d13C), x2 = max(deep.wint$host..d13C), lwd=2)
+
+dev.copy(pdf, "figures/isotope/PanKB.scatdepth.host.pdf", width=6, height=4, encod="MacRoman")
+dev.off()
+
+
+#### symbionts
+
+### shallow summer
+plot(symb..d15N~symb..d13C, data=shallow.sum, col='red3', xlim=c(-20, -12), ylim=c(2.5, 6.5), cex=0.7, pch=21, bg="salmon", main="Summer--Symbionts", cex.main=0.7, xaxt="n",
+     ylab=(expression(paste(delta^{15}, N, " (\u2030, Air)"))),
+     xlab=(expression(paste(delta^{13}, C, " (\u2030, V-PDB)"))), cex.axis=0.8,
+     cex.lab=0.8)
+Axis(side=1, at = seq(-20, -12, by = 2), cex.axis=0.8)
+legend("topright", c(" < 4m", " > 4m"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8,
+       y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.1, 0))
+legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.3, 0))
+ablineclip(lm(symb..d15N~symb..d13C, data=shallow.sum), col='salmon', x1 = min(shallow.sum$symb..d13C), x2 = max(shallow.sum$symb..d13C), lwd=2)
+
+# deep summer
+par(new=T)
+plot(symb..d15N~symb..d13C, data=deep.sum, col='blue', xlim=c(-20, -12), ylim=c(2.5, 6.5), cex=0.7, pch=21, bg="deepskyblue1", xaxt="n", yaxt="n", ylab="", xlab ="", cex.main=0.7)
+ablineclip(lm(symb..d15N~symb..d13C, data=deep.sum), col='deepskyblue1', x1 = min(deep.sum$symb..d13C), x2 = max(deep.sum$symb..d13C), lwd=2)
+
+
+### shallow winter
+plot(symb..d15N~symb..d13C, data=shallow.wint, col='red3', xlim=c(-20, -12), ylim=c(2.5, 6.5), cex=0.7, pch=21, bg="salmon", main="Winter--Symbionts", cex.main=0.7, xaxt="n", ylab="",
+     xlab=(expression(paste(delta^{13}, C, " (\u2030, V-PDB)"))), cex.axis=0.8,
+     cex.lab=0.8)
+Axis(side=1, at = seq(-20, -12, by = 2), cex.axis=0.8)
+legend("topright", c(" < 4m", "> 4m"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8,
+       y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.1, 0))
+legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.3, 0))
+ablineclip(lm(symb..d15N~symb..d13C, data=shallow.wint), col='salmon', x1 = min(shallow.wint$symb..d13C), x2 = max(shallow.wint$symb..d13C), lwd=2)
+
+# deep winter
+par(new=T)
+plot(symb..d15N~symb..d13C, data=deep.wint, col='blue', xlim=c(-20, -12), ylim=c(2.5, 6.5), cex=0.7, pch=21, bg="deepskyblue1", xaxt="n", yaxt="n", ylab="", xlab ="", cex.main=0.7)
+ablineclip(lm(symb..d15N~symb..d13C, data=deep.wint), col='deepskyblue1', x1 = min(deep.wint$symb..d13C), x2 = max(deep.wint$symb..d13C), lwd=2)
+
+dev.copy(pdf, "figures/isotope/PanKB.scatdepth.symb.pdf", width=6, height=4, encod="MacRoman")
+dev.off()
+```
 
 ```{r C and N isotope scatter host symb, results="hide", eval=FALSE}
 # When taking the difference between host and symbiont isotope values for carbon and nitrogen, there is a significant relationship for clade C in the winter (p=0.013)
