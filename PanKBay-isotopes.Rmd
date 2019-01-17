@@ -17,8 +17,10 @@ require("knitr")
 knitr::opts_chunk$set(warning=FALSE, message=FALSE, fig.align='center')
 
 library(ggplot2)
+library(broom.mixed)
 library(broom)
 library(tidyverse)
+library(tidymodels)
 library(plyr)
 library(dplyr)
 library(plotrix)
@@ -140,9 +142,11 @@ sum.data<- data[(data$Season=="summer"),]; sum.depth.dif<- sum.data$newDepth-sum
 win.data<- data[(data$Season=="winter"),]; win.depth.dif<- win.data$newDepth-win.data$Depth..m
 
 #### make a plot of differences
-plot(sum.depth.dif~sum.data$Depth..m, col="pink4", pch=21, bg="plum", cex.axis=0.8, cex.lab=0.8,
-     ylim=c(-0.3, 0.3), xlim=c(0,10),
-     xlab="Field depth observation (m)", ylab="Corrected depth difference (m)")
+# * note that plot works in Knit and alone in code chunk but isn't running if you "run all"*
+
+plot(sum.depth.dif~sum.data$Depth..m, col="pink4", pch=21, bg="plum", cex.axis=0.8, cex.lab=0.8, ylim=c(-0.3, 0.3), xlim=c(0,10),
+     xlab="Field depth observation (m)", 
+     ylab="Corrected depth difference (m)")
 abline(h=0, lty=2, col="gray")
 
 par(new=T)
@@ -2026,7 +2030,7 @@ add<-lmer(Y~Season+Light+Dom+ (1|Location), data=model.data, na.action=na.exclud
 anova(full, add) #use additive model
 
 summary(add)
-rand(add)
+ranova(add)
 
 print(anova(add, type=2), digits=5)
 var.table<-as.data.frame(VarCorr(add),comp="Variance")
@@ -2048,7 +2052,7 @@ add<-lmer(Y~Season+Light+Dom+Season:Light + (1|Location), data=model.data, na.ac
 anova(full, add) #use additive model
 
 summary(add)
-rand(add)
+ranova(add)
 
 print(anova(add, type=2), digits=5)
 var.table<-as.data.frame(VarCorr(add),comp="Variance")
@@ -2072,7 +2076,7 @@ add<-lmer(Y~Season+Light+Dom+Season:Dom + (1|Location), data=model.data, na.acti
 anova(full, add) #use additive model
 
 summary(add)
-rand(add)
+ranova(add)
 
 print(anova(add, type=2), digits=5)
 var.table<-as.data.frame(VarCorr(add),comp="Variance")
@@ -2098,7 +2102,7 @@ add<-lmer(Y~Season+Light+Dom+ (1|Location), data=model.data, na.action=na.exclud
 anova(full, add) #use additive model
 
 summary(add)
-rand(add)
+ranova(add)
 
 print(anova(add, type=2), digits=5)
 var.table<-as.data.frame(VarCorr(add),comp="Variance")
@@ -2108,7 +2112,7 @@ var.chlcell$response<-"chlcell"
 
 plot(allEffects(add), ylab="chla cell", par.strip.text=list(cex=0.7))
 #ranef(add)
-#rand(add)
+#ranova(add)
 #fixef(add)
 #sjp.lmer(add, y.offset = .4)
 ```
@@ -2123,7 +2127,7 @@ add<-lmer(Y~Season+Light+Dom+ Season:Dom+ Season:Light+(1|Location), data=model.
 anova(full, add) #use additive model
 
 summary(add)
-rand(add)
+ranova(add)
 
 print(anova(add), digits=5)
 var.table<-as.data.frame(VarCorr(add),comp="Variance")
@@ -2149,7 +2153,7 @@ add<-lmer(Y~Season+Light+Dom+ Season:Dom +(1|Location), data=model.data, na.acti
 anova(full, add) #use additive model
 
 summary(add)
-rand(add)
+ranova(add)
 print(anova(add, type=2), digits=5)
 var.table<-as.data.frame(VarCorr(add),comp="Variance")
 var.table$prop.var<-c(var.table$vcov[1]/(var.table$vcov[1]+var.table$vcov[2]), "")
@@ -2174,7 +2178,7 @@ add<-lmer(Y~Season+Light+Dom+ Season:Light +Season:Dom +(1|Location), data=model
 anova(full, add) #use add model
 
 summary(add)
-rand(add)
+ranova(add)
 
 print(anova(add, type=2), digits=4)
 var.table<-as.data.frame(VarCorr(add),comp="Variance")
@@ -2200,7 +2204,7 @@ add<-lmer(Y~Season+Light+Dom+ (1|Location), data=model.data, na.action=na.exclud
 anova(full, add) #use add model
 
 summary(add)
-rand(add)
+ranova(add)
 
 print(anova(add, type=2), digits=4)
 var.table<-as.data.frame(VarCorr(add),comp="Variance")
@@ -2222,7 +2226,7 @@ add<-lmer(Y~Season+Light+Dom+(1|Location), data=model.data, na.action=na.exclude
 anova(full, add) #use add model
 
 summary(add)
-rand(add)
+ranova(add)
 
 print(anova(add, type=2), digits=4)
 var.table<-as.data.frame(VarCorr(add),comp="Variance")
@@ -2242,7 +2246,7 @@ add<-lmer(Y~Season+Light+Dom+ Season:Dom+ Light:Dom + (1|Location), data=model.d
 anova(full, add) #use add model
 
 summary(add)
-rand(add)
+ranova(add)
 
 print(anova(add, type=2), digits=6)
 var.table<-as.data.frame(VarCorr(add),comp="Variance")
@@ -2265,7 +2269,7 @@ add<-lmer(Y~Season+Light+Dom+ Season:Dom+  (1|Location), data=model.data, na.act
 anova(full, add) #use add model
 
 summary(add)
-rand(add)
+ranova(add)
 
 print(anova(add, type=2), digits=4)
 var.table<-as.data.frame(VarCorr(add),comp="Variance")
@@ -2288,7 +2292,7 @@ add<-lmer(Y~Season+Light+Dom+ (1|Location), data=model.data, na.action=na.exclud
 anova(full, add) #use add model
 
 summary(add)
-rand(add)
+ranova(add)
 
 print(anova(add, type=2), digits=4)
 var.table<-as.data.frame(VarCorr(add),comp="Variance")
@@ -2308,7 +2312,7 @@ add<-lmer(Y~Season+Light+Dom+ (1|Location), data=model.data, na.action=na.exclud
 anova(full, add) #use add model
 
 summary(add)
-rand(add)
+ranova(add)
 
 print(anova(add, type=2), digits=5)
 var.table<-as.data.frame(VarCorr(add),comp="Variance")
@@ -2390,7 +2394,144 @@ D.win.df<-df.fig[(df.fig$Dom=="D" & df.fig$Season=="winter") ,]
 # model.data$host..C.N<-log(model.data$host..C.N)
 # model.data$symb..C.N<-log(model.data$symb..C.N)
 ```
-  
+
+```{r, include=FALSE}
+# issue with broom:tidy that currently won't support lmer model output in lmerTest
+# work around from https://github.com/tidymodels/broom/issues/309
+# run the function below and name all 'tidy' calls 'tidy_lmer'
+
+tidy_lmer <- function(x, effects = c("ran_pars","fixed"),
+                        scales = NULL, ## c("sdcor",NA),
+                        ran_prefix=NULL,
+                        conf.int = FALSE,
+                        conf.level = 0.95,
+                        conf.method = "Wald",
+                        ...) {
+    effect_names <- c("ran_pars", "fixed", "ran_modes")
+    if (!is.null(scales)) {
+        if (length(scales) != length(effects)) {
+            stop("if scales are specified, values (or NA) must be provided ",
+                 "for each effect")
+        }
+    }
+    if (length(miss <- setdiff(effects,effect_names))>0)
+        stop("unknown effect type ",miss)
+    base_nn <- c("estimate", "std.error", "df", "statistic", "p.value")
+    ret_list <- list()
+    if ("fixed" %in% effects) {
+        # return tidied fixed effects rather than random
+        ret <- stats::coef(summary(x))
+
+        # p-values may or may not be included
+        nn <- base_nn[1:ncol(ret)]
+
+        if (conf.int) {
+            cifix <- confint(x,parm="beta_",method=conf.method,...)
+            ret <- data.frame(ret,cifix)
+            nn <- c(nn,"conf.low","conf.high")
+        }
+        if ("ran_pars" %in% effects || "ran_modes" %in% effects) {
+            ret <- data.frame(ret,group="fixed")
+            nn <- c(nn,"group")
+        }
+        ret_list$fixed <-
+            fix_data_frame(ret, newnames = nn)
+    }
+    if ("ran_pars" %in% effects) {
+        if (is.null(scales)) {
+            rscale <- "sdcor"
+        } else rscale <- scales[effects=="ran_pars"]
+        if (!rscale %in% c("sdcor","vcov"))
+            stop(sprintf("unrecognized ran_pars scale %s",sQuote(rscale)))
+        ret <- as.data.frame(VarCorr(x))
+        ret[] <- lapply(ret, function(x) if (is.factor(x))
+                                 as.character(x) else x)
+        if (is.null(ran_prefix)) {
+            ran_prefix <- switch(rscale,
+                                 vcov=c("var","cov"),
+                                 sdcor=c("sd","cor"))
+        }
+        pfun <- function(x) {
+            v <- na.omit(unlist(x))
+            if (length(v)==0) v <- "Observation"
+            p <- paste(v,collapse=".")
+            if (!identical(ran_prefix,NA)) {
+                p <- paste(ran_prefix[length(v)],p,sep="_")
+            }
+            return(p)
+        }
+
+        rownames(ret) <- paste(apply(ret[c("var1","var2")],1,pfun),
+                                ret[,"grp"], sep = ".")
+
+        ## FIXME: this is ugly, but maybe necessary?
+        ## set 'term' column explicitly, disable fix_data_frame
+        ##  rownames -> term conversion
+        ## rownames(ret) <- seq(nrow(ret))
+
+        if (conf.int) {
+            ciran <- confint(x,parm="theta_",method=conf.method,...)
+            ret <- data.frame(ret,ciran)
+            nn <- c(nn,"conf.low","conf.high")
+        }
+
+        
+        ## replicate lme4:::tnames, more or less
+        ret_list$ran_pars <- fix_data_frame(ret[c("grp", rscale)],
+                                            newnames = c("group", "estimate"))
+    }
+    if ("ran_modes" %in% effects) {
+        ## fix each group to be a tidy data frame
+
+        nn <- c("estimate", "std.error")
+        re <- ranef(x,condVar=TRUE)
+        getSE <- function(x) {
+            v <- attr(x,"postVar")
+            setNames(as.data.frame(sqrt(t(apply(v,3,diag)))),
+                     colnames(x))
+        }
+        fix <- function(g,re,.id) {
+             newg <- fix_data_frame(g, newnames = colnames(g), newcol = "level")
+             # fix_data_frame doesn't create a new column if rownames are numeric,
+             # which doesn't suit our purposes
+             newg$level <- rownames(g)
+             newg$type <- "estimate"
+
+             newg.se <- getSE(re)
+             newg.se$level <- rownames(re)
+             newg.se$type <- "std.error"
+
+             data.frame(rbind(newg,newg.se),.id=.id,
+                        check.names=FALSE)
+                        ## prevent coercion of variable names
+        }
+
+        mm <- do.call(rbind,Map(fix,coef(x),re,names(re)))
+
+        ## block false-positive warnings due to NSE
+        type <- spread <- est <- NULL
+        mm %>% gather(term, estimate, -.id, -level, -type) %>%
+            spread(type,estimate) -> ret
+
+        ## FIXME: doesn't include uncertainty of population-level estimate
+
+        if (conf.int) {
+            if (conf.method != "Wald")
+                stop("only Wald CIs available for conditional modes")
+
+            mult <- qnorm((1+conf.level)/2)
+            ret <- transform(ret,
+                             conf.low=estimate-mult*std.error,
+                             conf.high=estimate+mult*std.error)
+        }
+
+        ret <- dplyr::rename(ret,group=.id)
+        ret_list$ran_modes <- ret
+    }
+    return(rbind.fill(ret_list))
+}
+```
+
 **Tissue biomass**
 ```{r biomass figure, results="hide"}
 ##################
@@ -2399,7 +2540,7 @@ D.win.df<-df.fig[(df.fig$Dom=="D" & df.fig$Season=="winter") ,]
 par(mfrow=c(1,2),mar=c(5,4.5,2,2))
 mod<-lmer(biomass~Season+Light+Dom+ (1|Location), data=model.data, na.action=na.exclude)
 intercept<-coef(summary(mod))[1] # intercept
-fixed_params <- tidy(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
+fixed_params <- tidy_lmer(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
 
 # C summer
 plot(biomass~Light, data=C.sum.df, col='red3', ylim=c(0, 80), xlim=c(25, 0), yaxt="n", xaxt="n", cex=0.8, pch=21, bg="salmon", ylab="", xlab ="", main="Summer", cex.main=0.7)
@@ -2441,7 +2582,7 @@ par(mfrow=c(1,2),mar=c(5,4.5,2,2))
 
 # model 
 mod<-lmer(chltot~Season+Light+Dom+Season:Dom + (1|Location), data=model.data, na.action=na.exclude)
-fixed_params <- tidy(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
+fixed_params <- tidy_lmer(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
 
 intercept<-coef(summary(mod))[1] # intercept
 coef(summary(mod))["Seasonwinter",1] # winter, summer = 0
@@ -2490,7 +2631,7 @@ par(mfrow=c(1,2),mar=c(5,4.5,2,2))
 # model.data$chlcell<-log(model.data$chlacell)
 mod<-lmer(chlcell~Season+Light+Dom+ (1|Location), data=model.data, na.action=na.exclude)
 intercept<-coef(summary(mod))[1] # intercept
-fixed_params <- tidy(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
+fixed_params <- tidy_lmer(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
 
 ##### back transformed
 x_light=seq(1,23, 0.5)
@@ -2554,7 +2695,7 @@ par(mfrow=c(1,2),mar=c(5,4.5,2,2))
 # model.data$zoox<-log(model.data$zoox)
 mod<-lmer(zoox~Season+Light+Dom+Season:Light + (1|Location), data=model.data, na.action=na.exclude)
 intercept<-coef(summary(mod))[1] # intercept
-fixed_params <- tidy(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
+fixed_params <- tidy_lmer(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
 
 
 ####################    
@@ -2616,7 +2757,7 @@ par(mfrow=c(1,2),mar=c(5,4.5,2,2))
 # model.data$host..d13C
 mod<-lmer(host..d13C~Season+Light+Dom+ Season:Dom+ Season:Light+(1|Location), data=model.data, na.action=na.exclude)
 intercept<-coef(summary(mod))[1] # intercept
-fixed_params <- tidy(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
+fixed_params <- tidy_lmer(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
 
 # C summer
 plot(host..d13C~Light, data=C.sum.df, col='red3', ylim=c(-20, -10), xlim=c(25, 0), yaxt="n", xaxt="n", cex=0.8, pch=21, bg="salmon", ylab="", xlab ="", main="Summer", cex.main=0.7)
@@ -2661,7 +2802,7 @@ par(mfrow=c(1,2),mar=c(5,4.5,2,2))
 # model.data$symb..d13C
 mod<-lmer(symb..d13C~Season+Light+Dom+ Season:Dom+ Season:Light+(1|Location), data=model.data, na.action=na.exclude)
 intercept<-coef(summary(mod))[1] # intercept
-fixed_params <- tidy(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
+fixed_params <- tidy_lmer(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
 
 # C summer
 plot(symb..d13C~Light, data=C.sum.df, col='red3', ylim=c(-20, -10), xlim=c(25, 0), yaxt="n", xaxt="n", cex=0.8, pch=21, bg="salmon", ylab="", xlab ="", main="Summer", cex.main=0.7)
@@ -2706,7 +2847,7 @@ par(mfrow=c(1,2),mar=c(5,4.5,2,2))
 # model.data$d13C..host.sym
 mod<-lmer(d13C..host.sym~Season+Light+Dom+ Season:Light +Season:Dom +(1|Location), data=model.data, na.action=na.exclude)
 intercept<-coef(summary(mod))[1] # intercept
-fixed_params <- tidy(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
+fixed_params <- tidy_lmer(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
 
 # C summer
 plot(d13C..host.sym~Light, data=C.sum.df, col='red3', ylim=c(-3, 3), xlim=c(25, 0), yaxt="n", xaxt="n", cex=0.8, pch=21, bg="salmon", ylab="", xlab ="", main="Summer", cex.main=0.7)
@@ -2753,7 +2894,7 @@ par(mfrow=c(1,2),mar=c(5,4.5,2,2))
 # model.data$d13C..skel
 mod<-lmer(d13C..skel~Season+Light+Dom+ (1|Location), data=model.data, na.action=na.exclude)
 intercept<-coef(summary(mod))[1] # intercept
-fixed_params <- tidy(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
+fixed_params <- tidy_lmer(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
 
 # C summer
 plot(d13C..skel~Light, data=C.sum.df, col='red3', ylim=c(-8, 4), xlim=c(25, 0), yaxt="n", xaxt="n", cex=0.8, pch=21, bg="salmon", ylab="", xlab ="", main="Summer", cex.main=0.7)
@@ -2799,7 +2940,7 @@ par(mfrow=c(1,2),mar=c(5,4.5,2,2))
 # model.data$host..d15N
 mod<-lmer(host..d15N~Season+Light+Dom+(1|Location), data=model.data, na.action=na.exclude)
 intercept<-coef(summary(mod))[1] # intercept
-fixed_params <- tidy(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
+fixed_params <- tidy_lmer(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
 
 # C summer
 plot(host..d15N~Light, data=C.sum.df, col='red3', ylim=c(2, 8), xlim=c(25, 0), yaxt="n", xaxt="n", cex=0.8, pch=21, bg="salmon", ylab="", xlab ="", main="Summer", cex.main=0.7)
@@ -2845,7 +2986,7 @@ par(mfrow=c(1,2),mar=c(5,4.5,2,2))
 # model.data$symb..d15N
 mod<-lmer(symb..d15N~Season+Light+Dom+ Season:Dom+ Light:Dom +(1|Location), data=model.data, na.action=na.exclude)
 intercept<-coef(summary(mod))[1] # intercept
-fixed_params <- tidy(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
+fixed_params <- tidy_lmer(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
 
 # C summer
 plot(symb..d15N~Light, data=C.sum.df, col='red3', ylim=c(2, 8), xlim=c(25, 0), yaxt="n", xaxt="n", cex=0.8, pch=21, bg="salmon", ylab="", xlab ="", main="Summer", cex.main=0.7)
@@ -2893,7 +3034,7 @@ par(mfrow=c(1,2),mar=c(5,4.5,2,2))
 # model.data$d15N..host.sym
 mod<-lmer(d15N..host.sym~Season+Light+Dom+ Season:Dom +(1|Location), data=model.data, na.action=na.exclude)
 intercept<-coef(summary(mod))[1] # intercept
-fixed_params <- tidy(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
+fixed_params <- tidy_lmer(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
 
 # C summer
 plot(d15N..host.sym~Light, data=C.sum.df, col='red3', ylim=c(-1,2), xlim=c(25, 0), yaxt="n", xaxt="n", cex=0.8, pch=21, bg="salmon", ylab="", xlab ="", main="Summer", cex.main=0.7)
@@ -2943,7 +3084,7 @@ par(mfrow=c(1,2),mar=c(5,4.5,2,2))
 # log(model.data$host..C.N)
 mod<-lmer(host..C.N~Season+Light+Dom+ (1|Location), data=model.data, na.action=na.exclude)
 intercept<-coef(summary(mod))[1] # intercept
-fixed_params <- tidy(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
+fixed_params <- tidy_lmer(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
 
 ##### back transformed
 x_light=seq(1,23, 0.5)
@@ -3007,7 +3148,7 @@ par(mfrow=c(1,2),mar=c(5,4.5,2,2))
 # log(model.data$host..C.N)
 mod<-lmer(symb..C.N~Season+Light+Dom+ (1|Location), data=model.data, na.action=na.exclude)
 intercept<-coef(summary(mod))[1] # intercept
-fixed_params <- tidy(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
+fixed_params <- tidy_lmer(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
 
 ##### back transformed
 x_light=seq(1,23, 0.5)
