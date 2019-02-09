@@ -2363,7 +2363,7 @@ ggsave(file="figures/models/variance.pdf", height=3.5, width=6)
 ```
 
 ### Figures
-```{r PCA all data}
+```{r PCA all data, result="hide", fig.dim=c(6,6)}
 # multivariate test using adonis-- Manova, mutivariate analysis of variance
 library(devtools)
 install_github("vqv/ggbiplot")
@@ -2411,9 +2411,6 @@ PC.Seas.fig <- ggbiplot(PC.Kbay, choices = 1:2, obs.scale = 1, var.scale = 1,
   theme(legend.key = element_blank())+
   theme(legend.direction = 'horizontal', legend.position = 'top') + theme(aspect.ratio=0.7)
 
-print(PC.Seas.fig)
-dev.copy(pdf, "figures/multivariate/PC.Seas.fig.pdf", height=5, width=5)
-dev.off()
 
 ####### plot: Location
 ## PC1 and PC2 
@@ -2430,10 +2427,6 @@ PC.Loc.fig <- ggbiplot(PC.Kbay, choices = 1:2, obs.scale = 1, var.scale = 1,
   theme(legend.key = element_blank())+
   theme(legend.direction = 'horizontal', legend.position = 'top') + theme(aspect.ratio=0.7)
 
-print(PC.Loc.fig)
-dev.copy(pdf, "figures/multivariate/PC.Loc.fig.pdf", height=5, width=5)
-dev.off()
-
 
 #### PCA by Depth
 PC.Depth.fig <- ggbiplot(PC.Kbay, choices = 1:2, obs.scale = 1, var.scale = 1, 
@@ -2448,10 +2441,6 @@ PC.Depth.fig <- ggbiplot(PC.Kbay, choices = 1:2, obs.scale = 1, var.scale = 1,
   theme(panel.background = element_rect(colour = "black", size=1))+
   theme(legend.key = element_blank())+
   theme(legend.direction = 'horizontal', legend.position = 'top') + theme(aspect.ratio=0.7)
-
-print(PC.Depth.fig)
-dev.copy(pdf, "figures/multivariate/PC.Depth.fig.pdf", height=5, width=5)
-dev.off()
 
 
 #### PCA by Symb
@@ -2468,9 +2457,6 @@ PC.Symb.fig <- ggbiplot(PC.Kbay, choices = 1:2, obs.scale = 1, var.scale = 1,
   theme(legend.key = element_blank())+
   theme(legend.direction = 'horizontal', legend.position = 'top') + theme(aspect.ratio=0.7)
 
-print(PC.Symb.fig)
-dev.copy(pdf, "figures/multivariate/PC.Symb.fig.pdf", height=5, width=5)
-dev.off()
 
 grid.arrange(PC.Seas.fig, PC.Loc.fig, PC.Symb.fig, PC.Depth.fig, ncol = 2)
 G<-arrangeGrob(PC.Seas.fig, PC.Loc.fig, PC.Symb.fig, PC.Depth.fig, ncol=2)
