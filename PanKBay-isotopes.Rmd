@@ -2354,6 +2354,7 @@ Fig.rand.eff<-ggplot(rand.eff.df, aes(x=response, y=prop.var, fill=response)) +
   geom_bar(stat="identity", position = pd, width=0.7, size=0.4) +
   theme(axis.text.x = element_text(size=10, angle=45, hjust = 1)) +
   scale_x_discrete(name="Responses", label=var.labs) +
+  annotate("text", x = 13, y = 0.105, label = "italic(N/A)", parse=TRUE) +
   theme(axis.title.y= element_text(size=10),
         axis.text.y= element_text(size=10))+
   ylab(expression(paste("variance proportion", sep=""))) +
@@ -2363,7 +2364,7 @@ ggsave(file="figures/models/variance.pdf", height=3.5, width=6)
 ```
 
 ### Figures
-```{r PCA all data, result="hide", fig.dim=c(6,6)}
+```{r PCA all data, result="hide", fig.dim=c(7,6)}
 # multivariate test using adonis-- Manova, mutivariate analysis of variance
 library(devtools)
 install_github("vqv/ggbiplot")
@@ -2398,15 +2399,17 @@ plot(PC.Kbay, type="lines", main="PC.Kbay eigenvalues") #plots PCA, equivalent t
 
 ####### plot: Season
 ## PC1 and PC2
+Season<-df.PCA[,1]
 PC.Seas.fig <- ggbiplot(PC.Kbay, choices = 1:2, obs.scale = 1, var.scale = 1, 
-              groups= df.PCA[,1], ellipse = TRUE, ellipse.prob = 0.90,
-              circle = FALSE, alpha=0.6) +
-  scale_color_discrete(name = '') +
+              groups= Season, ellipse = TRUE, ellipse.prob = 0.90,
+              circle = FALSE, alpha=0, PC.Seas.fig) +
+  scale_color_manual(name = '', values=c("coral1", "deepskyblue3")) +
+  geom_point(aes(colour=Season), shape=17, size = 0.8, alpha=6/10)+
   theme_bw() +
   scale_x_continuous(limits=c(-5, 5), breaks=pretty_breaks(n=5))+
   scale_y_continuous(limits=c(-5, 5), breaks=pretty_breaks(n=5))+ 
   theme(axis.ticks.length=unit(-0.25, "cm"), axis.text.y=element_text(margin=unit(c(0.5, 0.5, 0.5, 0.5), "cm")), axis.text.x=element_text(margin=unit(c(0.5, 0.5, 0.5, 0.5), "cm"))) +
-  theme(legend.text=element_text(size=15)) +
+  theme(legend.text=element_text(size=10)) +
   theme(panel.background = element_rect(colour = "black", size=1))+
   theme(legend.key = element_blank())+
   theme(legend.direction = 'horizontal', legend.position = 'top') + theme(aspect.ratio=0.7)
@@ -2414,45 +2417,52 @@ PC.Seas.fig <- ggbiplot(PC.Kbay, choices = 1:2, obs.scale = 1, var.scale = 1,
 
 ####### plot: Location
 ## PC1 and PC2 
+Location<-df.PCA[,2]
 PC.Loc.fig <- ggbiplot(PC.Kbay, choices = 1:2, obs.scale = 1, var.scale = 1, 
-              groups= df.PCA[,2], ellipse = TRUE, ellipse.prob = 0.90,
-              circle = FALSE, alpha=0.6) +
-  scale_color_discrete(name = '') +
+              groups= Location, ellipse = TRUE, ellipse.prob = 0.90,
+              circle = FALSE, alpha=0) +
+  scale_color_manual(name = '', values=c("coral1", "deepskyblue3", "chartreuse3", "darkorchid")) +
+  geom_point(aes(colour=Location), shape=17, size = 0.8, alpha=6/10)+
   theme_bw() +
   scale_x_continuous(limits=c(-5, 5), breaks=pretty_breaks(n=5))+
   scale_y_continuous(limits=c(-5, 5), breaks=pretty_breaks(n=5))+ 
   theme(axis.ticks.length=unit(-0.25, "cm"), axis.text.y=element_text(margin=unit(c(0.5, 0.5, 0.5, 0.5), "cm")), axis.text.x=element_text(margin=unit(c(0.5, 0.5, 0.5, 0.5), "cm"))) +
-  theme(legend.text=element_text(size=15)) +
+  theme(legend.text=element_text(size=10)) +
+  theme(panel.background = element_rect(colour = "black", size=1))+
+  theme(legend.key = element_blank())+
+  theme(legend.direction = 'horizontal', legend.position = 'top') + theme(aspect.ratio=0.7)
+
+
+
+#### PCA by Symb
+Symbs<-df.PCA[,13]
+PC.Symb.fig <- ggbiplot(PC.Kbay, choices = 1:2, obs.scale = 1, var.scale = 1, 
+              groups= Symbs, ellipse = TRUE, ellipse.prob = 0.90,
+              circle = FALSE, alpha=0) +
+  scale_color_manual(name = '', values=c("coral1", "deepskyblue3")) +
+  geom_point(aes(colour=Symbs), shape=16, size = 0.8, alpha=6/10)+
+  theme_bw() +
+  scale_x_continuous(limits=c(-5, 5), breaks=pretty_breaks(n=5))+
+  scale_y_continuous(limits=c(-5, 5), breaks=pretty_breaks(n=5))+ 
+  theme(axis.ticks.length=unit(-0.25, "cm"), axis.text.y=element_text(margin=unit(c(0.5, 0.5, 0.5, 0.5), "cm")), axis.text.x=element_text(margin=unit(c(0.5, 0.5, 0.5, 0.5), "cm"))) +
+  theme(legend.text=element_text(size=10)) +
   theme(panel.background = element_rect(colour = "black", size=1))+
   theme(legend.key = element_blank())+
   theme(legend.direction = 'horizontal', legend.position = 'top') + theme(aspect.ratio=0.7)
 
 
 #### PCA by Depth
+Depth<-df.PCA[,3]
 PC.Depth.fig <- ggbiplot(PC.Kbay, choices = 1:2, obs.scale = 1, var.scale = 1, 
-              groups= df.PCA[,3], ellipse = TRUE, ellipse.prob = 0.90,
-              circle = FALSE, alpha=0.6) +
-  scale_color_discrete(name = '') +
+              groups= Depth, ellipse = TRUE, ellipse.prob = 0.90,
+              circle = FALSE, alpha=0) +
+  scale_color_manual(name = '', values=c("coral1", "deepskyblue3", "chartreuse3", "darkorchid")) +
+  geom_point(aes(colour=Depth), shape=16, size = 0.8, alpha=6/10)+
   theme_bw() +
   scale_x_continuous(limits=c(-5, 5), breaks=pretty_breaks(n=5))+
   scale_y_continuous(limits=c(-5, 5), breaks=pretty_breaks(n=5))+ 
   theme(axis.ticks.length=unit(-0.25, "cm"), axis.text.y=element_text(margin=unit(c(0.5, 0.5, 0.5, 0.5), "cm")), axis.text.x=element_text(margin=unit(c(0.5, 0.5, 0.5, 0.5), "cm"))) +
-  theme(legend.text=element_text(size=15)) +
-  theme(panel.background = element_rect(colour = "black", size=1))+
-  theme(legend.key = element_blank())+
-  theme(legend.direction = 'horizontal', legend.position = 'top') + theme(aspect.ratio=0.7)
-
-
-#### PCA by Symb
-PC.Symb.fig <- ggbiplot(PC.Kbay, choices = 1:2, obs.scale = 1, var.scale = 1, 
-              groups= df.PCA[,13], ellipse = TRUE, ellipse.prob = 0.90,
-              circle = FALSE, alpha=0.6) +
-  scale_color_discrete(name = '') +
-  theme_bw() +
-  scale_x_continuous(limits=c(-5, 5), breaks=pretty_breaks(n=5))+
-  scale_y_continuous(limits=c(-5, 5), breaks=pretty_breaks(n=5))+ 
-  theme(axis.ticks.length=unit(-0.25, "cm"), axis.text.y=element_text(margin=unit(c(0.5, 0.5, 0.5, 0.5), "cm")), axis.text.x=element_text(margin=unit(c(0.5, 0.5, 0.5, 0.5), "cm"))) +
-  theme(legend.text=element_text(size=15)) +
+  theme(legend.text=element_text(size=10)) +
   theme(panel.background = element_rect(colour = "black", size=1))+
   theme(legend.key = element_blank())+
   theme(legend.direction = 'horizontal', legend.position = 'top') + theme(aspect.ratio=0.7)
@@ -2460,7 +2470,7 @@ PC.Symb.fig <- ggbiplot(PC.Kbay, choices = 1:2, obs.scale = 1, var.scale = 1,
 
 grid.arrange(PC.Seas.fig, PC.Loc.fig, PC.Symb.fig, PC.Depth.fig, ncol = 2)
 G<-arrangeGrob(PC.Seas.fig, PC.Loc.fig, PC.Symb.fig, PC.Depth.fig, ncol=2)
-ggsave(file="figures/multivariate/PCx4.png", G, height=7, width=8)
+ggsave(file="figures/multivariate/PCx4.pdf", G, height=6, width=6)
 
 ```
 
@@ -2948,8 +2958,6 @@ par(mfrow=c(1,2),mar=c(5,4.5,2,2))
 mod<-lmer(d13C..host.sym~Season+Light+Dom+ Season:Light +Season:Dom +(1|Location), data=model.data, na.action=na.exclude)
 intercept<-coef(summary(mod))[1] # intercept
 fixed_params <- tidy_lmer(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
-
-plot(d13C..host.sym~Dom, data=data.trim)
 
 # C summer
 plot(d13C..host.sym~Light, data=C.sum.df, col='red3', ylim=c(-3, 3), xlim=c(25, 0), yaxt="n", xaxt="n", cex=0.8, pch=21, bg="salmon", ylab="", xlab ="", main="Summer", cex.main=0.7)
