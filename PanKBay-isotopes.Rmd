@@ -159,11 +159,11 @@ legend("topright", c("Summer", "Winter"), pch=c(21,21), pt.bg=c("plum", "deepsky
   
 ### Light parameters  
   
-#### DLI 2m all sites
 This figure shows the daily integrated light (DLI mol photon m^-2^ d^-1^) at long-term light loggers at 2m depth near the locations where corals were collected in northern and southern sectors of Kāne'ohe Bay near shore (east) further off shore (west). 
 
-```{r DLI across time, results='hide', fig.cap="**Figure** *DLI at the four reef areas from summer to winter 2016 at 2m depths. Data at 2m was recorded from loggers*"}
-# DLI
+```{r DLI across time, results='hide', fig.cap="**Figure** *DLI at the four reef areas from summer to winter 2016 at 2m depths. Data at 2m was recorded from loggers*", eval=FALSE}
+# DLI 2m all sites
+
 ##### all DLI for graphs
 files <- list.files(path="data/environmental/temp and light/Jun_DecPAR/all DLI", pattern = "csv$", full.names = T)
 tables <- lapply(files, read.csv, header = TRUE)
@@ -217,8 +217,9 @@ dev.copy(pdf, "figures/environmental/All.DLI.pdf", width=6.5, height=4)
 dev.off()
 ```
   
-Model results testing differences in DLI at 2 m depth at all sites.
-```{r DLI model, fig.dim=c(7,3), fig.show='hold', fig.align='center', fig.cap="**Figure** DLI model output"}
+
+```{r DLI model, fig.dim=c(7,3), fig.show='hold', fig.align='center', fig.cap="**Figure** DLI model output", eval=FALSE}
+# Model results testing differences in DLI at 2 m depth at all sites.
 mod.light<-DLI.4site
 Rf44DLI.mod<-mod.light[1:3]; Rf44DLI.mod$Location<-"Northwest"; 
     colnames(Rf44DLI.mod)<-c("Date", "month", "DLI", "Location")
@@ -250,7 +251,6 @@ CLD(posthoc, Letters=letters)
 #### PAR and DLI at 3 depths  
 With Depth as a factor (<1m, 2m, 8m), we can produce a continuous graph of light (PAR or DLI) at 2m and use model intercepts to predict the light at the shallow and deep zones (ca. <1m and 8m, respectfully). Here, the model is $lm(log.PAR$ ~ $Depth.factor)$. 
 ```{r light as a factor figure, include=FALSE, results='hide', fig.show='hide'}
-
 
 ####################################################
 ### Light attenuation  October deployment ##########
@@ -804,7 +804,7 @@ dev.copy(pdf, "figures/environmental/DLIcalc.all depths.pdf", height=7, width=8)
 dev.off()
 ```
 
-```{r bar plot of DLI a depths, fig.dim=c(4,4), fig.cap="**Figure** Daily Light Integral (DLI) for four reef locations at three depths. DLI estimated from light attenuation coefficents using depth as a fixed effect against baseline loggers at 2 m depth"}
+```{r bar plot of DLI a depths, fig.dim=c(4,4), fig.cap="**Figure** Average (+/- SE) Daily Light Integral (DLI) for four reef locations at three depths pooled from June - January. DLI estimated from light attenuation coefficents using depth as a fixed effect against baseline loggers at 2 m depth"}
 
 DLI.summary<-read.csv("data/environmental/temp and light/Jun_DecPAR/DLI.3depth.summary.csv")
 DLI.summary$Location<-factor(DLI.summary$Location, levels=c("NW", "NE", "SW", "SE"))
@@ -1816,7 +1816,8 @@ The distribution of C and D symbiont types is modeled using a logistic regressio
 ## qPCR figures
 
 #####
-model.data<-data.trim[,c(17, 1:5, 18:25, 7:16, 26:29)]
+final.data<-data.trim[,c(17, 1:5, 18:25, 7:16, 26:29)] # for general use
+model.data<-data.trim[,c(17, 1:5, 18:25, 7:16, 26:29)] # for models, transformations
 
 #########################
 #########################
@@ -1827,7 +1828,7 @@ model.data<-data.trim[,c(17, 1:5, 18:25, 7:16, 26:29)]
 
 #########################
 ###### Plot Dominant Symbiont and Depth (both seasons)
-Symb<-model.data
+Symb<-final.data
 Symb$Reef <- factor(Symb$Reef, levels = c("F1-R46", "R42", "F8-R10", "HIMB")) # set levels
 Symb$Location <- factor(Symb$Location, levels = c("NW", "NE", "SW", "SE")) # set levels
 
@@ -1915,7 +1916,7 @@ dev.off()
 
 #########################
 ###### Plot Dominant Symbiont and Depth (both seasons)
-Symb<-model.data
+Symb<-final.data
 Symb$Dominant <- ifelse(Symb$Dom=="D", 1, 0)
 add<-glm(Dominant~Light+Season+Location, family = "binomial", data = Symb)
 crossed<-glm(Dominant~Light*Season*Location, family = "binomial", data = Symb)
@@ -1982,8 +1983,6 @@ dev.off()
 **Model assumptions**
 ```{r assumptions, include=FALSE}
 #### assumptions
-
-
 
 ###### model dataframe for analysis
 #####
@@ -2124,7 +2123,7 @@ plot(allEffects(add), ylab="chla cell", par.strip.text=list(cex=0.7))
 ########## host..d13C -- 
 Y<-model.data$host..d13C
 full<-lmer(Y~Season*Light*Dom+ (1|Location), data=model.data, na.action=na.exclude)
-add<-lmer(Y~Season+Light+Dom+ Season:Dom+ Season:Light+(1|Location), data=model.data, na.action=na.exclude)
+add<-lmer(Y~Season+Light+Dom+ Season:Light+ Season:Dom+(1|Location), data=model.data, na.action=na.exclude)
 anova(full, add) #use additive model
 
 summary(add)
@@ -2243,7 +2242,7 @@ plot(allEffects(add), ylab="d15Nhost", par.strip.text=list(cex=0.7))
 ######## symb..d15N --
 Y<-model.data$symb..d15N
 full<-lmer(Y~Season*Light*Dom+ (1|Location), data=model.data, na.action=na.exclude)
-add<-lmer(Y~Season+Light+Dom+ Season:Dom+ Light:Dom + (1|Location), data=model.data, na.action=na.exclude)
+add<-lmer(Y~Season+Light+Dom+ Season:Dom + (1|Location), data=model.data, na.action=na.exclude)
 anova(full, add) #use add model
 
 summary(add)
@@ -2364,7 +2363,121 @@ ggsave(file="figures/models/variance.pdf", height=3.5, width=6)
 ```
 
 ### Figures
-  
+```{r PCA all data}
+# multivariate test using adonis-- Manova, mutivariate analysis of variance
+library(devtools)
+install_github("vqv/ggbiplot")
+library(ggbiplot)
+require(graphics)
+
+df.PCA<-final.data
+
+# remove columns unnecessary for final analysis, few factors retained
+df.PCA<-df.PCA[ , !names(df.PCA) %in% c("date.time", "newDepth", "Reef", "Reef.type", "Bay.region", "Light", "depth.bin.small", "d15N..host.sym", "d13C..host.sym", "d18O..skel", "propC", "propD","symb..C.N", "host..C.N", "Mix")]
+
+# remove factors, leaving only "Location"
+# subset(df.PCA, select = c(-Season, -newDepth, -Light, -Dom))
+
+###################
+# PCA by LOCATION 
+# apply PCA - scale. = TRUE for center as advised
+PC.Kbay <- prcomp(df.PCA[,c(-1:-3,-13)], center = TRUE, scale= TRUE)  
+# correlatin matrix helps to standardize the data and account for different scales
+
+# print(PC.area) <<< to show loadings
+PC.summary<-(summary(PC.Kbay)) #signficance of PCs: proportion of variance captured, cumulative variance
+#In general, we are interested in keeping only those principal components whose eigenvalues are greater than 1. 
+
+# the SDEV^2 is the eignevalue
+ev<-PC.Kbay$sdev^2 # PC1-2 have eignevalues >1
+# ev.area/sum(ev.area) #gives proportional eignevalues
+
+newdat<-PC.Kbay$x[,1:4] # 4 PCs
+plot(PC.Kbay, type="lines", main="PC.Kbay eigenvalues") #plots PCA, equivalent to ev.area
+
+
+####### plot: Season
+## PC1 and PC2
+PC.Seas.fig <- ggbiplot(PC.Kbay, choices = 1:2, obs.scale = 1, var.scale = 1, 
+              groups= df.PCA[,1], ellipse = TRUE, ellipse.prob = 0.90,
+              circle = FALSE, alpha=0.6) +
+  scale_color_discrete(name = '') +
+  theme_bw() +
+  scale_x_continuous(limits=c(-5, 5), breaks=pretty_breaks(n=5))+
+  scale_y_continuous(limits=c(-5, 5), breaks=pretty_breaks(n=5))+ 
+  theme(axis.ticks.length=unit(-0.25, "cm"), axis.text.y=element_text(margin=unit(c(0.5, 0.5, 0.5, 0.5), "cm")), axis.text.x=element_text(margin=unit(c(0.5, 0.5, 0.5, 0.5), "cm"))) +
+  theme(legend.text=element_text(size=15)) +
+  theme(panel.background = element_rect(colour = "black", size=1))+
+  theme(legend.key = element_blank())+
+  theme(legend.direction = 'horizontal', legend.position = 'top') + theme(aspect.ratio=0.7)
+
+print(PC.Seas.fig)
+dev.copy(pdf, "figures/multivariate/PC.Seas.fig.pdf", height=5, width=5)
+dev.off()
+
+####### plot: Location
+## PC1 and PC2 
+PC.Loc.fig <- ggbiplot(PC.Kbay, choices = 1:2, obs.scale = 1, var.scale = 1, 
+              groups= df.PCA[,2], ellipse = TRUE, ellipse.prob = 0.90,
+              circle = FALSE, alpha=0.6) +
+  scale_color_discrete(name = '') +
+  theme_bw() +
+  scale_x_continuous(limits=c(-5, 5), breaks=pretty_breaks(n=5))+
+  scale_y_continuous(limits=c(-5, 5), breaks=pretty_breaks(n=5))+ 
+  theme(axis.ticks.length=unit(-0.25, "cm"), axis.text.y=element_text(margin=unit(c(0.5, 0.5, 0.5, 0.5), "cm")), axis.text.x=element_text(margin=unit(c(0.5, 0.5, 0.5, 0.5), "cm"))) +
+  theme(legend.text=element_text(size=15)) +
+  theme(panel.background = element_rect(colour = "black", size=1))+
+  theme(legend.key = element_blank())+
+  theme(legend.direction = 'horizontal', legend.position = 'top') + theme(aspect.ratio=0.7)
+
+print(PC.Loc.fig)
+dev.copy(pdf, "figures/multivariate/PC.Loc.fig.pdf", height=5, width=5)
+dev.off()
+
+
+#### PCA by Depth
+PC.Depth.fig <- ggbiplot(PC.Kbay, choices = 1:2, obs.scale = 1, var.scale = 1, 
+              groups= df.PCA[,3], ellipse = TRUE, ellipse.prob = 0.90,
+              circle = FALSE, alpha=0.6) +
+  scale_color_discrete(name = '') +
+  theme_bw() +
+  scale_x_continuous(limits=c(-5, 5), breaks=pretty_breaks(n=5))+
+  scale_y_continuous(limits=c(-5, 5), breaks=pretty_breaks(n=5))+ 
+  theme(axis.ticks.length=unit(-0.25, "cm"), axis.text.y=element_text(margin=unit(c(0.5, 0.5, 0.5, 0.5), "cm")), axis.text.x=element_text(margin=unit(c(0.5, 0.5, 0.5, 0.5), "cm"))) +
+  theme(legend.text=element_text(size=15)) +
+  theme(panel.background = element_rect(colour = "black", size=1))+
+  theme(legend.key = element_blank())+
+  theme(legend.direction = 'horizontal', legend.position = 'top') + theme(aspect.ratio=0.7)
+
+print(PC.Depth.fig)
+dev.copy(pdf, "figures/multivariate/PC.Depth.fig.pdf", height=5, width=5)
+dev.off()
+
+
+#### PCA by Symb
+PC.Symb.fig <- ggbiplot(PC.Kbay, choices = 1:2, obs.scale = 1, var.scale = 1, 
+              groups= df.PCA[,13], ellipse = TRUE, ellipse.prob = 0.90,
+              circle = FALSE, alpha=0.6) +
+  scale_color_discrete(name = '') +
+  theme_bw() +
+  scale_x_continuous(limits=c(-5, 5), breaks=pretty_breaks(n=5))+
+  scale_y_continuous(limits=c(-5, 5), breaks=pretty_breaks(n=5))+ 
+  theme(axis.ticks.length=unit(-0.25, "cm"), axis.text.y=element_text(margin=unit(c(0.5, 0.5, 0.5, 0.5), "cm")), axis.text.x=element_text(margin=unit(c(0.5, 0.5, 0.5, 0.5), "cm"))) +
+  theme(legend.text=element_text(size=15)) +
+  theme(panel.background = element_rect(colour = "black", size=1))+
+  theme(legend.key = element_blank())+
+  theme(legend.direction = 'horizontal', legend.position = 'top') + theme(aspect.ratio=0.7)
+
+print(PC.Symb.fig)
+dev.copy(pdf, "figures/multivariate/PC.Symb.fig.pdf", height=5, width=5)
+dev.off()
+
+grid.arrange(PC.Seas.fig, PC.Loc.fig, PC.Symb.fig, PC.Depth.fig, ncol = 2)
+G<-arrangeGrob(PC.Seas.fig, PC.Loc.fig, PC.Symb.fig, PC.Depth.fig, ncol=2)
+ggsave(file="figures/multivariate/PCx4.png", G, height=7, width=8)
+
+```
+
 #### Physiology
 ```{r physiology figure dataframes, results="hide"}
 #########################
@@ -2554,7 +2667,7 @@ par(new=T)
 # D summer
 plot(biomass~Light, data=D.sum.df, col='blue', ylim=c(0, 80), xlim=c(25, 0), cex=0.8, pch=21, bg="deepskyblue1",
      xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
-     ylab=expression(paste("total chlorophyll", ~(mu*g~cm^-2), sep="")), cex.axis=0.8,
+     ylab=expression(paste("biomass", ~(mg~cm^-2), sep="")), cex.axis=0.8,
      cex.lab=0.8)
 ablineclip((intercept+ coef(summary(mod))["DomD",1]), coef(summary(mod))["Light",1], col="deepskyblue1", x1 = min(D.sum.df$Light), x2 = max(D.sum.df$Light), lwd=2)
 
@@ -2850,6 +2963,8 @@ mod<-lmer(d13C..host.sym~Season+Light+Dom+ Season:Light +Season:Dom +(1|Location
 intercept<-coef(summary(mod))[1] # intercept
 fixed_params <- tidy_lmer(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
 
+plot(d13C..host.sym~Dom, data=data.trim)
+
 # C summer
 plot(d13C..host.sym~Light, data=C.sum.df, col='red3', ylim=c(-3, 3), xlim=c(25, 0), yaxt="n", xaxt="n", cex=0.8, pch=21, bg="salmon", ylab="", xlab ="", main="Summer", cex.main=0.7)
 ablineclip(intercept, coef(summary(mod))["Light",1], col="salmon", 
@@ -2930,7 +3045,74 @@ ablineclip((intercept+ coef(summary(mod))["Seasonwinter",1]+ coef(summary(mod))[
 dev.copy(pdf, "figures/isotope/PanKB.d13C-skel.pdf", width=6, height=4, encod="MacRoman")
 dev.off()
 ```
-  
+
+
+```{r isotopes skeleton C and O, eval=FALSE}
+##################
+# Fig: d13C skeleton over season and depth
+##################        
+par(mfrow=c(1,1),mar=c(5,4.5,2,2))
+
+C.skel<-df.fig[df.fig$Dom=="C", ]
+D.skel<-df.fig[df.fig$Dom=="D", ]
+
+# df.fig
+plot(d18O..skel~d13C..skel, data=C.skel, col='red3', ylim=c(-6, -1), xlim=c(-5, 1), yaxt="n", xaxt="n", cex=0.8, pch=21, bg="salmon", ylab="", xlab ="", main="Summer", cex.main=0.7)
+par(new=T)
+
+plot(d18O..skel~d13C..skel, data=D.skel, col='blue', ylim=c(-6, -1), xlim=c(-5, 1), cex=0.8, pch=21, bg="deepskyblue1",
+     ylab=(expression(paste(delta^{18}, O[Sk], " (\u2030, V-PDB)"))), 
+     xlab=(expression(paste(delta^{13}, C[Sk], " (\u2030, V-PDB)"))), cex.axis=0.8,
+     cex.lab=0.8)
+par(new=T)
+abline(a=-1.40, b=.33)
+ablineclip(-3.84584, 0.08954, col="salmon", 
+           x1 = min(C.skel$d13C..skel), x2 = max(C.skel$d13C..skel), lwd=2) # significant for C
+ablineclip(-3.19236, 0.31486, col="deepskyblue1", 
+           x1 = min(D.skel$d13C..skel), x2 = max(D.skel$d13C..skel), lwd=2) # significant for C
+
+#lm(d18O..skel~d13C..skel, data=C.skel) # significant for C
+#lm(d18O..skel~d13C..skel, data=D.skel) # significant for D
+
+# carbon equil at 2.85 permil
+# oxygen equil at -1.24 peril for temp range
+# if (-1.24, 2.85) on line and slope of 0.33 used at ratio of 1:3 oxygen : carbon, then y intercept is -1.40
+
+# C summer
+plot(d13C..skel~Light, data=C.sum.df, col='red3', ylim=c(-8, 4), xlim=c(25, 0), yaxt="n", xaxt="n", cex=0.8, pch=21, bg="salmon", ylab="", xlab ="", main="Summer", cex.main=0.7)
+ablineclip(intercept, coef(summary(mod))["Light",1], col="salmon", 
+           x1 = min(C.sum.df$Light), x2 = max(C.sum.df$Light), lwd=2)
+legend("topright", c("clade C", "clade D"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8,
+       y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.1, 0))
+legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.355, 0))
+par(new=T)
+
+# D summer
+plot(d13C..skel~Light, data=D.sum.df, col='blue', ylim=c(-8, 4), xlim=c(25, 0), cex=0.8, pch=21, bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab=(expression(paste(delta^{13}, C[Sk], " (\u2030, V-PDB)"))), cex.axis=0.8,
+     cex.lab=0.8)
+ablineclip((intercept+ coef(summary(mod))["DomD",1]), coef(summary(mod))["Light",1], col="deepskyblue1", x1 = min(D.sum.df$Light), x2 = max(D.sum.df$Light), lwd=2)
+
+# C winter
+plot(d13C..skel~Light, data=C.win.df, col='red3', ylim=c(-8, 4), xlim=c(15, 0), yaxt="n", xaxt="n",
+     cex=0.8, pch=21, bg="salmon", ylab="", xlab ="", main="Winter", cex.main=0.7)
+ablineclip((intercept + coef(summary(mod))["Seasonwinter",1]), coef(summary(mod))["Light",1], col="salmon", x1 = min(C.win.df$Light), x2 = max(C.win.df$Light), lwd=2)
+par(new=T)
+
+# D winter
+plot(d13C..skel~Light, data=D.win.df, col='blue', ylim=c(-8, 4), xlim=c(15, 0), cex=0.8, pch=21, bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab="", cex.axis=0.8, cex.lab=0.8)
+ablineclip((intercept+ coef(summary(mod))["Seasonwinter",1]+ coef(summary(mod))["DomD",1]),
+       coef(summary(mod))["Light",1], 
+      col="deepskyblue1", x1 = min(D.win.df$Light), x2 = max(D.win.df$Light), lwd=2)
+
+dev.copy(pdf, "figures/isotope/PanKB.d13C-skel.pdf", width=6, height=4, encod="MacRoman")
+dev.off()
+```
+
+
 **Host tissue nitrogen isotope composition**
 ```{r isotopes host nitrogen, results="hide"}
 ##################
@@ -2977,6 +3159,7 @@ dev.copy(pdf, "figures/isotope/PanKB.d15N-host.pdf", width=6, height=4, encod="M
 dev.off()
 ```
   
+  
 **Symbiont tissue nitrogen isotope composition**
 ```{r isotopes symb nitrogen, results="hide"}
 ##################
@@ -2985,7 +3168,7 @@ dev.off()
 par(mfrow=c(1,2),mar=c(5,4.5,2,2))
 
 # model.data$symb..d15N
-mod<-lmer(symb..d15N~Season+Light+Dom+ Season:Dom+ Light:Dom +(1|Location), data=model.data, na.action=na.exclude)
+mod<-lmer(symb..d15N~Season+Light+Dom+ Season:Dom +(1|Location), data=model.data, na.action=na.exclude)
 intercept<-coef(summary(mod))[1] # intercept
 fixed_params <- tidy_lmer(mod, effects = "fixed")[,c("term", "estimate")]; fixed_params
 
@@ -3004,7 +3187,7 @@ plot(symb..d15N~Light, data=D.sum.df, col='blue', ylim=c(2, 8), xlim=c(25, 0), c
      ylab=(expression(paste(delta^{15}, N[S], " (\u2030, Air)"))), cex.axis=0.8,
      cex.lab=0.8)
 ablineclip((intercept+ coef(summary(mod))["DomD",1]), 
-           (coef(summary(mod))["Light",1]+ coef(summary(mod))["Light:DomD",1]), col="deepskyblue1", x1 = min(D.sum.df$Light), x2 = max(D.sum.df$Light), lwd=2)
+           (coef(summary(mod))["Light",1]), col="deepskyblue1", x1 = min(D.sum.df$Light), x2 = max(D.sum.df$Light), lwd=2)
 
 # C winter
 plot(symb..d15N~Light, data=C.win.df, col='red3', ylim=c(2, 8), xlim=c(15, 0), yaxt="n", xaxt="n",
@@ -3018,12 +3201,13 @@ plot(symb..d15N~Light, data=D.win.df, col='blue', ylim=c(2, 8), xlim=c(15, 0), c
      ylab="", cex.axis=0.8, cex.lab=0.8)
 ablineclip((intercept+ coef(summary(mod))["Seasonwinter",1]+ coef(summary(mod))["DomD",1]+
               coef(summary(mod))["Seasonwinter:DomD",1]),
-           (coef(summary(mod))["Light",1]+ coef(summary(mod))["Light:DomD",1]), 
+           (coef(summary(mod))["Light",1]), 
       col="deepskyblue1", x1 = min(D.win.df$Light), x2 = max(D.win.df$Light), lwd=2)
 
 dev.copy(pdf, "figures/isotope/PanKB.d15N-symb.pdf", width=6, height=4, encod="MacRoman")
 dev.off()
 ```
+  
   
 **Host-symbiont tissue nitrogen isotope composition**
 ```{r isotopes host symb N, results="hide"}
@@ -3073,6 +3257,7 @@ ablineclip((intercept+ coef(summary(mod))["Seasonwinter",1]+ coef(summary(mod))[
 dev.copy(pdf, "figures/isotope/PanKB.d15Nh-s.pdf", width=6, height=4, encod="MacRoman")
 dev.off()
 ```
+
 
 **Host tissue C:N**
 ```{r isotopes host  CN, results="hide"}
@@ -3138,6 +3323,7 @@ dev.copy(pdf, "figures/isotope/PanKB.C.Nhost.pdf", width=6, height=4, encod="Mac
 dev.off()
 ```
   
+  
 **Symbiont tissue C:N**
 ```{r isotopes symb CN, results="hide"}
 ##################
@@ -3201,6 +3387,7 @@ lines(x_light, ypred, col="deepskyblue1", lwd=2)
 dev.copy(pdf, "figures/isotope/PanKB.C.Nsym.pdf", width=6, height=4, encod="MacRoman")
 dev.off()
 ```
+  
   
 Changes in **host C and N isotope values** show significant relationships, with *significant relationships for C (summer and winter, p < 0.016) and D (summer, p =0.035) symbionts*. No significant relationship for clade D in the winter was observed.
   
@@ -3654,7 +3841,7 @@ par(mfrow=c(1,2),mar=c(5,4.5,2,2))
 # C summer plot
 plot(chlcell~symb..d13C, data=C.sum.df, col='red3', xlim=c(-20, -12), ylim=c(0, 12), cex=0.7, pch=21, bg="salmon", main="Summer", cex.main=0.7, xaxt="n",
      ylab=(expression(paste("chlorophyll (",pg~cell^-1, ")", sep=""))),
-     xlab=(expression(paste(delta^{13}, C, " (\u2030, V-PDB)"))), cex.axis=0.8,
+     xlab=(expression(paste(delta^{13}, C[S], " (\u2030, V-PDB)"))), cex.axis=0.8,
      cex.lab=0.8)
 Axis(side=1, at = seq(-20, -12, by = 2), cex.axis=0.8)
 legend("topright", c("clade C", "clade D"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8,
@@ -3723,8 +3910,473 @@ ablineclip(lm(zoox~d13C..host.sym, data=D.win.df), col='deepskyblue1', x1 = min(
 dev.copy(pdf, "figures/regressions/PanKB.zoox.d13Chs.pdf", width=6, height=4, encod="MacRoman")
 dev.off()
 ```
+  
 
-```{r more data exploration}
+```{r d15N scatter with host and symbiont physiology, results="hide", fig.align='center', eval=FALSE}
+#Looking at d15N now...
+
+### IN THE HOST ###
+
+##### clade C
+# ZOOX in the winter influence d15N
+# CHLCELL in summer influences d15N
+
+summary(lm(zoox~host..d15N, data=C.sum.df)) # NS
+summary(lm(zoox~host..d15N, data=C.win.df)) # NS
+
+summary(lm(chltot~host..d15N, data=C.sum.df)) # NS
+summary(lm(chltot~host..d15N, data=C.win.df)) # NS
+
+summary(lm(chlcell~host..d15N, data=C.sum.df)) # NS
+summary(lm(chlcell~host..d15N, data=C.win.df)) # NS
+
+
+#### clade D
+# ZOOX in winter influence d15N
+
+summary(lm(zoox~host..d15N, data=D.sum.df)) # NS
+summary(lm(zoox~host..d15N, data=D.win.df)) # NS
+
+summary(lm(chltot~host..d15N, data=D.sum.df)) # NS
+summary(lm(chltot~host..d15N, data=D.win.df)) # NS
+
+summary(lm(chlcell~host..d15N, data=D.sum.df)) # NS 
+summary(lm(chlcell~host..d15N, data=D.win.df)) # NS
+
+
+### IN THE SYMBIONT ###
+
+##### clade C
+# ZOOX in the winter influence d15N
+# CHLCELL in summer and winter influences d15N
+
+summary(lm(zoox~symb..d15N, data=C.sum.df)) # NS
+summary(lm(zoox~symb..d15N, data=C.win.df)) # NS
+
+summary(lm(chltot~symb..d15N, data=C.sum.df)) # NS
+summary(lm(chltot~symb..d15N, data=C.win.df)) # NS
+
+summary(lm(chlcell~symb..d15N, data=C.sum.df)) # signif p=0.028
+summary(lm(chlcell~symb..d15N, data=C.win.df)) # NS
+
+
+#### clade D
+# ZOOX in winter influence d15N
+
+summary(lm(zoox~symb..d15N, data=D.win.df)) # NS
+summary(lm(zoox~symb..d15N, data=D.sum.df)) # NS
+
+summary(lm(chltot~symb..d15N, data=D.win.df)) # NS
+summary(lm(chltot~symb..d15N, data=D.sum.df)) # NS
+
+summary(lm(chlcell~symb..d15N, data=D.win.df)) # NS
+summary(lm(chlcell~symb..d15N, data=D.sum.df)) # NS 
+
+
+##### IN HOST-SYMBIONT
+## zoox
+summary(lm(zoox~d15N..host.sym, data=C.sum.df)) # NS
+summary(lm(zoox~d15N..host.sym, data=C.win.df)) # NS
+summary(lm(zoox~d15N..host.sym, data=D.sum.df)) # NS
+summary(lm(zoox~d15N..host.sym, data=D.win.df)) # NS
+
+
+############################
+######### symbionts cm-2 and d15N
+
+##### Plot it
+##### host
+par(mfrow=c(1,2),mar=c(5,4.5,2,2))
+
+# C summer plot
+plot(zoox~host..d15N, data=C.sum.df, col='red3', xlim=c(2, 8), ylim=c(0, 6000000), cex=0.7, pch=21, bg="salmon", main="Summer", cex.main=0.7, xaxt="n",
+     ylab=expression(paste("symbionts ", "(",cells~cm^-2~")", sep="")), 
+     xlab=(expression(paste(delta^{15}, N[H], " (\u2030, Air)"))), cex.axis=0.8,
+     cex.lab=0.8)
+Axis(side=1, at = seq(2, 8, by = 2), cex.axis=0.8)
+legend("topright", c("clade C", "clade D"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8,
+       y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.1, 0))
+legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.355, 0))
+ablineclip(lm(zoox~host..d15N, data=C.sum.df), col='salmon', x1 = min(C.sum.df$host..d15N), x2 = max(C.sum.df$host..d15N), lwd=2)
+
+# D summer plot
+par(new=T)
+plot(zoox~host..d15N, data=D.sum.df, col='blue', xlim=c(2, 8), ylim=c(0, 6000000), cex=0.7, pch=21, bg="deepskyblue1", xaxt="n", yaxt="n", ylab="", xlab ="", cex.main=0.7)
+ablineclip(lm(zoox~host..d15N, data=D.sum.df), col='deepskyblue1', x1 = min(D.sum.df$host..d15N), x2 = max(D.sum.df$host..d15N), lwd=2)
+
+# C winter plot
+plot(zoox~host..d15N, data=C.win.df, col='red3', xlim=c(2, 8), ylim=c(0, 6000000), cex=0.7, pch=21, bg="salmon", xaxt="n", yaxt="n", main="Winter", ylab="", xlab ="", cex.main=0.7)
+ablineclip(lm(zoox~host..d15N, data=C.win.df), col='salmon', x1 = min(C.win.df$host..d15N), x2 = max(C.win.df$host..d15N), lwd=2)
+
+# D winter plot
+par(new=T)
+plot(zoox~host..d15N, data=D.win.df, col='blue', xlim=c(2, 8), ylim=c(0, 6000000), cex=0.7, pch=21, bg="deepskyblue1", ylab="", cex.main=0.7, yaxt="n", xaxt="n",
+xlab=(expression(paste(delta^{15}, N[H], " (\u2030, Air)"))), cex.axis=0.8,
+     cex.lab=0.8)
+Axis(side=1, at = seq(2, 8, by = 2), cex.axis=0.8)
+Axis(side=2, labels=FALSE)
+ablineclip(lm(zoox~host..d15N, data=D.win.df), col='deepskyblue1', x1 = min(D.win.df$host..d15N), x2 = max(D.win.df$host..d15N), lwd=2)
+
+dev.copy(pdf, "figures/regressions/PanKB.zoox.d15Nhost.pdf", width=6, height=4, encod="MacRoman")
+dev.off()
+
+
+####################
+##### Plot it
+##### symbiont
+par(mfrow=c(1,2),mar=c(5,4.5,2,2))
+
+# C summer plot
+plot(zoox~symb..d15N, data=C.sum.df, col='red3', xlim=c(2, 8), ylim=c(0, 6000000), cex=0.7, pch=21, bg="salmon", main="Summer", cex.main=0.7, xaxt="n",
+     ylab=expression(paste("symbionts ", "(",cells~cm^-2~")", sep="")), 
+     xlab=(expression(paste(delta^{15}, N[S], " (\u2030, Air)"))), cex.axis=0.8,
+     cex.lab=0.8)
+Axis(side=1, at = seq(2, 8, by = 2), cex.axis=0.8)
+legend("topright", c("clade C", "clade D"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8,
+       y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.1, 0))
+legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.355, 0))
+ablineclip(lm(zoox~symb..d15N, data=C.sum.df), col='salmon', x1 = min(C.sum.df$symb..d15N), x2 = max(C.sum.df$symb..d15N), lwd=2)
+
+# D summer plot
+par(new=T)
+plot(zoox~symb..d15N, data=D.sum.df, col='blue', xlim=c(2, 8), ylim=c(0, 6000000), cex=0.7, pch=21, bg="deepskyblue1", xaxt="n", yaxt="n", ylab="", xlab ="", cex.main=0.7)
+ablineclip(lm(zoox~symb..d15N, data=D.sum.df), col='deepskyblue1', x1 = min(D.sum.df$symb..d15N), x2 = max(D.sum.df$symb..d15N), lwd=2)
+
+# C winter plot
+plot(zoox~symb..d15N, data=C.win.df, col='red3', xlim=c(2, 8), ylim=c(0, 6000000), cex=0.7, pch=21, bg="salmon", xaxt="n", yaxt="n", main="Winter", ylab="", xlab ="", cex.main=0.7)
+ablineclip(lm(zoox~symb..d15N, data=C.win.df), col='salmon', x1 = min(C.win.df$symb..d15N), x2 = max(C.win.df$symb..d15N), lwd=2)
+
+# D winter plot
+par(new=T)
+plot(zoox~symb..d15N, data=D.win.df, col='blue', xlim=c(2, 8), ylim=c(0, 6000000), cex=0.7, pch=21, bg="deepskyblue1", ylab="", cex.main=0.7, yaxt="n", xaxt="n",
+xlab=(expression(paste(delta^{15}, N[S], " (\u2030, Air)"))), cex.axis=0.8,
+     cex.lab=0.8)
+Axis(side=1, at = seq(2, 8, by = 2), cex.axis=0.8)
+Axis(side=2, labels=FALSE)
+ablineclip(lm(zoox~symb..d15N, data=D.win.df), col='deepskyblue1', x1 = min(D.win.df$symb..d15N), x2 = max(D.win.df$symb..d15N), lwd=2)
+
+dev.copy(pdf, "figures/regressions/PanKB.zoox.d15Nsymb.pdf", width=6, height=4, encod="MacRoman")
+dev.off()
+
+
+
+############################
+######### total chlorophyll a cm-2 and d15N
+
+##### Plot it
+##### host
+par(mfrow=c(1,2),mar=c(5,4.5,2,2))
+
+# C summer plot
+plot(chltot~host..d15N, data=C.sum.df, col='red3', xlim=c(2, 8), ylim=c(0, 12), cex=0.7, pch=21, bg="salmon", main="Summer", cex.main=0.7, xaxt="n",
+     ylab=expression(paste("total chlorophyll", ~(mu*g~cm^-2), sep="")),
+     xlab=(expression(paste(delta^{15}, N[H], " (\u2030, Air)"))), cex.axis=0.8,
+     cex.lab=0.8)
+Axis(side=1, at = seq(2, 8, by = 2), cex.axis=0.8)
+legend("topright", c("clade C", "clade D"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8,
+       y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.1, 0))
+legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.355, 0))
+ablineclip(lm(chltot~host..d15N, data=C.sum.df), col='salmon', x1 = min(C.sum.df$host..d15N), x2 = max(C.sum.df$host..d15N), lwd=2)
+
+# D summer plot
+par(new=T)
+plot(chltot~host..d15N, data=D.sum.df, col='blue', xlim=c(2, 8), ylim=c(0, 12), cex=0.7, pch=21, bg="deepskyblue1", xaxt="n", yaxt="n", ylab="", xlab ="", cex.main=0.7)
+ablineclip(lm(chltot~host..d15N, data=D.sum.df), col='deepskyblue1', x1 = min(D.sum.df$host..d15N), x2 = max(D.sum.df$host..d15N), lwd=2)
+
+# C winter plot
+plot(chltot~host..d15N, data=C.win.df, col='red3', xlim=c(2, 8), ylim=c(0, 12), cex=0.7, pch=21, bg="salmon", xaxt="n", yaxt="n", main="Winter", ylab="", xlab ="", cex.main=0.7)
+ablineclip(lm(chltot~host..d15N, data=C.win.df), col='salmon', x1 = min(C.win.df$host..d15N), x2 = max(C.win.df$host..d15N), lwd=2)
+
+# D winter plot
+par(new=T)
+plot(chltot~host..d15N, data=D.win.df, col='blue', xlim=c(2, 8), ylim=c(0, 12), cex=0.7, pch=21, bg="deepskyblue1", ylab="", cex.main=0.7, yaxt="n", xaxt="n",
+xlab=(expression(paste(delta^{15}, N[H], " (\u2030, Air)"))), cex.axis=0.8,
+     cex.lab=0.8)
+Axis(side=1, at = seq(2, 8, by = 2), cex.axis=0.8)
+Axis(side=2, labels=FALSE)
+ablineclip(lm(chltot~host..d15N, data=D.win.df), col='deepskyblue1', x1 = min(D.win.df$host..d15N), x2 = max(D.win.df$host..d15N), lwd=2)
+
+dev.copy(pdf, "figures/regressions/PanKB.chltot.d15Nhost.pdf", width=6, height=4, encod="MacRoman")
+dev.off()
+
+
+####################
+##### Plot it
+##### symbiont
+par(mfrow=c(1,2),mar=c(5,4.5,2,2))
+
+# C summer plot
+plot(chltot~symb..d15N, data=C.sum.df, col='red3', xlim=c(2, 8), ylim=c(0, 12), cex=0.7, pch=21, bg="salmon", main="Summer", cex.main=0.7, xaxt="n",
+     ylab=expression(paste("total chlorophyll", ~(mu*g~cm^-2), sep="")),
+     xlab=(expression(paste(delta^{15}, N[S], " (\u2030, Air)"))), cex.axis=0.8,
+     cex.lab=0.8)
+Axis(side=1, at = seq(2, 8, by = 2), cex.axis=0.8)
+legend("topright", c("clade C", "clade D"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8,
+       y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.1, 0))
+legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.355, 0))
+ablineclip(lm(chltot~symb..d15N, data=C.sum.df), col='salmon', x1 = min(C.sum.df$symb..d15N), x2 = max(C.sum.df$symb..d15N), lwd=2)
+
+# D summer plot
+par(new=T)
+plot(chltot~symb..d15N, data=D.sum.df, col='blue', xlim=c(2, 8), ylim=c(0, 12), cex=0.7, pch=21, bg="deepskyblue1", xaxt="n", yaxt="n", ylab="", xlab ="", cex.main=0.7)
+ablineclip(lm(chltot~symb..d15N, data=D.sum.df), col='deepskyblue1', x1 = min(D.sum.df$symb..d15N), x2 = max(D.sum.df$symb..d15N), lwd=2)
+
+# C winter plot
+plot(chltot~symb..d15N, data=C.win.df, col='red3', xlim=c(2, 8), ylim=c(0, 12), cex=0.7, pch=21, bg="salmon", xaxt="n", yaxt="n", main="Winter", ylab="", xlab ="", cex.main=0.7)
+ablineclip(lm(chltot~symb..d15N, data=C.win.df), col='salmon', x1 = min(C.win.df$symb..d15N), x2 = max(C.win.df$symb..d15N), lwd=2)
+
+# D winter plot
+par(new=T)
+plot(chltot~symb..d15N, data=D.win.df, col='blue', xlim=c(2, 8), ylim=c(0, 12), cex=0.7, pch=21, bg="deepskyblue1", ylab="", cex.main=0.7, yaxt="n", xaxt="n",
+xlab=(expression(paste(delta^{15}, N[S], " (\u2030, Air)"))), cex.axis=0.8,
+     cex.lab=0.8)
+Axis(side=1, at = seq(2, 8, by = 2), cex.axis=0.8)
+Axis(side=2, labels=FALSE)
+ablineclip(lm(chltot~symb..d15N, data=D.win.df), col='deepskyblue1', x1 = min(D.win.df$symb..d15N), x2 = max(D.win.df$symb..d15N), lwd=2)
+
+dev.copy(pdf, "figures/regressions/PanKB.chltot.d15Nsymb.pdf", width=6, height=4, encod="MacRoman")
+dev.off()
+
+
+############################
+######### chlorophyll a cell-1 and d15N
+
+##### Plot it
+##### host
+par(mfrow=c(1,2),mar=c(5,4.5,2,2))
+
+# C summer plot
+plot(chlcell~host..d15N, data=C.sum.df, col='red3', xlim=c(2, 8), ylim=c(0, 12), cex=0.7, pch=21, bg="salmon", main="Summer", cex.main=0.7, xaxt="n",
+     ylab=(expression(paste("chlorophyll (",pg~cell^-1, ")", sep=""))),
+     xlab=(expression(paste(delta^{15}, N[H], " (\u2030, Air)"))), cex.axis=0.8,
+     cex.lab=0.8)
+Axis(side=1, at = seq(2, 8, by = 2), cex.axis=0.8)
+legend("topright", c("clade C", "clade D"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8,
+       y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.1, 0))
+legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.355, 0))
+ablineclip(lm(chlcell~host..d15N, data=C.sum.df), col='salmon', x1 = min(C.sum.df$host..d15N), x2 = max(C.sum.df$host..d15N), lwd=2)
+
+# D summer plot
+par(new=T)
+plot(chlcell~host..d15N, data=D.sum.df, col='blue', xlim=c(2, 8), ylim=c(0, 12), cex=0.7, pch=21, bg="deepskyblue1", xaxt="n", yaxt="n", ylab="", xlab ="", cex.main=0.7)
+ablineclip(lm(chlcell~host..d15N, data=D.sum.df), col='deepskyblue1', x1 = min(D.sum.df$host..d15N), x2 = max(D.sum.df$host..d15N), lwd=2)
+
+# C winter plot
+plot(chlcell~host..d15N, data=C.win.df, col='red3', xlim=c(2, 8), ylim=c(0, 12), cex=0.7, pch=21, bg="salmon", xaxt="n", yaxt="n", main="Winter", ylab="", xlab ="", cex.main=0.7)
+ablineclip(lm(chlcell~host..d15N, data=C.win.df), col='salmon', x1 = min(C.win.df$host..d15N), x2 = max(C.win.df$host..d15N), lwd=2)
+
+# D winter plot
+par(new=T)
+plot(chlcell~host..d15N, data=D.win.df, col='blue', xlim=c(2, 8), ylim=c(0, 12), cex=0.7, pch=21, bg="deepskyblue1", ylab="", cex.main=0.7, yaxt="n", xaxt="n",
+xlab=(expression(paste(delta^{15}, N[H], " (\u2030, Air)"))), cex.axis=0.8,
+     cex.lab=0.8)
+Axis(side=1, at = seq(2, 8, by = 2), cex.axis=0.8)
+Axis(side=2, labels=FALSE)
+ablineclip(lm(chlcell~host..d15N, data=D.win.df), col='deepskyblue1', x1 = min(D.win.df$host..d15N), x2 = max(D.win.df$host..d15N), lwd=2)
+
+dev.copy(pdf, "figures/regressions/PanKB.chlcell.d15Nhost.pdf", width=6, height=4, encod="MacRoman")
+dev.off()
+
+
+####################
+##### Plot it
+##### symbiont
+par(mfrow=c(1,2),mar=c(5,4.5,2,2))
+
+# C summer plot
+plot(chlcell~symb..d15N, data=C.sum.df, col='red3', xlim=c(2, 8), ylim=c(0, 12), cex=0.7, pch=21, bg="salmon", main="Summer", cex.main=0.7, xaxt="n",
+     ylab=(expression(paste("chlorophyll (",pg~cell^-1, ")", sep=""))),
+     xlab=(expression(paste(delta^{15}, N[S], " (\u2030, Air)"))), cex.axis=0.8,
+     cex.lab=0.8)
+Axis(side=1, at = seq(2, 8, by = 2), cex.axis=0.8)
+legend("topright", c("clade C", "clade D"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8,
+       y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.1, 0))
+legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.355, 0))
+ablineclip(lm(chlcell~symb..d15N, data=C.sum.df), col='salmon', x1 = min(C.sum.df$symb..d15N), x2 = max(C.sum.df$symb..d15N), lwd=2)
+
+# D summer plot
+par(new=T)
+plot(chlcell~symb..d15N, data=D.sum.df, col='blue', xlim=c(2, 8), ylim=c(0, 12), cex=0.7, pch=21, bg="deepskyblue1", xaxt="n", yaxt="n", ylab="", xlab ="", cex.main=0.7)
+ablineclip(lm(chlcell~symb..d15N, data=D.sum.df), col='deepskyblue1', x1 = min(D.sum.df$symb..d15N), x2 = max(D.sum.df$symb..d15N), lwd=2)
+
+# C winter plot
+plot(chlcell~symb..d15N, data=C.win.df, col='red3', xlim=c(2, 8), ylim=c(0, 12), cex=0.7, pch=21, bg="salmon", xaxt="n", yaxt="n", main="Winter", ylab="", xlab ="", cex.main=0.7)
+ablineclip(lm(chlcell~symb..d15N, data=C.win.df), col='salmon', x1 = min(C.win.df$symb..d15N), x2 = max(C.win.df$symb..d15N), lwd=2)
+
+# D winter plot
+par(new=T)
+plot(chlcell~symb..d15N, data=D.win.df, col='blue', xlim=c(2, 8), ylim=c(0, 12), cex=0.7, pch=21, bg="deepskyblue1", ylab="", cex.main=0.7, yaxt="n", xaxt="n",
+xlab=(expression(paste(delta^{15}, N[S], " (\u2030, Air)"))), cex.axis=0.8,
+     cex.lab=0.8)
+Axis(side=1, at = seq(2, 8, by = 2), cex.axis=0.8)
+Axis(side=2, labels=FALSE)
+ablineclip(lm(chlcell~symb..d15N, data=D.win.df), col='deepskyblue1', x1 = min(D.win.df$symb..d15N), x2 = max(D.win.df$symb..d15N), lwd=2)
+
+dev.copy(pdf, "figures/regressions/PanKB.chlcell.d15Nsymb.pdf", width=6, height=4, encod="MacRoman")
+dev.off()
+
+############################
+######### zoox cm-2 and d15Nh-s
+
+##### Plot it
+##### host
+par(mfrow=c(1,2),mar=c(5,4.5,2,2))
+
+# C summer plot
+plot(zoox~d15N..host.sym, data=C.sum.df, col='red3', xlim=c(-2, 2), ylim=c(0, 6000000), cex=0.7, pch=21, bg="salmon", main="Summer", cex.main=0.7, xaxt="n",
+     ylab=expression(paste("symbionts ", "(",cells~cm^-2~")", sep="")), 
+     xlab=(expression(paste(delta^{15}, N[H-S], " (\u2030, Air)"))), cex.axis=0.8,
+     cex.lab=0.8)
+Axis(side=1, at = seq(-2, 2, by = 1), cex.axis=0.8)
+legend("topright", c("clade C", "clade D"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8,
+       y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.1, 0))
+legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.35, 0))
+ablineclip(lm(zoox~d15N..host.sym, data=C.sum.df), col='salmon', 
+           x1 = min(C.sum.df$d15N..host.sym), x2 = max(C.sum.df$d15N..host.sym), lwd=2)
+
+# D summer plot
+par(new=T)
+plot(zoox~d15N..host.sym, data=D.sum.df, col='blue', xlim=c(-2, 2), ylim=c(0, 6000000), cex=0.7, pch=21, bg="deepskyblue1", xaxt="n", yaxt="n", ylab="", xlab ="", cex.main=0.7)
+ablineclip(lm(zoox~d15N..host.sym, data=D.sum.df), col='deepskyblue1', x1 = min(D.sum.df$d15N..host.sym), x2 = max(D.sum.df$d15N..host.sym), lwd=2)
+
+# C winter plot
+plot(zoox~d15N..host.sym, data=C.win.df, col='red3', xlim=c(-2, 2), ylim=c(0, 6000000), cex=0.7, pch=21, bg="salmon", xaxt="n", yaxt="n", main="Winter", ylab="", xlab ="", cex.main=0.7)
+ablineclip(lm(zoox~d15N..host.sym, data=C.win.df), col='salmon', x1 = min(C.win.df$d15N..host.sym), x2 = max(C.win.df$d15N..host.sym), lwd=2)
+
+# D winter plot
+par(new=T)
+plot(zoox~d15N..host.sym, data=D.win.df, col='blue', xlim=c(-2, 2), ylim=c(0, 6000000), cex=0.7, pch=21, bg="deepskyblue1", ylab="", cex.main=0.7, yaxt="n", xaxt="n",
+xlab=(expression(paste(delta^{15}, N[H-S], " (\u2030, Air)"))), cex.axis=0.8,
+     cex.lab=0.8)
+Axis(side=1, at = seq(-2, 2, by = 1), cex.axis=0.8)
+Axis(side=2, labels=FALSE)
+ablineclip(lm(zoox~d15N..host.sym, data=D.win.df), col='deepskyblue1', x1 = min(D.win.df$d15N..host.sym), x2 = max(D.win.df$d15N..host.sym), lwd=2)
+
+dev.copy(pdf, "figures/regressions/PanKB.zoox.d15Nhs.pdf", width=6, height=4, encod="MacRoman")
+dev.off()
+```
+  
+  
+```{r photoacclimation}
+#### Pooled across seasons what is light effect overall for each symbiont species
+
+par(mfrow=c(1,2),mar=c(5,4.5,2,2))
+
+test.dat<-data.trim[,c(17, 1:5, 18:25, 7:16, 26:29)]
+C.test.dat<-test.dat[(test.dat$Dom=="C"),]
+D.test.dat<-test.dat[(test.dat$Dom=="D"),]
+
+######## by Light
+# C 
+plot(zoox~Light, data=C.test.dat, col='red3', ylim=c(0, 6000000), xlim=c(25, 0), yaxt="n", xaxt="n", cex=0.8, pch=21, bg="salmon", ylab="", xlab ="")
+legend("topright", c("clade C", "clade D"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8,
+       y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.1, 0))
+legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.355, 0))
+abline(lm(zoox~Light, data=C.test.dat), col="red")
+par(new=T)
+
+# D 
+plot(zoox~Light, data=D.test.dat, col='blue', ylim=c(0, 6000000), xlim=c(25, 0), cex=0.8, pch=21, bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab=expression(paste("symbionts ", "(",cells~cm^-2~")", sep="")), 
+     cex.axis=0.8, cex.lab=0.8, main="by Light", cex.main=0.7)
+abline(lm(zoox~Light, data=D.test.dat), col="blue")
+
+
+
+######## by Depth
+
+# C 
+plot(zoox~newDepth, data=C.test.dat, col='red3', ylim=c(0, 6000000), xlim=c(0, 10), yaxt="n", xaxt="n", cex=0.8, pch=21, bg="salmon", ylab="", xlab ="")
+legend("topright", c("clade C", "clade D"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8,
+       y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.1, 0))
+legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.355, 0))
+abline(lm(zoox~newDepth, data=C.test.dat), col="red")
+par(new=T)
+
+# D 
+plot(zoox~newDepth, data=D.test.dat, col='blue', ylim=c(0, 6000000), xlim=c(0, 10), cex=0.8, pch=21, bg="deepskyblue1",
+     xlab="depth (m)", 
+     ylab=expression(paste("symbionts ", "(",cells~cm^-2~")", sep="")), 
+     cex.axis=0.8, cex.lab=0.8, main="by Depth", cex.main=0.7)
+abline(lm(zoox~newDepth, data=D.test.dat), col="blue")
+
+######
+###### chla per symbiont 
+######## by Light
+# C 
+plot(chlcell~Light, data=C.test.dat, col='red3', ylim=c(0, 15), xlim=c(25, 0), yaxt="n", xaxt="n", cex=0.8, pch=21, bg="salmon", ylab="", xlab ="")
+legend("topright", c("clade C", "clade D"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8,
+       y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.1, 0))
+legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.355, 0))
+abline(lm(chlcell~Light, data=C.test.dat), col="red")
+par(new=T)
+
+# D 
+plot(chlcell~Light, data=D.test.dat, col='blue', ylim=c(0, 15), xlim=c(25, 0), cex=0.8, pch=21, bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab=(expression(paste("chlorophyll (",pg~cell^-1, ")", sep=""))),  
+     cex.axis=0.8, cex.lab=0.8, main="by Light", cex.main=0.7)
+abline(lm(chlcell~Light, data=D.test.dat), col="blue")
+
+
+######## by Depth
+
+# C 
+plot(chlcell~newDepth, data=C.test.dat, col='red3', ylim=c(0, 15), xlim=c(0, 10), yaxt="n", xaxt="n", cex=0.8, pch=21, bg="salmon", ylab="", xlab ="")
+legend("topright", c("clade C", "clade D"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8,
+       y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.1, 0))
+legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.355, 0))
+abline(lm(chlcell~newDepth, data=C.test.dat), col="red")
+par(new=T)
+
+# D 
+plot(chlcell~newDepth, data=D.test.dat, col='blue', ylim=c(0, 15), xlim=c(0, 10), cex=0.8, pch=21, bg="deepskyblue1",
+     xlab="depth (m)", 
+     ylab=(expression(paste("chlorophyll (",pg~cell^-1, ")", sep=""))),  
+     cex.axis=0.8, cex.lab=0.8, main="by Depth", cex.main=0.7)
+abline(lm(chlcell~newDepth, data=D.test.dat), col="blue")
+
+######
+###### chla total 
+######## by Light
+# C 
+plot(chltot~Light, data=C.test.dat, col='red3', ylim=c(0, 15), xlim=c(25, 0), yaxt="n", xaxt="n", cex=0.8, pch=21, bg="salmon", ylab="", xlab ="")
+legend("topright", c("clade C", "clade D"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8,
+       y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.1, 0))
+legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.355, 0))
+abline(lm(chltot~Light, data=C.test.dat), col="red")
+par(new=T)
+
+# D 
+plot(chltot~Light, data=D.test.dat, col='blue', ylim=c(0, 15), xlim=c(25, 0), cex=0.8, pch=21, bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab=(expression(paste("chlorophyll (",mu,g~cm^-2, ")", sep=""))),  
+     cex.axis=0.8, cex.lab=0.8, main="by Light", cex.main=0.7)
+abline(lm(chltot~Light, data=D.test.dat), col="blue")
+
+
+######## by Depth
+
+# C 
+plot(chltot~newDepth, data=C.test.dat, col='red3', ylim=c(0, 15), xlim=c(0, 10), yaxt="n", xaxt="n", cex=0.8, pch=21, bg="salmon", ylab="", xlab ="")
+legend("topright", c("clade C", "clade D"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8,
+       y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.1, 0))
+legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.355, 0))
+abline(lm(chltot~newDepth, data=C.test.dat), col="red")
+par(new=T)
+
+# D 
+plot(chltot~newDepth, data=D.test.dat, col='blue', ylim=c(0, 15), xlim=c(0, 10), cex=0.8, pch=21, bg="deepskyblue1",
+     xlab="depth (m)", 
+     ylab=(expression(paste("chlorophyll (",mu,g~cm^-2, ")", sep=""))),   
+     cex.axis=0.8, cex.lab=0.8, main="by Depth", cex.main=0.7)
+abline(lm(chltot~newDepth, data=D.test.dat), col="blue")
+
+```
+
+
+```{r more data exploration with depth and phys by light, eval=FALSE}
 
 #Create a function to generate a continuous color palette
 Pal <- colorRampPalette(c('gray80','gray30'))
