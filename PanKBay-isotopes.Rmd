@@ -47,6 +47,9 @@ library(maps)
 library(png)
 library(ecodist)
 library(gridExtra)
+library(reshape2)
+library(tools)
+
 ```
 ## Project background
   
@@ -102,7 +105,6 @@ dev.off
 **Figure** *Montipora capitata* in Kāne'ohe Bay, O'ahu, Hawai'i. PC: C. Wall  
 
   
-
 ## Environmental
 
 ### Sea level correction  
@@ -156,6 +158,327 @@ plot(win.depth.dif~win.data$Depth..m, col="deepskyblue4", pch=21, bg="deepskyblu
 abline(h=0, lty=2, col="gray")
 legend("topright", c("Summer", "Winter"), pch=c(21,21), pt.bg=c("plum", "deepskyblue1"), col=c("pink4", "deepskyblue4"), cex=0.9, y.intersp = 1, x.intersp = 0.6, bty="n", inset=c(0, 0))
 ```
+  
+### Temperatures
+```{r, temp}
+# temp loggers pan KBay
+# across depths and sites
+
+rm(list=ls())
+##################
+# Reef 10 (June - Aug)
+
+# remove all unwanted rows and columns
+# split date and time column
+
+##### grab files in a list
+df<-read.csv("data/environmental/temp and light/temp/Rf10_9768606.csv")
+  df<-df[c(-1:-2),-1] # removes "trash" columns
+  df<-df[, c(1:2)] # reorganize
+  colnames(df)<-c("Date.time", "Raw.Temp")
+  df$Raw.Temp<-as.numeric(as.character(df$Raw.Temp))
+  df$timestamp<-mdy_hms(as.character(df$Date.time)) # corrects date format
+  df$timestamp<-strptime(df$timestamp, format="%Y-%m-%d %H:%M:%S")
+  df<-df[, c(3,2)] # remove old date-time column
+  df<-df[!(df$timestamp < "2016-06-09 18:00:00"),] # start at this time
+  df<-df[!(df$timestamp > "2016-10-18 17:00:00"),] # end at this time
+
+Rf10.temp<-df
+### apply data callibration to each column
+colnames(Rf10.temp)=c("timestamp", "Reef10")
+Rf10.temp
+
+##################
+# Period T11 (June - Aug)
+
+# remove all unwanted rows and columns
+# split date and time column
+
+##### grab files in a list
+files <- list.files(path="data/environmental/temp and light/temp/T11_temp/", pattern = "csv$", full.names = T)
+files
+
+##### what are the file names, sans extensions
+file.names<-file_path_sans_ext(list.files(path="data/environmental/temp and light/temp/T11_temp/", pattern = "csv$", full.names = F))
+file.names
+
+############ formatting all data in for loop
+for(i in 1:length(files))
+{
+  data<-read.csv(files[i], sep=",")
+  df<-data[c(-1:-2),-1] # removes "trash" columns
+  df<-df[, c(1:2)] # reorganize
+  colnames(df)<-c("Date.time", "Raw.Temp")
+  df$Raw.Temp<-as.numeric(as.character(df$Raw.Temp))
+  df$timestamp<-mdy_hms(as.character(df$Date.time)) # corrects date format
+  df$timestamp<-strptime(df$timestamp, format="%Y-%m-%d %H:%M:%S")
+  df<-df[, c(3,2)] # remove old date-time column
+  df<-df[!(df$timestamp < "2016-06-09 18:00:00"),] # start at this time
+  df<-df[!(df$timestamp > "2016-08-02 08:00:00"),] # end at this time
+  make.names(assign(paste("Jun_",file.names[i], sep=""), df)) # put pattern at front of names
+  # makes each df[i] as dataframe with specific file-name
+  # write.csv(df.out, file=paste("trim",file.names[i])) # makes .csvs for output
+}
+# this is the end of the loop
+
+########## see the files you've made, as a list, then grab those that fill your pattern 
+ls()
+files<-as.data.frame(mget(ls(pattern = "Jun_*"))) # with SN as patterns in files from for loops
+names(files) # see number of columns, and what these are
+
+data_index<-c(1,(seq(2,6,2))) # these are the columns we will want: timestamp + raw data **change '12' to number of columns in your dataframe, specifying here to select 'every other column'
+
+temps<-as.data.frame(c(files[, data_index])) # here is the data we want, now in df alone
+#names(temps) = gsub(pattern = "Jun.*", replacement = "", x = names(temps)) #strip name to SN only
+
+### apply data callibration to each column
+temps[2]<-(1.01*temps$Jun_Rf42_T11.Raw.Temp-0.4314) # Reef 42 logger SN_9768617
+temps[3]<-(0.9762*temps$Jun_Rf44_T11.Raw.Temp+0.5346) # Reef 44 logger SN_10209515
+temps[4]<-(0.7982*temps$Jun_RfHIMB_T11.Raw.Temp+4.703) # Reef 44 logger SN_9768614
+
+colnames(temps)=c("timestamp", "Reef42", "Reef44", "HIMB")
+T11.temp<-temps
+
+
+#############################
+# Period T12 (Aug - Oct)
+
+##### grab files in a list
+files <- list.files(path="data/environmental/temp and light/temp/T12_temp/", pattern = "csv$", full.names = T)
+files
+
+##### what are the file names, sans extensions
+file.names<-file_path_sans_ext(list.files(path="data/environmental/temp and light/temp/T12_temp/", pattern = "csv$", full.names = F))
+file.names
+
+############ formatting all data in for loop
+for(i in 1:length(files))
+{
+  data<-read.csv(files[i], sep=",")
+  df<-data[c(-1:-2),-1] # removes "trash" columns
+  df<-df[, c(1:2)] # reorganize
+  colnames(df)<-c("Date.time", "Raw.Temp")
+  df$Raw.Temp<-as.numeric(as.character(df$Raw.Temp))
+  df$timestamp<-mdy_hms(as.character(df$Date.time)) # corrects date format
+  df$timestamp<-strptime(df$timestamp, format="%Y-%m-%d %H:%M:%S")
+  df<-df[, c(3,2)] # remove old date-time column
+  df<-df[!(df$timestamp < "2016-08-02 15:00:00"),] # start at this time
+  df<-df[!(df$timestamp > "2016-10-03 09:00:00"),] # end at this time
+  make.names(assign(paste("Aug_",file.names[i], sep=""), df)) # put pattern at front of names
+  # makes each df[i] as dataframe with specific file-name
+  # write.csv(df.out, file=paste("trim",file.names[i])) # makes .csvs for output
+}
+# this is the end of the loop
+
+########## 
+ls()
+files<-as.data.frame(mget(ls(pattern = "Aug_*")))
+names(files)
+data_index<-c(1,(seq(2,6,2)))
+temps<-as.data.frame(c(files[, data_index])) 
+
+### apply data callibration to each column
+temps[2]<-(1.01*temps$Aug_Rf42_T12.Raw.Temp-0.4314) # Reef 42 logger SN_9768617
+temps[3]<-(0.9762*temps$Aug_Rf44_T12.Raw.Temp+0.5346) # Reef 44 logger SN_10209515
+temps[4]<-(0.7982*temps$Aug_RfHIMB_T12.Raw.Temp+4.703) # Reef 44 logger SN_9768614
+
+colnames(temps)=c("timestamp", "Reef42", "Reef44", "HIMB")
+T12.temp<-temps
+
+
+#############################
+# Period T13 (Oct - Nov)
+
+
+##### grab files in a list
+files <- list.files(path="data/environmental/temp and light/temp/T13_temp/", pattern = "csv$", full.names = T)
+files
+
+##### what are the file names, sans extensions
+file.names<-file_path_sans_ext(list.files(path="data/environmental/temp and light/temp/T13_temp/", pattern = "csv$", full.names = F))
+file.names
+
+############ formatting all data in for loop
+for(i in 1:length(files))
+{
+  data<-read.csv(files[i], sep=",")
+  df<-data[c(-1:-2),-1] # removes "trash" columns
+  df<-df[, c(1:2)] # reorganize
+  colnames(df)<-c("Date.time", "Raw.Temp")
+  df$Raw.Temp<-as.numeric(as.character(df$Raw.Temp))
+  df$timestamp<-mdy_hms(as.character(df$Date.time)) # corrects date format
+  df$timestamp<-strptime(df$timestamp, format="%Y-%m-%d %H:%M:%S")
+  df<-df[, c(3,2)] # remove old date-time column
+  df<-df[!(df$timestamp < "2016-10-02 13:00:00"),] # start at this time
+  df<-df[!(df$timestamp > "2016-11-03 12:00:00"),] # end at this time
+  make.names(assign(paste("Oct_",file.names[i], sep=""), df)) # put pattern at front of names
+  # makes each df[i] as dataframe with specific file-name
+  # write.csv(df.out, file=paste("trim",file.names[i])) # makes .csvs for output
+}
+# this is the end of the loop
+
+########## 
+ls()
+files<-as.data.frame(mget(ls(pattern = "Oct_*")))
+names(files)
+data_index<-c(1,(seq(2,6,2)))
+temps<-as.data.frame(c(files[, data_index])) 
+
+### apply data callibration to each column
+temps[2]<-(1.01*temps$Oct_Rf42_T13.Raw.Temp-0.4314) # Reef 42 logger SN_9768617
+temps[3]<-(0.9762*temps$Oct_Rf44_T13.Raw.Temp+0.5346) # Reef 44 logger SN_10209515
+temps[4]<-(0.7982*temps$Oct_RfHIMB_T13.Raw.Temp+4.703) # Reef 44 logger SN_9768614
+
+colnames(temps)=c("timestamp", "Reef42", "Reef44", "HIMB")
+T13.temp<-temps
+
+
+#############################
+# Period T14 (Nov - Dev)
+
+
+##### grab files in a list
+files <- list.files(path="data/environmental/temp and light/temp/T14_temp/", pattern = "csv$", full.names = T)
+files
+
+##### what are the file names, sans extensions
+file.names<-file_path_sans_ext(list.files(path="data/environmental/temp and light/temp/T14_temp/", pattern = "csv$", full.names = F))
+file.names
+
+############ formatting all data in for loop
+for(i in 1:length(files))
+{
+  data<-read.csv(files[i], sep=",")
+  df<-data[c(-1:-2),-1] # removes "trash" columns
+  df<-df[, c(1:2)] # reorganize
+  colnames(df)<-c("Date.time", "Raw.Temp")
+  df$Raw.Temp<-as.numeric(as.character(df$Raw.Temp))
+  df$timestamp<-mdy_hms(as.character(df$Date.time)) # corrects date format
+  df$timestamp<-strptime(df$timestamp, format="%Y-%m-%d %H:%M:%S")
+  df<-df[, c(3,2)] # remove old date-time column
+  df<-df[!(df$timestamp < "2016-11-08 13:00:00"),] # start at this time
+  df<-df[!(df$timestamp > "2016-12-09 09:00:00"),] # end at this time
+  make.names(assign(paste("Nov_",file.names[i], sep=""), df)) # put pattern at front of names
+  # makes each df[i] as dataframe with specific file-name
+  # write.csv(df.out, file=paste("trim",file.names[i])) # makes .csvs for output
+}
+# this is the end of the loop
+
+########## 
+ls()
+files<-as.data.frame(mget(ls(pattern = "Nov_*")))
+names(files)
+data_index<-c(1,(seq(2,6,2)))
+temps<-as.data.frame(c(files[, data_index])) 
+
+### apply data callibration to each column
+temps[2]<-(1.01*temps$Nov_Rf42_T14.Raw.Temp-0.4314) # Reef 42 logger SN_9768617
+temps[3]<-(0.9762*temps$Nov_Rf44_T14.Raw.Temp+0.5346) # Reef 44 logger SN_10209515
+temps[4]<-(0.7982*temps$Nov_RfHIMB_T14.Raw.Temp+4.703) # Reef 44 logger SN_9768614
+
+colnames(temps)=c("timestamp", "Reef42", "Reef44", "HIMB")
+T14.temp<-temps
+
+##########################################
+# Period T15 (Dec - Jan)
+
+
+##### grab files in a list
+files <- list.files(path="data/environmental/temp and light/temp/T15_temp/", pattern = "csv$", full.names = T)
+files
+
+##### what are the file names, sans extensions
+file.names<-file_path_sans_ext(list.files(path="data/environmental/temp and light/temp/T15_temp/", pattern = "csv$", full.names = F))
+file.names
+
+############ formatting all data in for loop
+for(i in 1:length(files))
+{
+  data<-read.csv(files[i], sep=",")
+  df<-data[c(-1:-2),-1] # removes "trash" columns
+  df<-df[, c(1:2)] # reorganize
+  colnames(df)<-c("Date.time", "Raw.Temp")
+  df$Raw.Temp<-as.numeric(as.character(df$Raw.Temp))
+  df$timestamp<-mdy_hms(as.character(df$Date.time)) # corrects date format
+  df$timestamp<-strptime(df$timestamp, format="%Y-%m-%d %H:%M:%S")
+  df<-df[, c(3,2)] # remove old date-time column
+  df<-df[!(df$timestamp < "2016-12-09 15:00:00"),] # start at this time
+  df<-df[!(df$timestamp > "2017-01-13 09:00:00"),] # end at this time
+  make.names(assign(paste("Dec_",file.names[i], sep=""), df)) # put pattern at front of names
+  # makes each df[i] as dataframe with specific file-name
+  # write.csv(df.out, file=paste("trim",file.names[i])) # makes .csvs for output
+}
+# this is the end of the loop
+
+########## 
+ls()
+files<-as.data.frame(mget(ls(pattern = "Dec_*")))
+names(files)
+data_index<-c(1,(seq(2,6,2)))
+temps<-as.data.frame(c(files[, data_index])) 
+
+### apply data callibration to each column
+temps[2]<-(1.01*temps$Dec_Rf42_T15.Raw.Temp-0.4314) # Reef 42 logger SN_9768617
+temps[3]<-(0.9762*temps$Dec_Rf44_T15.Raw.Temp+0.5346) # Reef 44 logger SN_10209515
+temps[4]<-(0.7982*temps$Dec_RfHIMB_T15.Raw.Temp+4.703) # Reef 44 logger SN_9768614
+
+colnames(temps)=c("timestamp", "Reef42", "Reef44", "HIMB")
+T15.temp<-temps
+
+Aug_Jan.temps<-rbind(T11.temp, T12.temp, T13.temp, T14.temp, T15.temp) # data from 3 reef
+
+# all data, all 4 sites
+all.temps<-join_all(list(Aug_Jan.temps, Rf10.temp), by = "timestamp", type='full')
+colnames(all.temps)[1]<-"Date"
+
+### plot
+
+df<-all.temps # rename dataframe
+df$Date<-strptime(df$Date, format="%Y-%m-%d %H:%M:%S")
+df$Date<-as.Date(df$Date) # change to DATE ONLY format to calulate range, means
+df.split <- split(df, f=df$Date
+                  < as.Date("2014-10-10", format="%F")) # split df by date
+
+head(df)
+# calculate daily means, aggregate into one dataframe
+df.mean <- aggregate(data.frame(Rf42.mean=df.split[[1]]$Reef42,
+                                Rf44.mean=df.split[[1]]$Reef44,
+                                HIMB.mean=df.split[[1]]$HIMB,
+                                Rf10.mean=df.split[[1]]$Reef10),
+                     by=list(Date=df.split[[1]]$Date), FUN=mean)
+
+
+
+#########################
+# figures
+#########################
+pdf(paste("figures/environmental/Temp.allsites",".pdf", sep=""))
+
+########
+reefcols <- c("lightseagreen", "dodgerblue", "coral", "mediumorchid" )
+par(mfrow=c(1,1), mar=c(5,4,3,1), mgp=c(2,0.5,0))
+
+k=1; lwd=1 # k-day moving averages
+plot(Rf42.mean ~ Date, df.mean, type="n", ylab="Temperature (°C)", ylim=c(23, 30), xaxt="n", xlab="")
+ axis.Date(1, at=seq(min(df.mean$Date), max(df.mean$Date), by="1 mo"), format="%m/%d/%y", cex.axis=0.8)
+
+with(na.omit(data.frame(date=df.mean$Date, mean=rollmean(df.mean$Rf42.mean, k, fill=NA))), { 
+  lines(df.mean$Date, df.mean$Rf42.mean, col=reefcols[1], lwd=1) 
+})
+with(na.omit(data.frame(date=df.mean$Date, mean=rollmean(df.mean$Rf44.mean, k, fill=NA))), { 
+  lines(df.mean$Date, df.mean$Rf44.mean, col=reefcols[2], lwd=1) 
+})
+with(na.omit(data.frame(date=df.mean$Date, mean=rollmean(df.mean$Rf10.mean, k, fill=NA))), { 
+  lines(df.mean$Date, df.mean$Rf10.mean, col=reefcols[3], lwd=1)
+})
+with(na.omit(data.frame(date=df.mean$Date, mean=rollmean(df.mean$HIMB.mean, k, fill=NA))), { 
+  lines(df.mean$Date, df.mean$HIMB.mean, col=reefcols[4], lwd=1)
+})
+legend("topright", lty=1, col=c(reefcols[1:4]), legend=c("NW","NE", "SW", "SE"), lwd=3, bty="n")
+
+dev.off()
+```
+  
   
 ### Light parameters  
   
@@ -239,7 +562,7 @@ All.DLI.mod$Season<-ifelse(All.DLI.mod$month== "June" |
                                   All.DLI.mod$month== "September", "dry season", "wet season")
 All.DLI.mod$Season<-as.factor(All.DLI.mod$Season)
 
-mod<-lmer(DLI~Location*Season + (1|Date), data=All.DLI.mod); anova(mod, type=2)
+mod<-lmer(DLI~Location*Season + (1|Date), data=All.DLI.mod); print(anova(mod, type=2), digits=7)
 plot(allEffects(mod))
 posthoc<-emmeans(mod, ~Location|Season)
 CLD(posthoc, Letters=letters)
@@ -806,6 +1129,8 @@ dev.off()
 
 ```{r bar plot of DLI a depths, fig.dim=c(4,4), fig.cap="**Figure** Average (+/- SE) Daily Light Integral (DLI) for four reef locations at three depths pooled from June - January. DLI estimated from light attenuation coefficents using depth as a fixed effect against baseline loggers at 2 m depth"}
 
+# mean DLI from 10 June 2016 – 12 January 2017 
+
 DLI.summary<-read.csv("data/environmental/temp and light/Jun_DecPAR/DLI.3depth.summary.csv")
 DLI.summary$Location<-factor(DLI.summary$Location, levels=c("NW", "NE", "SW", "SE"))
 DLI.summary$Depth.zone<-factor(DLI.summary$Depth.zone, levels=c("shallow", "mid", "deep"))
@@ -1302,9 +1627,11 @@ month.DLI<-read.csv("data/environmental/temp and light/Jun_DecPAR/All.DLI_long.c
 summer.DLI<-month.DLI[(month.DLI$Month=="June" | month.DLI$Month=="July" | month.DLI$Month=="August"),]
 winter.DLI<-month.DLI[(month.DLI$Month=="November" | month.DLI$Month=="December" |month.DLI$Month=="January"),]
 
+
 # summer mean and SE dataframe
 sum.mean<-aggregate(DLI~Site, summer.DLI, mean)
 sum.SE<-aggregate(DLI~Site, summer.DLI, std.error)
+sum.n<-aggregate(DLI~Site, summer.DLI, length)
 sum.light.df<-cbind(sum.mean, sum.SE[2])
 colnames(sum.light.df)=c("Site", "mean.DLI", "se.DLI")
 sum.light.df$Season<-as.factor("summer")
@@ -1312,6 +1639,7 @@ sum.light.df$Season<-as.factor("summer")
 # winter mean and SE dataframe
 wint.mean<-aggregate(DLI~Site, winter.DLI, mean)
 wint.SE<-aggregate(DLI~Site, winter.DLI, std.error)
+wint.n<-aggregate(DLI~Site, winter.DLI, length)
 wint.light.df<-cbind(wint.mean, wint.SE[2])
 colnames(wint.light.df)=c("Site", "mean.DLI", "se.DLI")
 wint.light.df$Season<-as.factor("winter")
@@ -1373,16 +1701,22 @@ plots=dlply(df.light, .(Location), function(x) p %+% x + facet_wrap(~Location))
 Sum<-df.light[(df.light$Season=="summer"),]
 Win<-df.light[(df.light$Season=="winter"),]
 
-plot(Light~newDepth, Sum, col="coral", pch=16, xlab="Depth (m)", ylab="DLI at coral", 
-     ylim=c(0, 30), xlim=c(0, 10))
+
+#BW 
+plot(Light~newDepth, Sum, col="gray30", bg="gray40", pch=21, xlab="Depth (m)", ylab="DLI at coral", 
+     ylim=c(0, 30), xlim=c(0, 10), cex=0.7,  cex.lab=0.7, cex.axis=0.7)
 summod<-lm(log(Light)~newDepth, Sum)
-curve(exp(coef(summod)["(Intercept)"]+coef(summod)["newDepth"]*x), add=TRUE, col="coral", lwd=2)
+curve(exp(coef(summod)["(Intercept)"]+coef(summod)["newDepth"]*x), add=TRUE, col="gray40", lwd=2, xlim=c(0,9.5))
 par(new=T)
-plot(Light~newDepth, Win, col="lightblue2", pch=16, xaxt="n", yaxt="n", 
-     xlab="", ylab="", ylim=c(0, 30), xlim=c(0, 10))
+plot(Light~newDepth, Win, col="gray60", bg="gray80", pch=21, xaxt="n", yaxt="n", cex=0.7, 
+     xlab="", ylab="", ylim=c(0, 30), xlim=c(0, 10), cex.axis=0.7)
 wintmod<-lm(log(Light)~newDepth, Win)
-curve(exp(coef(wintmod)["(Intercept)"]+coef(wintmod)["newDepth"]*x), add=TRUE, col="lightblue2", lwd=2)
-legend("topright", legend=c("summer", "winter"), col=c("coral", "lightblue2"), lty=1, lwd=1, pch=16, bty="n")
+curve(exp(coef(wintmod)["(Intercept)"]+coef(wintmod)["newDepth"]*x), add=TRUE, col="gray80", 
+      lwd=2, xlim=c(0,7.8))
+legend("topright", legend=c("Summer", "Winter"), col=c("gray30", "gray60"), pt.bg=c("gray40", "gray80"), lty=c(1,1), lwd=c(1,1), pch=c(21,21), bty="n", 
+       y.intersp = 1.5, x.intersp = 0.4, inset=c(0.1, 0))
+dev.copy(pdf, "figures/symbionts/Light by Depth_symbs.pdf", encod="MacRoman", height=3, width=4)
+dev.off()
 ```
   
 ### Dissolved nutrients  
@@ -1398,10 +1732,10 @@ Silicate showed no effects (p > 0.323). Phosphate increased in the winter (p=0.0
 nutr<-read.csv("data/environmental/PanKBay_nutrients.csv")
 
 #models
-mod<-lm(silicate~Location+Date, data=nutr); Anova(mod, type=2)
 mod<-lm(phosphate~Location+Date, data=nutr); Anova(mod, type=2)
-mod<-lm(N.N~Location+Date, data=nutr); Anova(mod, type=2)
 mod<-lm(ammonium~Location+Date, data=nutr); Anova(mod, type=2)
+mod<-lm(N.N~Location+Date, data=nutr); print(Anova(mod, type=2), digits=8)
+mod<-lm(silicate~Location+Date, data=nutr); Anova(mod, type=2)
 
 nutr$Date<-mdy(nutr$Date) # corrects date format
 dates<-cbind("10-Aug '16", "20-Dec '16")
@@ -1422,17 +1756,6 @@ plot_colors<-c("mediumseagreen", "dodgerblue", "salmon", "orchid")
 # figure layout
 layout(matrix(c(1,2,3,4), nrow=1, byrow=TRUE))
 par(mar=c(5,4.5,7,1.5))
-
-###############
-# Silicate
-plot(y=Rf46$silicate, x=Rf46$Date, xaxt="n", type="o", xlab=NA, ylab=expression(paste("silicate"~(mu*mol~L^-1), sep="")), ylim=c(0, 15), pch=19, lty=2, cex=1, lwd=1, col=plot_colors[1], cex.axis=0.8)
-axis(side=1, at=Rf46$Date, labels=dates, cex.axis=0.8) # plots Reef 46 / NW
-#plots Reef 42/ NE
-with(Rf46, lines(Rf42$silicate, x=Rf42$Date, type="o", pch=19, lty=2, cex=1, lwd=1, col=plot_colors[2]))
-#plots Reef 10/ SW
-with(Rf46, lines(RF10$silicate, x=RF10$Date, type="o", pch=19, lty=2, cex=1, lwd=1, col=plot_colors[3]))
-#plots HIMB/ SE
-with(RfHIMB, lines(RfHIMB$silicate, x=RfHIMB$Date, type="o", pch=19, lty=2, cex=1, lwd=1, col=plot_colors[4]))
 
 ###############
 # Phosphate
@@ -1467,17 +1790,30 @@ with(Rf46, lines(Rf42$ammonium, x=Rf42$Date, type="o", pch=19, lty=2, cex=1, lwd
 with(Rf46, lines(RF10$ammonium, x=RF10$Date, type="o", pch=19, lty=2, cex=1, lwd=1, col=plot_colors[3]))
 #plots HIMB /SE
 with(RfHIMB, lines(RfHIMB$ammonium, x=RfHIMB$Date, type="o", pch=19, lty=2, cex=1, lwd=1, col=plot_colors[4]))
+
+###############
+# Silicate
+plot(y=Rf46$silicate, x=Rf46$Date, xaxt="n", type="o", xlab=NA, ylab=expression(paste("silicate"~(mu*mol~L^-1), sep="")), ylim=c(0, 15), pch=19, lty=2, cex=1, lwd=1, col=plot_colors[1], cex.axis=0.8)
+axis(side=1, at=Rf46$Date, labels=dates, cex.axis=0.8) # plots Reef 46 / NW
+#plots Reef 42/ NE
+with(Rf46, lines(Rf42$silicate, x=Rf42$Date, type="o", pch=19, lty=2, cex=1, lwd=1, col=plot_colors[2]))
+#plots Reef 10/ SW
+with(Rf46, lines(RF10$silicate, x=RF10$Date, type="o", pch=19, lty=2, cex=1, lwd=1, col=plot_colors[3]))
+#plots HIMB/ SE
+with(RfHIMB, lines(RfHIMB$silicate, x=RfHIMB$Date, type="o", pch=19, lty=2, cex=1, lwd=1, col=plot_colors[4]))
 legend("topleft", legend=Locations, col=plot_colors[1:4], lwd=1, pch=19, lty=2, cex=0.8, bty="n", x.intersp=0.2, y.intersp=1.2, inset=c(0.01, 0), seg.len=1.5)
+
 
 dev.copy(pdf, "figures/environmental/all.nutrients.pdf", encod="MacRoman", height=3, width=7)
 dev.off()
 ```
 ### Suspended particulates
   
-#### Gravimetric SPM
-Total (organic + inorganic) suspended particulate matter (SPM) was quantified by collecting and filtering 0.5 L of seawater from each location during each season. Seawater was sieved at 243 μm to remove large debris and filtered onto a pre-combusted (4h, 450°C) GF/F filter (0.7 μm). Salts were removed by light rinsing with ddH~2~O. Filters were dried at 60°C for 24h and re-weighed to closest 0.001 g to obtain total SPM. Masses were normalized to a liter of water.  
 
-```{r SPM models and figures, fig.dim=c(6,3.5)}
+```{r SPM models and figures, fig.dim=c(6,3.5), eval=FALSE}
+#### Gravimetric SPM
+# Total (organic + inorganic) suspended particulate matter (SPM) was quantified by collecting and filtering 0.5 L of seawater from each location during each season. Seawater was sieved at 243 μm to remove large debris and filtered onto a pre-combusted (4h, 450°C) GF/F filter (0.7 μm). Salts were removed by light rinsing with ddH~2~O. Filters were dried at 60°C for 24h and re-weighed to closest 0.001 g to obtain total SPM. Masses were normalized to a liter of water.  
+
 ###### SPM
 spm<-read.csv("data/environmental/PanKBay_SPM.csv")
 spm$SPM..g.l<-spm$SPM..g.l*1000 # change to mg
@@ -1485,14 +1821,15 @@ spm$Date<-factor(spm$Date, levels=c("8/10/16", "12/20/16"))
 colnames(spm)[4]="SPM.mg"
 spm$Location<-ordered(spm$Location, c("NW", "NE", "SW", "SE"))
 
-mod<-lm(SPM.mg~Location+Date, data=spm); Anova(mod, type=2)
-posthoc<-emmeans(mod, ~Location)
+mod<-lm(SPM.mg~Location*Date, data=spm); Anova(mod, type=2)
+posthoc<-emmeans(mod, ~Location|Date)
 CLD(posthoc, Letters=letters)
 plot(allEffects(mod), par.strip.text=list(cex=0.7))
 
 rm(mean) # this will remove 'mean' from library and let the function below proceed.
 mean<-aggregate(SPM.mg~Date + Location+Reef, spm, mean)
 se<-aggregate(SPM.mg~Date+Location+Reef, spm, std.error)
+spm.n<-aggregate(SPM.mg~Date+Location+Reef, spm, length)
 
 spm.df<-cbind(mean, se[c(0,4)])
 colnames(spm.df)=c("Date", "Location", "Reef", "SPM", "se")
@@ -1545,7 +1882,7 @@ Fig.SPM<-ggplot(spm.df, aes(x=Date, y=SPM, fill=Location)) +
 ggsave(file="figures/environmental/SPM.pdf", height=4, width=4)
 ```
   
-#### Isotopes of SPM/plankton  
+#### Isotopes of plankton/SPM  
   
 Plankton tows and seawater collections to parameterized particulates and plankters as potential heterotrophic end members available to reef corals. Sampling was done at 4 sites where corals were collected [*North*: (Reef 42, fringe-Reef 46), and *South*: (HIMB, fringe-Reef 10)], as well as two reefs in central region of the bay where corals were not collected (*Central*: Reef 25, fringe-Reef 25) to increase spatial resolution of suspended particulate isotope sample sizes. Using size-fractioned materials collected in seawater and plankton tows, we examined the spatial (*among reef sites*) and temporal patterns (*among seasons*) in stable isotope values of size-fractioned end members. Carbon and nitrogen isotope values among the 6 reef sites were not significantly different (*p* > 0.140), season had marginal effects (*p* > 0.049), whereas fraction influenced isotope values significantly (*p*< 0.001). Therefore, isotope values were pooled among reefs and seasons to best interpret size-fraction isotope values.  *Samples were not acidified prior to analysis as to not affect nitrogen isotope values.*
   
@@ -1637,8 +1974,10 @@ rm(mean)
 #### making scatter for d15N and d13C, pooled across seasons and sites
 mix.N.mean<-aggregate(d15N~SW.fraction..um, data=SWiso, mean)
 mix.N.se<-aggregate(d15N~SW.fraction..um, data=SWiso, std.error)
+mix.N.n<-aggregate(d15N~SW.fraction..um, data=SWiso, length)
 mix.C.mean<-aggregate(d13C~SW.fraction..um, data=SWiso, mean)
 mix.C.se<-aggregate(d13C~SW.fraction..um, data=SWiso, std.error)
+mix.C.n<-aggregate(d13C~SW.fraction..um, data=SWiso, length)
 mix.data<-cbind(mix.N.mean, mix.C.mean[c(2,0)], mix.N.se[c(2,0)], mix.C.se[c(2,0)]); colnames(mix.data)=c("fraction", "d15N", "d13C", "d15N.se", "d13C.se")
 
 colors=c("#FF6A6A", "#00B2EE", "#FFB90F", "#3CB371", "#8B7500")
@@ -1840,18 +2179,19 @@ anova(crossed, test = "Chisq")
 
 results.all<-crossed
 
+
 #summary(results.all)
 plot(allEffects(results.all), par.strip.text=list(cex=0.6))
 
 results.all.mod <-glm(Dominant~newDepth, family = "binomial", data = Symb)
-fitted.all <- predict(results.all.mod, newdata = list(newDepth=seq(0,10,0.1)), type = "response")
+fitted.all <- predict(results.all.mod, newdata = list(newDepth=seq(0,9.5,0.1)), type = "response")
 
 ###### summer only symbionts
 sum.dat<-Symb[(Symb$Season=="summer"),]
 results.sum=glm(Dominant~newDepth, family = "binomial", data = sum.dat)
 anova(results.sum, test = "Chisq")
 #summary(results.sum)
-fitted.sum <- predict(results.sum, newdata = list(newDepth=seq(0,10,0.1)), type = "response")
+fitted.sum <- predict(results.sum, newdata = list(newDepth=seq(0,9.5,0.1)), type = "response")
 # plot(fitted.sum, ylab="proportion D", ylim=c(0,1))
 
 ###### winter only symbionts
@@ -1859,7 +2199,7 @@ wint.dat<-Symb[(Symb$Season=="winter"),]
 results.win=glm(Dominant~newDepth, family = "binomial", data = wint.dat)
 anova(results.win, test = "Chisq")
 #summary(results.win)
-fitted.win <- predict(results.win, newdata = list(newDepth=seq(0,10,0.1)), type = "response")
+fitted.win <- predict(results.win, newdata = list(newDepth=seq(0,8,0.1)), type = "response")
 # plot(fitted.win, ylab="proportion D", ylim=c(0,1))
 ```
   
@@ -1872,15 +2212,17 @@ Logistic regression of the probability of *Montipora capitata* have a clade D-do
 ## Figure of Dominant symbiont clades across seasons
 ## **Note** where points equal 0.0 is 100% D, where they equal 0 is 100% C
 par(mar=c(5,4,3,2))
-plot(sum.dat$propD~sum.dat$newDepth, xlab="Depth (m)", ylab = "Proportion of Clade D Symbiont", pch=19, col="salmon", xlim=c(0,10), ylim=c(0.0, 1.0), cex=0.5, cex.lab=0.8)
+plot(sum.dat$propD~sum.dat$newDepth, xlab="Depth (m)", ylab = "Proportion of Durusdinium", pch=21,
+     col="gray30", bg="gray40", xlim=c(0,10), ylim=c(0.0, 1.0), cex=0.7, cex.lab=0.7, cex.axis=0.7)
 par(new=T)
-plot(wint.dat$propD~wint.dat$newDepth, pch=19, col="lightskyblue", xlim=c(0,10), ylim=c(0.0, 1.0), xaxt="n", xlab="", ylab="", cex=0.5, cex.lab=0.8)
-lines(fitted.all ~ seq(0,10,0.1), col="gray30", lwd=1, lty=2)
-lines(fitted.sum ~ seq(0,10,0.1), col="coral", lwd=1)
-lines(fitted.win ~ seq(0,10,0.1), col="lightskyblue", lwd=1)
-legend("topright", pch=c(19,19, NA), lty=c(1,1,2), col=c("coral", "lightskyblue", "gray30"), legend=c("Summer", "Winter", "Combined"), lwd=1, bty="n", x.intersp=1, pt.cex=0.8, y.intersp=2, cex=0.5, inset=c(-0.005, -0.01), seg.len=4)
+plot(wint.dat$propD~wint.dat$newDepth, pch=21, xlim=c(0,10), ylim=c(0.0, 1.0), xaxt="n", yaxt="n",
+     col="gray60", bg="gray80", xlab="", ylab="", cex=0.7)
+lines(fitted.all ~ seq(0,9.5,0.1), col="black", lwd=1, lty=2)
+lines(fitted.sum ~ seq(0,9.5,0.1), col="gray40", lwd=1)
+lines(fitted.win ~ seq(0,8,0.1), col="gray80", lwd=1)
+legend("topright", pch=c(21,21, NA), lty=c(1,1,2), pt.bg=c("gray40", "gray80", NA), col=c("gray 30", "gray60", "black"), legend=c("Summer", "Winter", "Combined"), lwd=1, bty="n", x.intersp=1, pt.cex=0.8, y.intersp=2, cex=0.5, inset=c(0.08, -0.01), seg.len=4)
 
-dev.copy(pdf, "figures/symbionts/Symbionts_by_Season_depth.pdf", encod="MacRoman", height=4, width=4)
+dev.copy(pdf, "figures/symbionts/Symbionts_by_Season_depth.pdf", encod="MacRoman", height=3, width=4)
 dev.off()
 ```
   
@@ -1943,7 +2285,7 @@ wint.dat<-Symb[(Symb$Season=="winter"),]
 results.win<-glm(Dominant~Light, family = "binomial", data = wint.dat)
 #anova(results.win, test = "Chisq")
 #summary(results.win)
-fitted.win <- predict(results.win, newdata = list(Light=seq(0,25,0.1)), type = "response")
+fitted.win <- predict(results.win, newdata = list(Light=seq(0,14,0.1)), type = "response")
 # plot(fitted.win, ylab="proportion D", ylim=c(0,1))
 
 ######
@@ -1951,15 +2293,16 @@ fitted.win <- predict(results.win, newdata = list(Light=seq(0,25,0.1)), type = "
 ## Figure of Dominant symbiont clades across seasons
 ## **Note** where points equal 0.0 is 100% D, where they equal 0 is 100% C
 par(mar=c(5,4,3,2))
-plot(sum.dat$propD~sum.dat$Light, xlab="Light (DLI)", ylab = "Proportion of Clade D Symbiont", pch=19, col="salmon", xlim=c(0,25), ylim=c(0.0, 1.0), cex=0.5, cex.lab=0.8)
+plot(sum.dat$propD~sum.dat$Light, xlab="Light (DLI)", ylab = "Proportion of Durusdinium", pch=21, col="gray30", bg="gray40", xlim=c(25,0), ylim=c(0.0, 1.0), cex=0.7, cex.lab=0.7, cex.axis=0.7)
 par(new=T)
-plot(wint.dat$propD~wint.dat$newDepth, pch=19, col="lightskyblue", xlim=c(0,25), ylim=c(0.0, 1.0), xaxt="n", xlab="", ylab="", cex=0.5)
-lines(fitted.all ~ seq(0,25,0.1), col="gray30", lwd=1, lty=2)
-lines(fitted.sum ~ seq(0,25,0.1), col="coral", lwd=1)
-lines(fitted.win ~ seq(0,25,0.1), col="lightskyblue", lwd=1)
-legend("bottomright", pch=c(19,19, NA), lty=c(1,1,2), col=c("coral", "lightskyblue", "gray30"), legend=c("Summer", "Winter", "Combined"), lwd=1, bty="n", x.intersp=1, pt.cex=0.7, y.intersp=2, cex=0.5, inset=c(0.1, 0.15), seg.len=4)
+plot(wint.dat$propD~wint.dat$Light, pch=21, xlim=c(25,0), ylim=c(0.0, 1.0), xaxt="n", yaxt="n",
+     col="gray60", bg="gray80", xlab="", ylab="", cex=0.7)
+lines(fitted.all ~ seq(0,25,0.1), col="black", lwd=1, lty=2)
+lines(fitted.sum ~ seq(0,25,0.1), col="gray40", lwd=1)
+lines(fitted.win ~ seq(0,14,0.1), col="gray80", lwd=1)
+legend("bottomleft", pch=c(19,19, NA), lty=c(1,1,2), col=c("gray30", "gray60", "black"), pt.bg=c("gray40", "gray80", NA), legend=c("Summer", "Winter", "Combined"), lwd=1, bty="n", x.intersp=1, pt.cex=0.7, y.intersp=2, cex=0.5, inset=c(0.1, 0.15), seg.len=4)
 
-dev.copy(pdf, "figures/symbionts/Symbionts_by_Season_light.pdf", encod="MacRoman", height=4, width=4)
+dev.copy(pdf, "figures/symbionts/Symbionts_by_Season_light.pdf", encod="MacRoman", height=3, width=4)
 dev.off()
 
 
@@ -2003,8 +2346,8 @@ model.data$symb..C.N<-log(model.data$symb..C.N)
 for(i in c(11:23)){
   Y<-model.data[,i]
   full<-lmer(Y~Season*Light*Dom + (1|Location), data=model.data, na.action=na.exclude)
-  #Y.shapiro <- shapiro.test(R) #runs a normality test on residuals
-  #print(Y.shapiro) # null = normally distrubuted (P<0.05 = non-normal
+  Y.shapiro <- shapiro.test(R) #runs a normality test on residuals
+  print(Y.shapiro) # null = normally distrubuted (P<0.05 = non-normal
   
   op<-par(mfrow = c(2,3), mar=c(5,4,1,2), pty="sq")
   plot(full, add.smooth = FALSE, which=1)
@@ -2354,7 +2697,7 @@ Fig.rand.eff<-ggplot(rand.eff.df, aes(x=response, y=prop.var, fill=response)) +
   geom_bar(stat="identity", position = pd, width=0.7, size=0.4) +
   theme(axis.text.x = element_text(size=10, angle=45, hjust = 1)) +
   scale_x_discrete(name="Responses", label=var.labs) +
-  annotate("text", x = 13, y = 0.105, label = "italic(N/A)", parse=TRUE) +
+  annotate("text", x = 13, y = 0.05, label = "italic(N/A)", parse=TRUE) +
   theme(axis.title.y= element_text(size=10),
         axis.text.y= element_text(size=10))+
   ylab(expression(paste("variance proportion", sep=""))) +
@@ -2779,7 +3122,7 @@ lines(x_light, ypred, col="salmon", lwd=2)
 par(new=T)
 
 # D winter
-x_light=seq(1.5,14, 0.5)
+x_light=seq(1.5,15, 0.5)
 ypred= exp(intercept+ coef(summary(mod))["Seasonwinter",1] + coef(summary(mod))["DomD",1] +
              coef(summary(mod))["Light",1]*x_light)
 
@@ -2842,7 +3185,7 @@ lines(x_light, ypred, col="salmon", lwd=2)
 par(new=T)
 
 # D winter
-x_light=seq(1.5,14, 0.5)
+x_light=seq(1.5,15, 0.5)
 ypred= exp(intercept+ coef(summary(mod))["Seasonwinter",1]+ coef(summary(mod))["Light",1]+ coef(summary(mod))["DomD",1] + coef(summary(mod))["Seasonwinter:Light",1]*x_light)
 
 plot(zoox~Light, data=D.win.df, col='blue', ylim=c(0, 6000000), xlim=c(15, 0), cex=0.8, pch=21, bg="deepskyblue1",
@@ -3324,7 +3667,7 @@ dev.off()
 # Fig: C.N symb season and depth
 ##################       
       
-par(mfrow=c(1,2),mar=c(5,4.5,2,2))
+par(mfrow=c(2,2),mar=c(5,4.5,2,2))
 
 # log(model.data$host..C.N)
 mod<-lmer(symb..C.N~Season+Light+Dom+ (1|Location), data=model.data, na.action=na.exclude)
@@ -3612,15 +3955,14 @@ summary(lm(chlcell~symb..d13C, data=C.win.df)) # signif p=0.030
 #### clade D
 # ZOOX in winter influence d13C
 
-summary(lm(zoox~symb..d13C, data=D.win.df)) # signif p=0.007
 summary(lm(zoox~symb..d13C, data=D.sum.df)) # NS
+summary(lm(zoox~symb..d13C, data=D.win.df)) # signif p=0.007
 
-summary(lm(chltot~symb..d13C, data=D.win.df)) # NS
 summary(lm(chltot~symb..d13C, data=D.sum.df)) # NS
+summary(lm(chltot~symb..d13C, data=D.win.df)) # NS
 
-summary(lm(chlcell~symb..d13C, data=D.win.df)) # NS
 summary(lm(chlcell~symb..d13C, data=D.sum.df)) # NS 
-
+summary(lm(chlcell~symb..d13C, data=D.win.df)) # NS
 
 ##### IN HOST-SYMBIONT
 ## zoox
@@ -3830,7 +4172,7 @@ dev.off()
 ####################
 ##### Plot it
 ##### symbiont
-par(mfrow=c(1,2),mar=c(5,4.5,2,2))
+par(mfrow=c(1,2),mar=c(4,5,1,2))
 
 # C summer plot
 plot(chlcell~symb..d13C, data=C.sum.df, col='red3', xlim=c(-20, -12), ylim=c(0, 12), cex=0.7, pch=21, bg="salmon", main="Summer", cex.main=0.7, xaxt="n",
@@ -3956,15 +4298,14 @@ summary(lm(chlcell~symb..d15N, data=C.win.df)) # NS
 
 #### clade D
 # ZOOX in winter influence d15N
-
-summary(lm(zoox~symb..d15N, data=D.win.df)) # NS
 summary(lm(zoox~symb..d15N, data=D.sum.df)) # NS
+summary(lm(zoox~symb..d15N, data=D.win.df)) # NS
 
-summary(lm(chltot~symb..d15N, data=D.win.df)) # NS
 summary(lm(chltot~symb..d15N, data=D.sum.df)) # NS
+summary(lm(chltot~symb..d15N, data=D.win.df)) # NS
 
-summary(lm(chlcell~symb..d15N, data=D.win.df)) # NS
 summary(lm(chlcell~symb..d15N, data=D.sum.df)) # NS 
+summary(lm(chlcell~symb..d15N, data=D.win.df)) # NS
 
 
 ##### IN HOST-SYMBIONT
