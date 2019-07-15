@@ -1,7 +1,7 @@
 ---
-title: "Symbiont ecology and its influence on the physiology and isotopic composition of a reef coral across space and time"
+title: "Divergent symbiont communities determine the physiology and nutrition of a reef coral across a light-availability gradient"
 author: "CB Wall cbwall@hawaii.edu"
-date: "9/19/2018"
+date: "7/20/2019"
 output:
   html_document:
     code_folding: hide
@@ -55,7 +55,7 @@ library(tools)
   
 *Montipora capitata* was sampled at four reef locations in Kāne‘ohe Bay, O‘ahu, spanning a latitudinal (north-south) gradient of oceanic input and seawater residence and nearshore proximity (east-west)  
     
-We measured changes in total biomass (ash-free dry weight), symbiont densiteis, photopigments (total chlorophylls (*a+c~2~*)), and stable isotopes (δ^13^C, δ^15^N) of the coral host, its endosymbionts *Symbiodinium*, and the coral skeleton.  
+We measured changes in total biomass (ash-free dry weight), symbiont densiteis, photopigments (total chlorophylls (*a+c~2~*)), and stable isotopes (δ^13^C, δ^15^N) of the coral host, its endosymbionts Symbiodiniaceae, and the coral skeleton.  
 
 **Site map**
 ```{r Mapsetup, results="hide", warning=FALSE, message=FALSE}
@@ -103,64 +103,11 @@ dev.off
 <center>
 ![](figures/M capitata_KBay_Wall.png){ width=60%} </center>
 **Figure** *Montipora capitata* in Kāne'ohe Bay, O'ahu, Hawai'i. PC: C. Wall  
-
   
 ## Environmental
 
-### Sea level correction  
-Corals were collected across in summer and winter 2016 across several different days with each period. To correct for differences in the depth of coral colonies we used NOAA tide data to correct all depth measurements to Mean Sea Level (MSL). This approach was done in [Innis et al. 2018](https://link.springer.com/article/10.1007/s00338-018-1667-0) on a larger collection of the coral samples--which have been subset in the current study.
-
-```{r sea level correction, fig.align='center', fig.dim=c(6,4.5), fig.cap="**Figure** *The differences in the depth where corals were collected in the field (x-axis) relative to the difference in the corrected depth (y-axis) using Mean Sea Level at the time of collection. Tidal correction from NOAA tide data.*"}
-#########################
-# Sea level correction
-#########################
-rm(list=ls())
-
-#### attach data files
-data<-read.csv("data/mastersheet_PanKBAY.csv") # master file
-qPCR.Innis<-read.csv("data/PanKBay_summer_qPCR.csv") # qPCR from summer (Innis et al. 2018)
-
-JuneTide=read.csv("data/environmental/sea level/Station_1612480_tide_ht_20160601-20160630.csv")
-JulyTide=read.csv("data/environmental/sea level/Station_1612480_tide_ht_20160701-20160731.csv")
-AugustTide=read.csv("data/environmental/sea level/Station_1612480_tide_ht_20160801-20160831.csv")
-DecemberTide=read.csv("data/environmental/sea level/Station_1612480_tide_ht_20161201-20161222.csv")
-
-Tide<-rbind(JuneTide, JulyTide, AugustTide, DecemberTide) # all MSL in meters
-
-Tide$Time <- as.POSIXct(Tide$TimeUTC, format="%Y-%m-%d %H:%M:%S", tz="UTC")
-attributes(Tide$Time)$tzone <- "Pacific/Honolulu"
-# use attr(as.POSIXlt(Tide$Time),"tzone") to confirm in PST
-
-Tide<-Tide[, c(-5:-8)] #remove unnecessary columns
-
-data$date.time<- as.POSIXct(paste(as.character(data$Date), as.character(data$Time.of.collection)),
-                 format="%m/%d/%y %H:%M", tz="Pacific/Honolulu") # make sure time in HST for master
-
-data$Time.r<-round_date(data$date.time,unit="6 minutes")
-Tide$Time.r <- Tide$Time
-data<-merge(data, Tide, by="Time.r", all.x=T)
-data$newDepth <- data$Depth..m-data$TideHT # new depth in METERS
-
-sum.data<- data[(data$Season=="summer"),]; sum.depth.dif<- sum.data$newDepth-sum.data$Depth..m
-win.data<- data[(data$Season=="winter"),]; win.depth.dif<- win.data$newDepth-win.data$Depth..m
-
-#### make a plot of differences
-# * note that plot works in Knit and alone in code chunk but isn't running if you "run all"*
-
-plot(sum.depth.dif~sum.data$Depth..m, col="pink4", pch=21, bg="plum", cex.axis=0.8, cex.lab=0.8, ylim=c(-0.3, 0.3), xlim=c(0,10),
-     xlab="Field depth observation (m)", 
-     ylab="Corrected depth difference (m)")
-abline(h=0, lty=2, col="gray")
-
-par(new=T)
-plot(win.depth.dif~win.data$Depth..m, col="deepskyblue4", pch=21, bg="deepskyblue1", 
-     ylim=c(-0.3, 0.3), xlim=c(0,10), xaxt="n", yaxt="n", xlab="", ylab="")
-abline(h=0, lty=2, col="gray")
-legend("topright", c("Summer", "Winter"), pch=c(21,21), pt.bg=c("plum", "deepskyblue1"), col=c("pink4", "deepskyblue4"), cex=0.9, y.intersp = 1, x.intersp = 0.6, bty="n", inset=c(0, 0))
-```
-  
-### Temperatures
-```{r, temp}
+### Temperature
+```{r, temp, results=FALSE, fig.cap="**Figure** Temperature across sites and time"}
 # temp loggers pan KBay
 # across depths and sites
 
@@ -478,107 +425,52 @@ legend("topright", lty=1, col=c(reefcols[1:4]), legend=c("NW","NE", "SW", "SE"),
 
 dev.off()
 ```
-  
+
+### Sea level correction  
+Corals were collected across in summer and winter 2016 across several different days with each period. To correct for differences in the depth of coral colonies we used NOAA tide data to correct all depth measurements to Mean Sea Level (MSL). This approach was done in [Innis et al. 2018](https://link.springer.com/article/10.1007/s00338-018-1667-0) on a larger collection of the coral samples--which have been subset in the current study.
+
+```{r sea level correction, fig.align='center', fig.dim=c(6,4.5), fig.cap="**Figure** *The differences in the depth where corals were collected in the field (x-axis) relative to the difference in the corrected depth (y-axis) using Mean Sea Level at the time of collection. Tidal correction from NOAA tide data.*"}
+#########################
+# Sea level correction
+#########################
+rm(list=ls())
+
+#### attach data files
+data<-read.csv("data/mastersheet_PanKBAY.csv") # master file
+qPCR.Innis<-read.csv("data/PanKBay_summer_qPCR.csv") # qPCR from summer (Innis et al. 2018)
+
+JuneTide=read.csv("data/environmental/sea level/Station_1612480_tide_ht_20160601-20160630.csv")
+JulyTide=read.csv("data/environmental/sea level/Station_1612480_tide_ht_20160701-20160731.csv")
+AugustTide=read.csv("data/environmental/sea level/Station_1612480_tide_ht_20160801-20160831.csv")
+DecemberTide=read.csv("data/environmental/sea level/Station_1612480_tide_ht_20161201-20161222.csv")
+
+Tide<-rbind(JuneTide, JulyTide, AugustTide, DecemberTide) # all MSL in meters
+
+Tide$Time <- as.POSIXct(Tide$TimeUTC, format="%Y-%m-%d %H:%M:%S", tz="UTC")
+attributes(Tide$Time)$tzone <- "Pacific/Honolulu"
+# use attr(as.POSIXlt(Tide$Time),"tzone") to confirm in PST
+
+Tide<-Tide[, c(-5:-8)] #remove unnecessary columns
+
+data$date.time<- as.POSIXct(paste(as.character(data$Date), as.character(data$Time.of.collection)),
+                 format="%m/%d/%y %H:%M", tz="Pacific/Honolulu") # make sure time in HST for master
+
+data$Time.r<-round_date(data$date.time,unit="6 minutes")
+Tide$Time.r <- Tide$Time
+data<-merge(data, Tide, by="Time.r", all.x=T)
+data$newDepth <- data$Depth..m-data$TideHT # new depth in METERS
+```
   
 ### Light parameters  
   
-This figure shows the daily integrated light (DLI mol photon m^-2^ d^-1^) at long-term light loggers at 2m depth near the locations where corals were collected in northern and southern sectors of Kāne'ohe Bay near shore (east) further off shore (west). 
-
-```{r DLI across time, results='hide', fig.cap="**Figure** *DLI at the four reef areas from summer to winter 2016 at 2m depths. Data at 2m was recorded from loggers*", eval=FALSE}
-# DLI 2m all sites
-
-##### all DLI for graphs
-files <- list.files(path="data/environmental/temp and light/Jun_DecPAR/all DLI", pattern = "csv$", full.names = T)
-tables <- lapply(files, read.csv, header = TRUE)
-DLI<-do.call(rbind, tables)
-DLI=DLI[-1] # remove junk column
-DLI$Date<-as.Date(DLI$Date) # fix date
-DLI<-DLI[order(DLI$Date),] # order by Date
-
-# make a date sequence for entire study
-all.date<-as.data.frame(seq(as.Date("2016-06-10"), as.Date("2017-01-12"), "days"))
-colnames(all.date)="Date"
-
-# merge the DLI data and the date sequence to make a complete df through time
-DLI.3site<-merge(all.date, DLI, by="Date", all.x=T)
-R10<-read.csv("data/environmental/temp and light/Jun_DecPAR/all DLI/Reef 10/DLI.Rf102016.csv")
-R10<-R10[-1]; R10$Date<-as.Date(R10$Date)
-
-DLI.4site<-merge(DLI.3site, R10, by="Date", all.x=T)
-DLI.4site$month <- months(as.Date(DLI.4site$Date)) # makes a month column
-DLI.4site<-DLI.4site[, c(1,6, 2:5)]
-
-# write.csv(DLI.4site, "data/environmental/temp and light/Jun_DecPAR/All.DLI.csv")
-
-##### Figure
-All.DLI<-DLI.4site
-reefcols=c("mediumseagreen", "dodgerblue", "salmon", "orchid")
-par(mar=c(2,3.6,1,1.3), mgp=c(2,0.5,0))
-layout(matrix(c(1,2,3,4), 2,2, byrow=TRUE))
-
-plot(Rf44.mid.DLI~Date, type="l", All.DLI, ylab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), ylim=c(0, 30), xaxt="n", xlab="Time", col=reefcols[1])
-legend("topright", lty=1, col=reefcols[1], legend="Northwest", lwd=1.5, bty="n", cex=0.8, 
-       x.intersp = 0.3, inset=c(0.02, -0.02))
-axis.Date(1, at=seq(min(All.DLI$Date), max(All.DLI$Date), by="2 mo"), format="%b '%y")
-
-plot(Rf42.mid.DLI~Date, type="l", All.DLI, ylab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), ylim=c(0, 30), xaxt="n", xlab="Time", col=reefcols[2])
-legend("topright", lty=1, col=reefcols[2], legend="Northeast", lwd=1.5, bty="n", cex=0.8, 
-       x.intersp = 0.3, inset=c(0.02, -0.02))
-axis.Date(1, at=seq(min(All.DLI$Date), max(All.DLI$Date), by="2 mo"), format="%b '%y")
-
-plot(Rf10.mid.DLI~Date, type="l", All.DLI, ylab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1, ")", sep=""))), ylim=c(0, 30), xaxt="n", xlab="Time", col=reefcols[3])
-legend("topright", lty=1, col=reefcols[3], legend="Southwest", lwd=1.5, bty="n", cex=0.8, 
-       x.intersp = 0.3, inset=c(0.02, -0.02))
-axis.Date(1, at=seq(min(All.DLI$Date), max(All.DLI$Date), by="2 mo"), format="%b '%y")
-
-plot(HIMB.mid.DLI~Date, type="l", All.DLI, ylab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1, ")", sep=""))), ylim=c(0, 30), xaxt="n", xlab="Time", col=reefcols[4])
-legend("topright", lty=1, col=reefcols[4], legend="Southeast", lwd=1.5, bty="n", cex=0.8, 
-       x.intersp = 0.3, inset=c(0.02, -0.02))
-axis.Date(1, at=seq(min(All.DLI$Date), max(All.DLI$Date), by="2 mo"), format="%b '%y")
-
-dev.copy(pdf, "figures/environmental/All.DLI.pdf", width=6.5, height=4)
-dev.off()
-```
-  
-
-```{r DLI model, fig.dim=c(7,3), fig.show='hold', fig.align='center', fig.cap="**Figure** DLI model output", eval=FALSE}
-# Model results testing differences in DLI at 2 m depth at all sites.
-mod.light<-DLI.4site
-Rf44DLI.mod<-mod.light[1:3]; Rf44DLI.mod$Location<-"Northwest"; 
-    colnames(Rf44DLI.mod)<-c("Date", "month", "DLI", "Location")
-Rf42DLI.mod<-mod.light[,c(1:2,4)]; Rf42DLI.mod$Location<-"Northeast"; 
-    colnames(Rf42DLI.mod)<-c("Date", "month", "DLI", "Location")
-HIMBDLI.mod<-mod.light[,c(1:2,5)]; HIMBDLI.mod$Location<-"Southeast"; 
-    colnames(HIMBDLI.mod)<-c("Date", "month", "DLI", "Location")
-Rf10DLI.mod<-mod.light[,c(1:2,6)]; Rf10DLI.mod$Location<-"Southwest"; 
-    colnames(Rf10DLI.mod)<-c("Date", "month", "DLI", "Location")
-
-All.DLI.mod<-rbind(Rf44DLI.mod, Rf42DLI.mod, HIMBDLI.mod, Rf10DLI.mod)
-All.DLI.mod$Location<-as.factor(All.DLI.mod$Location)
-All.DLI.mod$month<-as.factor(All.DLI.mod$month)
-All.DLI.mod$Season<-ifelse(All.DLI.mod$month== "June" | 
-                             All.DLI.mod$month== "July" |
-                                All.DLI.mod$month== "August" |
-                                  All.DLI.mod$month== "September", "dry season", "wet season")
-All.DLI.mod$Season<-as.factor(All.DLI.mod$Season)
-
-mod<-lmer(DLI~Location*Season + (1|Date), data=All.DLI.mod); print(anova(mod, type=2), digits=7)
-plot(allEffects(mod))
-posthoc<-emmeans(mod, ~Location|Season)
-CLD(posthoc, Letters=letters)
-
-posthoc<-emmeans(mod, ~Season)
-CLD(posthoc, Letters=letters)
-```
+With Depth as a factor (<1m, 2m, 8m), we can produce a continuous graph of light (PAR or DLI) at 2m and use model intercepts to predict the light at the shallow and deep zones (ca. <1m and 8m, respectfully). Here, the model is $lm(log.PAR$ ~ $Depth.factor)$. 
+```{r light as a factor figure, results='hide', fig.show='hide'}
 
 #### PAR and DLI at 3 depths  
-With Depth as a factor (<1m, 2m, 8m), we can produce a continuous graph of light (PAR or DLI) at 2m and use model intercepts to predict the light at the shallow and deep zones (ca. <1m and 8m, respectfully). Here, the model is $lm(log.PAR$ ~ $Depth.factor)$. 
-```{r light as a factor figure, include=FALSE, results='hide', fig.show='hide'}
 
 ####################################################
 ### Light attenuation  October deployment ##########
 ####################################################
-
 
 # using October deployment at 3 depths
 
@@ -846,7 +738,7 @@ legend("top", lty=1, col=c("orangered", "gray", "rosybrown2"), legend=c("<1m", "
 ########
 # combine all coefficients
 all.coefficients<-rbind(Rf42.coeffs, HIMB.coeffs, Rf44.coeffs, Rf10.coeffs)
-write.csv(all.coefficients, "data/environmental/light coeffs_factor.csv")
+write.csv(all.coefficients, "output/light coeffs_factor.csv")
 
 ###########
 
@@ -906,7 +798,7 @@ PAR.4site$month <- months(as.Date(PAR.4site$timestamp)) # makes a month column
 PAR.4site<-PAR.4site[, c(1,6, 2:5)]
 
 # determine monthly mean for PAR during deployments at depth
-write.csv(PAR.4site, "data/environmental/temp and light/Jun_DecPAR/All.PAR.csv")
+# write.csv(PAR.4site, "data/environmental/temp and light/Jun_DecPAR/All.PAR.csv")
 
 
 ###########
@@ -916,7 +808,7 @@ write.csv(PAR.4site, "data/environmental/temp and light/Jun_DecPAR/All.PAR.csv")
 df<-PAR.4site # all the instantaneous light data
 df[df<=1] <- NA
 
-coeffs<-read.csv("data/environmental/light coeffs.csv") # modeled coefficients
+coeffs<-read.csv("output/light coeffs_factor.csv") # modeled coefficients
 colnames(coeffs)<-c("Site", "Intercept", "shal.coeff", "deep.coeff")
 
 # log transform PAR data to determine light at depth, then reverse transform
@@ -971,9 +863,12 @@ colnames(All.PAR.df)<-c("timestamp", "month",
                         "Rf44.mid", "Rf44.shall", "Rf44.deep", 
                         "HIMB.mid", "HIMB.shall", "HIMB.deep",  
                         "Rf10.mid", "Rf10.shall", "Rf10.deep")
-```
 
-```{r figure PAR at 3 depths, results='hide', fig.cap="**Figure** *PAR at the four reef areas from summer to winter 2016 at three depths (<1m, 2m, 8m). Data at 2m was recorded from loggers; data at <1m and 8m were modeled using light attenuation calculations*"}
+```
+```{r, include=FALSE, eval=FALSE}
+##### figure PAR at 3 depths, results='hide', fig.cap="**Figure** *PAR at the four reef areas from summer to winter 2016 at three depths (<1m, 2m, 8m). Data at 2m was recorded from loggers; data at <1m and 8m were modeled using light attenuation calculations*"
+
+
 # Plot it!!
 # Reef 44
 par(mfrow=c(2,2), mar=c(4,5,2,2))
@@ -1025,10 +920,11 @@ with(All.PAR.df, lines(y=All.PAR.df$HIMB.deep, x=All.PAR.df$timestamp, type="l",
 legend("topright", lty=1, col=c("mediumorchid2", "gray", "plum4"), legend=c("<1m", "2m", "8m"), 
        lwd=2, bty="n", inset=c(0, -0.01), seg.len=1, cex=0.9, x.intersp=0.5, y.intersp=0.8)
 
-dev.copy(pdf, "figures/environmental/PAR.all depths.pdf", height=7, width=8)
-dev.off()
+#dev.copy(pdf, "figures/environmental/PAR.all depths.pdf", height=7, width=8)
+#dev.off()
 ```
-
+  
+DLI at the 3 depths
 ```{r figure DLI at 3 depths, results='hide', fig.cap="**Figure** *DLI at the four reef areas from summer to winter 2016 at three depths (<1m, 2m, 8m). Data at 2m was recorded from loggers; data at <1m and 8m were modeled using light attenuation calculations*"}
 
 #######
@@ -1127,7 +1023,7 @@ dev.copy(pdf, "figures/environmental/DLIcalc.all depths.pdf", height=7, width=8)
 dev.off()
 ```
 
-```{r bar plot of DLI a depths, fig.dim=c(4,4), fig.cap="**Figure** Average (+/- SE) Daily Light Integral (DLI) for four reef locations at three depths pooled from June - January. DLI estimated from light attenuation coefficents using depth as a fixed effect against baseline loggers at 2 m depth"}
+```{r bar plot of DLI at depths, fig.dim=c(4,4), fig.cap="**Figure** Average (+/- SE) Daily Light Integral (DLI) for four reef locations at three depths pooled from June - January. DLI estimated from light attenuation coefficents using depth as a fixed effect against baseline loggers at 2 m depth"}
 
 # mean DLI from 10 June 2016 – 12 January 2017 
 
@@ -1298,9 +1194,6 @@ with(Rf42.df, lines(y=Rf42.df$coef.deep, x=Rf42.df$Date, type="l", col="paleturq
 legend("top", lty=1, col=c("dodgerblue", "gray", "paleturquoise3"), legend=c("<1m", "2m", "8m"), 
        lwd=2, bty="n", inset=c(0, -0.5), seg.len=1, cex=1.1, xpd=TRUE, horiz=TRUE)
 
-dev.copy(pdf, "figures/environmental/DLI_coef_Rf42.pdf", height=6, width=4)
-dev.off()
-
 
 ####################################
 ###################################
@@ -1385,9 +1278,6 @@ par(new=T)
 with(HIMB.df, lines(y=HIMB.df$coef.deep, x=HIMB.df$Date, type="l", col="paleturquoise3", lwd=2))
 legend("top", lty=1, col=c("dodgerblue", "gray", "paleturquoise3"), legend=c("<1m", "2m", "8m"), 
        lwd=2, bty="n", inset=c(0, -0.5), seg.len=1, cex=1.1, xpd=TRUE, horiz=TRUE)
-
-dev.copy(pdf, "figures/environmental/DLI_coef_HIMB.pdf", height=6, width=4)
-dev.off()
 
 
 
@@ -1505,9 +1395,6 @@ with(Rf44.df, lines(y=Rf44.df$coef.deep, x=Rf44.df$Date, type="l", col="paleturq
 legend("top", lty=1, col=c("dodgerblue", "gray", "paleturquoise3"), legend=c("<1m", "2m", "8m"), 
        lwd=2, bty="n", inset=c(0, -0.5), seg.len=1, cex=1.1, xpd=TRUE, horiz=TRUE)
 
-dev.copy(pdf, "figures/environmental/DLI_coef_Rf44.pdf", height=6, width=4)
-dev.off()
-
 
 ################
 ################
@@ -1594,14 +1481,11 @@ with(Rf10.df, lines(y=Rf10.df$coef.deep, x=Rf10.df$Date, type="l", col="paleturq
 legend("top", lty=1, col=c("dodgerblue", "gray", "paleturquoise3"), legend=c("<1m", "2m", "8m"), 
        lwd=2, bty="n", inset=c(0, -0.5), seg.len=1, cex=1.1, xpd=TRUE, horiz=TRUE)
 
-dev.copy(pdf, "figures/environmental/DLI_coef_Rf10.pdf", height=6, width=4)
-dev.off()
-
 kd.all<-as.data.frame(c(kd.R42, kd.R44, kd.HIMB, kd.R10))
 kd.all$Sites<-as.factor(c("Rf42", "Rf44", "HIMB", "Rf10")); kd.all<-kd.all[2:1]
 colnames(kd.all)<-c("Site", "kd")
 
-write.csv(kd.all, "data/environmental/kd.all.csv")
+write.csv(kd.all, "output/kd.all.csv")
 
 ####
 #### end
@@ -1618,7 +1502,8 @@ write.csv(kd.all, "data/environmental/kd.all.csv")
 
 ### attach necessary files
 logger.depths<-read.csv("data/environmental/temp and light/light.logger.depths.csv") # depths for loggers
-kd.all<-read.csv("data/environmental/kd.all.csv") # kds for each site
+
+kd.all # kds for each site, depth as continuous
 
 # Seasonal DLI used for "period of collection" light levels
 month.DLI<-read.csv("data/environmental/temp and light/Jun_DecPAR/All.DLI_long.csv")
@@ -1647,7 +1532,7 @@ wint.light.df$Season<-as.factor("winter")
 season.DLI<-rbind(sum.light.df[,c(4,1,2:3)], wint.light.df[,c(4,1,2:3)]) # compiled means for DLI at ~2m
 season.DLI$Location<- as.factor(c("SE", "SW", "NE", "NW", "SE", "SW", "NE", "NW")); season.DLI<-season.DLI[,c(1,5,2:4)]
 
-write.csv(season.DLI, "data/environmental/season.DLI.csv")
+write.csv(season.DLI, "output/season.DLI.csv")
 #######################################
 ### make new dataframe for calculations
 df.light<- data[, c("Season", "Reef", "Location", "newDepth")]
@@ -1801,85 +1686,11 @@ with(Rf46, lines(Rf42$silicate, x=Rf42$Date, type="o", pch=19, lty=2, cex=1, lwd
 with(Rf46, lines(RF10$silicate, x=RF10$Date, type="o", pch=19, lty=2, cex=1, lwd=1, col=plot_colors[3]))
 #plots HIMB/ SE
 with(RfHIMB, lines(RfHIMB$silicate, x=RfHIMB$Date, type="o", pch=19, lty=2, cex=1, lwd=1, col=plot_colors[4]))
-legend("topleft", legend=Locations, col=plot_colors[1:4], lwd=1, pch=19, lty=2, cex=0.8, bty="n", x.intersp=0.2, y.intersp=1.2, inset=c(0.01, 0), seg.len=1.5)
+legend("topleft", legend=Locations, col=plot_colors[1:4], lwd=1, pch=19, lty=2, cex=0.8, bty="n", x.intersp=0.2, y.intersp=2, inset=c(0.01, 0), seg.len=1.5)
 
 
 dev.copy(pdf, "figures/environmental/all.nutrients.pdf", encod="MacRoman", height=3, width=7)
 dev.off()
-```
-### Suspended particulates
-  
-
-```{r SPM models and figures, fig.dim=c(6,3.5), eval=FALSE}
-#### Gravimetric SPM
-# Total (organic + inorganic) suspended particulate matter (SPM) was quantified by collecting and filtering 0.5 L of seawater from each location during each season. Seawater was sieved at 243 μm to remove large debris and filtered onto a pre-combusted (4h, 450°C) GF/F filter (0.7 μm). Salts were removed by light rinsing with ddH~2~O. Filters were dried at 60°C for 24h and re-weighed to closest 0.001 g to obtain total SPM. Masses were normalized to a liter of water.  
-
-###### SPM
-spm<-read.csv("data/environmental/PanKBay_SPM.csv")
-spm$SPM..g.l<-spm$SPM..g.l*1000 # change to mg
-spm$Date<-factor(spm$Date, levels=c("8/10/16", "12/20/16"))
-colnames(spm)[4]="SPM.mg"
-spm$Location<-ordered(spm$Location, c("NW", "NE", "SW", "SE"))
-
-mod<-lm(SPM.mg~Location*Date, data=spm); Anova(mod, type=2)
-posthoc<-emmeans(mod, ~Location|Date)
-CLD(posthoc, Letters=letters)
-plot(allEffects(mod), par.strip.text=list(cex=0.7))
-
-rm(mean) # this will remove 'mean' from library and let the function below proceed.
-mean<-aggregate(SPM.mg~Date + Location+Reef, spm, mean)
-se<-aggregate(SPM.mg~Date+Location+Reef, spm, std.error)
-spm.n<-aggregate(SPM.mg~Date+Location+Reef, spm, length)
-
-spm.df<-cbind(mean, se[c(0,4)])
-colnames(spm.df)=c("Date", "Location", "Reef", "SPM", "se")
-spm.df$Date<-ordered(spm.df$Date, c("8/10/16", "12/20/16"))
-spm.df$Reef<-ordered(spm.df$Reef, c("F1-46", "R42", "F8-10", "HIMB"))
-spm.df$Location<-ordered(spm.df$Location, c("NW", "NE", "SW", "SE"))
-
-
-Reefs<-c("Reef 46", "Reef 42", "Reef 10", "HIMB")
-Locations<-c("NW", "NE", "SW", "SE")
-Date<-c("10-Aug '16", "20-Dec '16")
-plot_colors2<-c("mediumturquoise", "skyblue3", "lightcoral", "plum")
-
-#####
-# figure formatting script
-Fig.formatting<-(theme_classic()) +
-  theme(text=element_text(size=10),
-        axis.line=element_blank(),
-        legend.justification=c(1,1), legend.position=c(1,1),
-        legend.background = element_rect("transparent", colour=NA),
-        legend.text=element_text(size=10),
-        legend.title = element_blank(),
-        panel.border = element_rect(fill=NA, colour = "black", size=0.8),
-        aspect.ratio=1, 
-        axis.ticks = element_line(colour = 'black', size = 0.4),
-        axis.ticks.length=unit(0.25, "cm"),
-        axis.text.y=element_text(
-          margin=unit(c(0.5, 0.5, 0.5, 0.5), "cm"), colour="black", size=10), 
-        axis.text.x=element_text(
-          margin=unit(c(0.5, 0.5, 0.5, 0.5), "cm"), colour="black", size=10)) +
-theme(legend.spacing.x = unit(0.2, 'cm'),
-      legend.key.size = unit(0.4, "cm"))
-
-pd <- position_dodge(0.7) #offset for error bars and columns
-#####
-
-# SPM (mg/l)
-Fig.SPM<-ggplot(spm.df, aes(x=Date, y=SPM, fill=Location)) +
-  geom_bar(colour=c("plum","lightcoral", "skyblue3","mediumturquoise","plum","lightcoral", "skyblue3", "mediumturquoise"),
-           stat="identity", position = pd, width=0.7, size=0.3) +
-  geom_errorbar(aes(ymin=SPM-se, ymax=SPM+se), 
-                colour=c("plum","lightcoral", "skyblue3","mediumturquoise","plum","lightcoral", "skyblue3","mediumturquoise"),
-                size=0.4, width=0, position=pd) +
-  xlab("Sampling points") +
-  ylab(expression(paste("SPM", ~(mg~L^-1), sep=""))) +
-  scale_x_discrete(labels=Date) +
-  scale_y_continuous(expand=c(0,0), limits=c(0, 5)) +
-  scale_fill_manual(values=alpha(c(plot_colors2), 0.5), 
-                    labels=Locations)+ Fig.formatting; Fig.SPM
-ggsave(file="figures/environmental/SPM.pdf", height=4, width=4)
 ```
   
 #### Isotopes of plankton/SPM  
@@ -1892,7 +1703,7 @@ SWiso<-read.csv("data/isotopes_SW_all times.csv")
 mod<-(lm(d13C~Location+Season+SW.fraction..um, data=SWiso)); Anova(mod, type=2) # no location effect
 mod<-(lm(d15N~Location+Season+SW.fraction..um, data=SWiso)); Anova(mod, type=2) # no location effect
 posthoc<-emmeans(mod, ~Season)
-CLD(posthoc, Letters=letters)
+multcomp::cld(posthoc, Letters=letters)
 
 SWiso$Reef<-factor(SWiso$Reef, levels=c("F1-46", "R42", "F2-R25", "R25", "F8-R10", "HIMB"))
 SWiso$Location<-factor(SWiso$Location, levels=c("NW", "NE", "CW", "CE", "SW", "SE"))
@@ -1962,11 +1773,11 @@ Pooling the isotope data across sites and seasons (where effects were absent or 
 
 mod<-lm(d13C~SW.fraction..um, data=SWiso); Anova(mod, type=2)
 posthoc<-emmeans(mod, ~SW.fraction..um)
-CLD(posthoc, Letters=letters)
+multcomp::cld(posthoc, Letters=letters)
 
 mod<-lm(d15N~SW.fraction..um, data=SWiso); Anova(mod, type=2)
 posthoc<-emmeans(mod, ~SW.fraction..um)
-CLD(posthoc, Letters=letters)
+multcomp::cld(posthoc, Letters=letters)
 
 
 rm(mean)
@@ -2404,7 +2215,7 @@ var.symb=var.table
 var.symb$response<-"symb"
 
 posthoc<-emmeans(add, ~Dom)
-CLD(posthoc, Letters=letters)
+multcomp::cld(posthoc, Letters=letters)
 
 plot(allEffects(add), ylab="symbiont density", par.strip.text=list(cex=0.7))
 ```
@@ -2428,10 +2239,10 @@ var.chl=var.table
 var.chl$response<-"chl"
 
 posthoc<-emmeans(add, ~Season)
-CLD(posthoc, Letters=letters)
+multcomp::cld(posthoc, Letters=letters)
 
 posthoc<-emmeans(add, ~Dom|Season)
-CLD(posthoc, Letters=letters)
+multcomp::cld(posthoc, Letters=letters)
 
 plot(allEffects(add), ylab="total chlor", par.strip.text=list(cex=0.7))
 ```
@@ -2479,10 +2290,10 @@ var.d13C.H=var.table
 var.d13C.H$response<-"d13C.H"
 
 posthoc<-emmeans(add, ~Dom)
-CLD(posthoc, Letters=letters)
+multcomp::cld(posthoc, Letters=letters)
 
 posthoc<-emmeans(add, ~Dom| Season)
-CLD(posthoc, Letters=letters)
+multcomp::cld(posthoc, Letters=letters)
 
 plot(allEffects(add), ylab="d13Chost", par.strip.text=list(cex=0.7))
 ```
@@ -2504,10 +2315,10 @@ var.d13C.S=var.table
 var.d13C.S$response<-"d13C.S"
 
 posthoc<-emmeans(add, ~Dom)
-CLD(posthoc, Letters=letters)
+multcomp::cld(posthoc, Letters=letters)
 
 posthoc<-emmeans(add, ~Dom| Season)
-CLD(posthoc, Letters=letters)
+multcomp::cld(posthoc, Letters=letters)
 
 plot(allEffects(add), ylab="d13Csymb", par.strip.text=list(cex=0.7))
 ```
@@ -2530,10 +2341,10 @@ var.d13C.HS=var.table
 var.d13C.HS$response<-"d13C.HS"
 
 posthoc<-emmeans(add, ~Dom)
-CLD(posthoc, Letters=letters)
+multcomp::cld(posthoc, Letters=letters)
 
 posthoc<-emmeans(add, ~Dom|Season)
-CLD(posthoc, Letters=letters)
+multcomp::cld(posthoc, Letters=letters)
 
 plot(allEffects(add), ylab="d13C-hs", par.strip.text=list(cex=0.7))
 ```
@@ -2556,7 +2367,7 @@ var.d13C.sk=var.table
 var.d13C.sk$response<-"d13C.sk"
 
 posthoc<-emmeans(add, ~Season)
-CLD(posthoc, Letters=letters)
+multcomp::cld(posthoc, Letters=letters)
 plot(allEffects(add), ylab="d13C-skel", par.strip.text=list(cex=0.7))
 ```
   
@@ -2598,7 +2409,7 @@ var.d15N.S=var.table
 var.d15N.S$response<-"d15N.S"
 
 posthoc<-emmeans(add, ~Dom|Season)
-CLD(posthoc, Letters=letters)
+multcomp::cld(posthoc, Letters=letters)
 
 plot(allEffects(add), ylab="d15Nsymb", par.strip.text=list(cex=0.7))
 ```
@@ -2621,7 +2432,7 @@ var.d15N.HS<-var.table
 var.d15N.HS$response<-"d15N.HS"
 
 posthoc<-emmeans(add, ~Dom|Season)
-CLD(posthoc, Letters=letters)
+multcomp::cld(posthoc, Letters=letters)
 
 plot(allEffects(add), ylab="d15N-hs", par.strip.text=list(cex=0.7))
 ```
