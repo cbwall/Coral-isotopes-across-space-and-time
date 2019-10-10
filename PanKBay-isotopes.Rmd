@@ -49,6 +49,8 @@ library(ecodist)
 library(gridExtra)
 library(reshape2)
 library(tools)
+library(zoo)
+library(vegan)
 
 ```
 ## Project background
@@ -96,7 +98,7 @@ box()
 
 ##### save the figure and export to directory? ####
 dev.copy(pdf, "figures/environmental/KBaymap.pdf", height=4.6, width=5)
-dev.off
+dev.off()
 
 ```
 
@@ -921,7 +923,7 @@ legend("topright", lty=1, col=c("mediumorchid2", "gray", "plum4"), legend=c("<1m
        lwd=2, bty="n", inset=c(0, -0.01), seg.len=1, cex=0.9, x.intersp=0.5, y.intersp=0.8)
 
 #dev.copy(pdf, "figures/environmental/PAR.all depths.pdf", height=7, width=8)
-#dev.off()
+#dev.off() 
 ```
   
 DLI at the 3 depths
@@ -3737,7 +3739,7 @@ xlab=expression(paste("total chlorophyll", ~(mu*g~cm^-2), sep="")), cex.axis=0.8
 Axis(side=2, labels=FALSE)
 ablineclip(lm(host..d13C~chltot, data=D.win.df), col='deepskyblue1', x1 = min(D.win.df$chltot), x2 = max(D.win.df$chltot), lwd=2)
 
-dev.copy(pdf, "figures/regressions/PanKB.chltot.d13Chost.pdf", width=4, height=4, encod="MacRoman")
+dev.copy(pdf, "figures/regressions/PanKB.chltot.d13Chost.pdf", width=6, height=4, encod="MacRoman")
 dev.off()
 
 
