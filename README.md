@@ -11,7 +11,7 @@ Reef corals are mixotrophic organisms relying on symbiont-derived photoautotroph
 *html file for Rmd output*  
   
 #### PanKBay-isotopes_pub.Rmd  
-*R markdwon for project*  
+*R markdown for project*  
   
 #### PanKBay isotopes.Rproj  
  *R project to run Rmd and directory*  
