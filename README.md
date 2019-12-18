@@ -16,9 +16,7 @@ Reef corals are mixotrophic organisms relying on symbiont-derived photoautotroph
 #### PanKBay isotopes.Rproj  
 *R project to run Rmd and directory*  
   
-#### DATA 
-*houses the following folders and files*  
-  
+#### DATA   *houses the following folders and files*  
  **coast_n83.shp** : shape files for making site maps  
  **environmental** :  
    - folder **sea level** for sea-level correction  
@@ -37,8 +35,7 @@ Reef corals are mixotrophic organisms relying on symbiont-derived photoautotroph
   - *PanKBay_winter_qPCR*  
     - compiled qPCR data for winter samples (post pipeline [detailed in Rmd file])  
      
-#### FIGURES ####  *houses exported figures*  
-  
+#### FIGURES  *houses exported figures*  
 **environmental** :  
   - folder: **unused** are figures used in analysis but not published  
      - pdfs:  
@@ -76,10 +73,9 @@ Reef corals are mixotrophic organisms relying on symbiont-derived photoautotroph
   - *Symb_Season_Light_logistic.pdf* (logistic regression histograms of symbiont distributions)  
   - *Symbionts_by_Season_depth.pdf* (probability of *Durusdinium* across depth)  
       
-  *M capitata_KBay_Wall.png* (coral figure)
+ *M capitata_KBay_Wall.png* (coral figure)
 
-#### OUTPUT 
-*houses exported outputs and compiled data*
+#### OUTPUT   *houses exported outputs and compiled data*
    - *C_D sample size.csv* (sample size for C- and D-dominated corals)  
    - *data.all.csv* (all physiology, isotope, and symbiont community data)  
    - *kd.all.csv* (light attenuation coefficients for each site)  
