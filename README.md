@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/149528148.svg)](https://zenodo.org/badge/latestdoi/149528148)
+
 # Coral-isotopes-across-space-and-time  
   
 *CB Wall, M Kaluhiokalani, BN Popp, MJ Donahue, RD Gates. (2019). Divergent symbiont communities determine the physiology and nutrition of a reef coral across a light-availability gradient. The ISME Journal.* 
