@@ -17,7 +17,7 @@ Reef corals are mixotrophic organisms relying on symbiont-derived photoautotroph
 *R project to run Rmd and directory*  
   
 #### DATA   *houses the following folders and files*  
- **coast_n83.shp** : shape files for making site maps
+ **coast_n83.shp** : shape files for making site maps  
  **environmental** :
    - folder **sea level** for sea-level correction  
    - folder **temp and light** for raw data collected on the reef  
