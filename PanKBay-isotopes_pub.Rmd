@@ -1,0 +1,3568 @@
+---
+title: "Divergent symbiont communities determine the physiology and nutrition of a reef coral across a light-availability gradient"
+author: "CB Wall*, M Kaluhiokalani, BN Popp, MJ Donahue, RD Gates (The ISME Journal) *cbwall@hawaii.edu"
+date: "12/17/2019"
+output:
+  html_document:
+    code_folding: hide
+    toc: yes
+    toc_depth: 4
+    toc_float: yes
+  pdf_document:
+    toc: yes
+    toc_depth: '4'
+---
+```{r setup chunk, setup, warning=FALSE, message=FALSE, fig.align='center'}
+require("knitr")
+knitr::opts_chunk$set(warning=FALSE, message=FALSE, fig.align='center')
+
+# load packages
+if (!require("pacman")) install.packages("pacman"); library(pacman) # for rapid install if not in library
+pacman::p_load("ggplot2", "broom.mixed", "broom", "tidyverse", "tidymodels", "plyr", "dplyr", "plotrix",
+               "lubridate", "effects", "RCurl", "chron", "lubridate", "lme4", "emmeans", "multcomp",
+               "devtools", "logihist", "popbio", "car", "lmerTest", "cowplot", "sjPlot", "sjmisc",
+               "RgoogleMaps", "SDMTools", "rgdal", "maps", "png", "ecodist", "gridExtra", "reshape2", "tools",
+               "zoo", "vegan", "ggbiplot", "graphics")
+
+```
+
+## Project background  
+  
+Reef corals are mixotrophic organisms relying on symbiont-derived photoautotrophy and water column heterotrophy. Coral endosymbionts (Family: Symbiodiniaceae), while typically considered mutualists, display a range of species-specific and environmentally mediated opportunism in their interactions with coral hosts, potentially requiring corals to rely more on heterotrophy to avoid declines in performance. To test the influence of symbiont communities on coral physiology (tissue biomass, symbiont density, photopigmentation) and nutrition (δ^13^C, δ^15^N), we sampled *Montipora capitata* colonies dominated by a specialist symbiont *Cladocopium* spp. or a putative opportunist *Durusdinium glynnii* (hereafter, C- or D-colonies) from Kāne‘ohe Bay, Hawai‘i, across gradients in photosynthetically active radiation (PAR) at depths between 1-10 m during summer and winter. 
+  
+We report for the first time that isotope values of reef corals are influenced by Symbiodiniaceae communities, indicative of different autotrophic capacities among symbiont species. D-colonies had on average 56% higher symbiont densities, but lower photopigments per symbiont cell and consistently lower δ^13^C values in host and symbiont tissues; this pattern in isotope values is consistent with lower symbiont carbon assimilation and translocation to the host. Neither C- nor D-colonies showed signs of greater heterotrophy or nutritional plasticity; instead changes in δ^13^C values were driven by PAR availability and photoacclimation attributes that differed between symbiont communities. Together, these results reveal Symbiodiniaceae functional diversity produces distinct holobionts with different capacities for autotrophic nutrition, and energy tradeoffs from associating with opportunist symbionts are not met with increased heterotrophy
+
+#### Figure 1
+**Site map**
+```{r Mapsetup, results="hide", warning=FALSE, message=FALSE}
+# attach map GPS data
+HI<-readOGR("data/coast_n83.shp", "coast_n83") # in meters
+HI <- spTransform(HI, CRS("+proj=longlat +datum=NAD83"))
+
+sites<-read.csv("data/environmental/Reefs_lat_long.csv", header=TRUE, na.string=NA)
+```
+
+```{r Map fig, results="hide", message="hide", warning="hide", fig.height=4, fig.width=4.5, fig.align = 'center', fig.cap="**Figure 1a.** *Study site locations in Kāne‘ohe Bay on the windward side of the island of O'ahu, Hawai'i*"}
+# Make figure and export
+
+###############
+
+par(mar=c(1,1,1,1), pty="sq")
+plot(HI, xlim=c(-157.86, -157.75), ylim=c(21.42, 21.5), lwd=1, col="gray87")
+
+# adding tick marks and axis lat-long
+axis(side=1, at=seq(-157.9, -157.70, 0.05), line=0, tck=0.02, labels=FALSE) # bottom
+text(y=21.409, x=seq(-157.9, -157.70, 0.05), labels=seq(-157.9, -157.70, 0.05), cex=0.4)
+
+axis(side=3, at=seq(-157.9, -157.70, 0.05), line=0, tck=0.02, labels=FALSE) # top
+
+axis(side=2, at=seq(21.35, 21.55, 0.05), line=0, tck=0.02, labels=FALSE) # right
+text(x=-157.857, y=seq(21.35, 21.55, 0.05), labels=seq(21.35, 21.55, 0.05),cex=0.4)
+
+axis(side=4, at=seq(21.35, 21.55, 0.05), line=0, tck=0.02, labels=FALSE) # left
+
+## add points to map, needs to be 'longitude-latitude formatted'
+points(sites[,c(3,2)], pch=21, cex=1.3, col="black", bg="salmon")
+text(sites[,c(3,2)], labels=c("SE\npatch reef", "SW\nfringe reef", "NE\npatch reef", "NW\nfringe reef"), pos=c(3,3,1,3), cex=0.5)
+
+par(new=T, mar=c(15,15,1,1))
+plot(HI, xlim=c(-158.27, -157.6), ylim=c(21.25, 21.72), lwd=0.4, col="gray", bg="white")  # Oahu
+rect(-157.87, 21.39, -157.71, 21.53, lwd=0.8)
+box()
+
+##### save the figure and export to directory? ####
+dev.copy(pdf, "figures/environmental/KBaymap.pdf", height=4.6, width=5)
+dev.off()
+
+```
+  
+<center>
+  
+![**Figure 1b.** *Montipora capitata* in Kāne'ohe Bay, O'ahu, Hawai'i. (PC: C. Wall)](figures/M capitata_KBay_Wall.png){ width=50%} 
+  
+</center>  
+
+  
+## Environmental  
+  
+We corrected seawater depths for coral collection to mean tide height toa ccount for differences in tides across days and seasons. We also measured the light values at the reefs across depths, using these to calculate "light-at-depth" for the colonies where fragments were collected. We also parameterized environments by measuring temperatures, dissolved nutrients, and suspended particle (mass and isotope values).  
+  
+### Temperature
+#### Figure S1-temp
+```{r, temp, results='hide', fig.dim=c(7,4),fig.cap="**Figure S1b** *Daily mean temperature recorded at 2 m-depth at four Kāne‘ohe Bay reefs from June 2016 – January 2017.*"}
+
+# temp loggers pan KBay
+# across depths and sites
+
+rm(list=ls())
+##################
+# Reef 10 (June - Aug)
+
+# remove all unwanted rows and columns
+# split date and time column
+
+##### grab files in a list
+df<-read.csv("data/environmental/temp and light/temp/Rf10_9768606.csv")
+  df<-df[c(-1:-2),-1] # removes "trash" columns
+  df<-df[, c(1:2)] # reorganize
+  colnames(df)<-c("Date.time", "Raw.Temp")
+  df$Raw.Temp<-as.numeric(as.character(df$Raw.Temp))
+  df$timestamp<-mdy_hms(as.character(df$Date.time)) # corrects date format
+  df$timestamp<-strptime(df$timestamp, format="%Y-%m-%d %H:%M:%S")
+  df<-df[, c(3,2)] # remove old date-time column
+  df<-df[!(df$timestamp < "2016-06-09 18:00:00"),] # start at this time
+  df<-df[!(df$timestamp > "2016-10-18 17:00:00"),] # end at this time
+
+Rf10.temp<-df
+### apply data callibration to each column
+colnames(Rf10.temp)=c("timestamp", "Reef10")
+Rf10.temp[2]<-(Rf10.temp$Reef10-0.1558) # Reef 10 logger correction
+Rf10.temp
+
+##################
+# Period T11 (June - Aug)
+
+# remove all unwanted rows and columns
+# split date and time column
+
+##### grab files in a list
+files <- list.files(path="data/environmental/temp and light/temp/T11_temp/", pattern = "csv$", full.names = T)
+files
+
+##### what are the file names, sans extensions
+file.names<-file_path_sans_ext(list.files(path="data/environmental/temp and light/temp/T11_temp/", pattern = "csv$", full.names = F))
+file.names
+
+############ formatting all data in for loop
+for(i in 1:length(files))
+{
+  datatemp<-read.csv(files[i], sep=",")
+  df<-datatemp[c(-1:-2),-1] # removes "trash" columns
+  df<-df[, c(1:2)] # reorganize
+  colnames(df)<-c("Date.time", "Raw.Temp")
+  df$Raw.Temp<-as.numeric(as.character(df$Raw.Temp))
+  df$timestamp<-mdy_hms(as.character(df$Date.time)) # corrects date format
+  df$timestamp<-strptime(df$timestamp, format="%Y-%m-%d %H:%M:%S")
+  df<-df[, c(3,2)] # remove old date-time column
+  df<-df[!(df$timestamp < "2016-06-09 18:00:00"),] # start at this time
+  df<-df[!(df$timestamp > "2016-08-02 08:00:00"),] # end at this time
+  make.names(assign(paste("Jun_",file.names[i], sep=""), df)) # put pattern at front of names
+  # makes each df[i] as dataframe with specific file-name
+  # write.csv(df.out, file=paste("trim",file.names[i])) # makes .csvs for output
+}
+# this is the end of the loop
+
+########## see the files you've made, as a list, then grab those that fill your pattern 
+ls()
+files<-as.data.frame(mget(ls(pattern = "Jun_*"))) # with SN as patterns in files from for loops
+names(files) # see number of columns, and what these are
+
+data_index<-c(1,(seq(2,6,2))) # these are the columns we will want: timestamp + raw data **change '12' to number of columns in your dataframe, specifying here to select 'every other column'
+
+temps<-as.data.frame(c(files[, data_index])) # here is the data we want, now in df alone
+#names(temps) = gsub(pattern = "Jun.*", replacement = "", x = names(temps)) #strip name to SN only
+
+### apply data callibration to each column
+temps[2]<-(1.01*temps$Jun_Rf42_T11.Raw.Temp-0.4314) # Reef 42 logger SN_9768617
+temps[3]<-(0.9762*temps$Jun_Rf44_T11.Raw.Temp+0.5346) # Reef 44 logger SN_10209515
+temps[4]<-(0.7982*temps$Jun_RfHIMB_T11.Raw.Temp+4.703) # Reef 44 logger SN_9768614
+
+colnames(temps)=c("timestamp", "Reef42", "Reef44", "HIMB")
+T11.temp<-temps
+
+
+#############################
+# Period T12 (Aug - Oct)
+
+##### grab files in a list
+files <- list.files(path="data/environmental/temp and light/temp/T12_temp/", pattern = "csv$", full.names = T)
+files
+
+##### what are the file names, sans extensions
+file.names<-file_path_sans_ext(list.files(path="data/environmental/temp and light/temp/T12_temp/", pattern = "csv$", full.names = F))
+file.names
+
+############ formatting all data in for loop
+for(i in 1:length(files))
+{
+  datatemp<-read.csv(files[i], sep=",")
+  df<-datatemp[c(-1:-2),-1] # removes "trash" columns
+  df<-df[, c(1:2)] # reorganize
+  colnames(df)<-c("Date.time", "Raw.Temp")
+  df$Raw.Temp<-as.numeric(as.character(df$Raw.Temp))
+  df$timestamp<-mdy_hms(as.character(df$Date.time)) # corrects date format
+  df$timestamp<-strptime(df$timestamp, format="%Y-%m-%d %H:%M:%S")
+  df<-df[, c(3,2)] # remove old date-time column
+  df<-df[!(df$timestamp < "2016-08-02 15:00:00"),] # start at this time
+  df<-df[!(df$timestamp > "2016-10-03 09:00:00"),] # end at this time
+  make.names(assign(paste("Aug_",file.names[i], sep=""), df)) # put pattern at front of names
+  # makes each df[i] as dataframe with specific file-name
+  # write.csv(df.out, file=paste("trim",file.names[i])) # makes .csvs for output
+}
+# this is the end of the loop
+
+########## 
+ls()
+files<-as.data.frame(mget(ls(pattern = "Aug_*")))
+names(files)
+data_index<-c(1,(seq(2,6,2)))
+temps<-as.data.frame(c(files[, data_index])) 
+
+### apply data callibration to each column
+temps[2]<-(1.01*temps$Aug_Rf42_T12.Raw.Temp-0.4314) # Reef 42 logger SN_9768617
+temps[3]<-(0.9762*temps$Aug_Rf44_T12.Raw.Temp+0.5346) # Reef 44 logger SN_10209515
+temps[4]<-(0.7982*temps$Aug_RfHIMB_T12.Raw.Temp+4.703) # Reef 44 logger SN_9768614
+
+colnames(temps)=c("timestamp", "Reef42", "Reef44", "HIMB")
+T12.temp<-temps
+
+
+#############################
+# Period T13 (Oct - Nov)
+
+
+##### grab files in a list
+files <- list.files(path="data/environmental/temp and light/temp/T13_temp/", pattern = "csv$", full.names = T)
+files
+
+##### what are the file names, sans extensions
+file.names<-file_path_sans_ext(list.files(path="data/environmental/temp and light/temp/T13_temp/", pattern = "csv$", full.names = F))
+file.names
+
+############ formatting all data in for loop
+for(i in 1:length(files))
+{
+  datatemp<-read.csv(files[i], sep=",")
+  df<-datatemp[c(-1:-2),-1] # removes "trash" columns
+  df<-df[, c(1:2)] # reorganize
+  colnames(df)<-c("Date.time", "Raw.Temp")
+  df$Raw.Temp<-as.numeric(as.character(df$Raw.Temp))
+  df$timestamp<-mdy_hms(as.character(df$Date.time)) # corrects date format
+  df$timestamp<-strptime(df$timestamp, format="%Y-%m-%d %H:%M:%S")
+  df<-df[, c(3,2)] # remove old date-time column
+  df<-df[!(df$timestamp < "2016-10-02 13:00:00"),] # start at this time
+  df<-df[!(df$timestamp > "2016-11-03 12:00:00"),] # end at this time
+  make.names(assign(paste("Oct_",file.names[i], sep=""), df)) # put pattern at front of names
+  # makes each df[i] as dataframe with specific file-name
+  # write.csv(df.out, file=paste("trim",file.names[i])) # makes .csvs for output
+}
+# this is the end of the loop
+
+########## 
+ls()
+files<-as.data.frame(mget(ls(pattern = "Oct_*")))
+names(files)
+data_index<-c(1,(seq(2,6,2)))
+temps<-as.data.frame(c(files[, data_index])) 
+
+### apply data callibration to each column
+temps[2]<-(1.01*temps$Oct_Rf42_T13.Raw.Temp-0.4314) # Reef 42 logger SN_9768617
+temps[3]<-(0.9762*temps$Oct_Rf44_T13.Raw.Temp+0.5346) # Reef 44 logger SN_10209515
+temps[4]<-(0.7982*temps$Oct_RfHIMB_T13.Raw.Temp+4.703) # Reef 44 logger SN_9768614
+
+colnames(temps)=c("timestamp", "Reef42", "Reef44", "HIMB")
+T13.temp<-temps
+
+
+#############################
+# Period T14 (Nov - Dev)
+
+
+##### grab files in a list
+files <- list.files(path="data/environmental/temp and light/temp/T14_temp/", pattern = "csv$", full.names = T)
+files
+
+##### what are the file names, sans extensions
+file.names<-file_path_sans_ext(list.files(path="data/environmental/temp and light/temp/T14_temp/", pattern = "csv$", full.names = F))
+file.names
+
+############ formatting all data in for loop
+for(i in 1:length(files))
+{
+  datatemp<-read.csv(files[i], sep=",")
+  df<-datatemp[c(-1:-2),-1] # removes "trash" columns
+  df<-df[, c(1:2)] # reorganize
+  colnames(df)<-c("Date.time", "Raw.Temp")
+  df$Raw.Temp<-as.numeric(as.character(df$Raw.Temp))
+  df$timestamp<-mdy_hms(as.character(df$Date.time)) # corrects date format
+  df$timestamp<-strptime(df$timestamp, format="%Y-%m-%d %H:%M:%S")
+  df<-df[, c(3,2)] # remove old date-time column
+  df<-df[!(df$timestamp < "2016-11-08 13:00:00"),] # start at this time
+  df<-df[!(df$timestamp > "2016-12-09 09:00:00"),] # end at this time
+  make.names(assign(paste("Nov_",file.names[i], sep=""), df)) # put pattern at front of names
+  # makes each df[i] as dataframe with specific file-name
+  # write.csv(df.out, file=paste("trim",file.names[i])) # makes .csvs for output
+}
+# this is the end of the loop
+
+########## 
+ls()
+files<-as.data.frame(mget(ls(pattern = "Nov_*")))
+names(files)
+data_index<-c(1,(seq(2,6,2)))
+temps<-as.data.frame(c(files[, data_index])) 
+
+### apply data callibration to each column
+temps[2]<-(1.01*temps$Nov_Rf42_T14.Raw.Temp-0.4314) # Reef 42 logger SN_9768617
+temps[3]<-(0.9762*temps$Nov_Rf44_T14.Raw.Temp+0.5346) # Reef 44 logger SN_10209515
+temps[4]<-(0.7982*temps$Nov_RfHIMB_T14.Raw.Temp+4.703) # Reef 44 logger SN_9768614
+
+colnames(temps)=c("timestamp", "Reef42", "Reef44", "HIMB")
+T14.temp<-temps
+
+##########################################
+# Period T15 (Dec - Jan)
+
+
+##### grab files in a list
+files <- list.files(path="data/environmental/temp and light/temp/T15_temp/", pattern = "csv$", full.names = T)
+files
+
+##### what are the file names, sans extensions
+file.names<-file_path_sans_ext(list.files(path="data/environmental/temp and light/temp/T15_temp/", pattern = "csv$", full.names = F))
+file.names
+
+############ formatting all data in for loop
+for(i in 1:length(files))
+{
+  datatemp<-read.csv(files[i], sep=",")
+  df<-datatemp[c(-1:-2),-1] # removes "trash" columns
+  df<-df[, c(1:2)] # reorganize
+  colnames(df)<-c("Date.time", "Raw.Temp")
+  df$Raw.Temp<-as.numeric(as.character(df$Raw.Temp))
+  df$timestamp<-mdy_hms(as.character(df$Date.time)) # corrects date format
+  df$timestamp<-strptime(df$timestamp, format="%Y-%m-%d %H:%M:%S")
+  df<-df[, c(3,2)] # remove old date-time column
+  df<-df[!(df$timestamp < "2016-12-09 15:00:00"),] # start at this time
+  df<-df[!(df$timestamp > "2017-01-13 09:00:00"),] # end at this time
+  make.names(assign(paste("Dec_",file.names[i], sep=""), df)) # put pattern at front of names
+  # makes each df[i] as dataframe with specific file-name
+  # write.csv(df.out, file=paste("trim",file.names[i])) # makes .csvs for output
+}
+# this is the end of the loop
+
+########## 
+ls()
+files<-as.data.frame(mget(ls(pattern = "Dec_*")))
+names(files)
+data_index<-c(1,(seq(2,6,2)))
+temps<-as.data.frame(c(files[, data_index])) 
+
+### apply data callibration to each column
+temps[2]<-(1.01*temps$Dec_Rf42_T15.Raw.Temp-0.4314) # Reef 42 logger SN_9768617
+temps[3]<-(0.9762*temps$Dec_Rf44_T15.Raw.Temp+0.5346) # Reef 44 logger SN_10209515
+temps[4]<-(0.7982*temps$Dec_RfHIMB_T15.Raw.Temp+4.703) # Reef 44 logger SN_9768614
+
+colnames(temps)=c("timestamp", "Reef42", "Reef44", "HIMB")
+T15.temp<-temps
+
+Aug_Jan.temps<-rbind(T11.temp, T12.temp, T13.temp, T14.temp, T15.temp) # data from 3 reef
+
+# all data, all 4 sites
+all.temps<-join_all(list(Aug_Jan.temps, Rf10.temp), by = "timestamp", type='full')
+colnames(all.temps)[1]<-"Date"
+
+### plot
+
+df<-all.temps # rename dataframe
+df$Date<-strptime(df$Date, format="%Y-%m-%d %H:%M:%S")
+df$Date<-as.Date(df$Date) # change to DATE ONLY format to calulate range, means
+df.split <- split(df, f=df$Date
+                  < as.Date("2014-10-10", format="%F")) # split df by date
+
+head(df)
+# calculate daily means, aggregate into one dataframe
+df.mean <- aggregate(data.frame(Rf42.mean=df.split[[1]]$Reef42,
+                                Rf44.mean=df.split[[1]]$Reef44,
+                                HIMB.mean=df.split[[1]]$HIMB,
+                                Rf10.mean=df.split[[1]]$Reef10),
+                     by=list(Date=df.split[[1]]$Date), FUN=mean)
+
+
+
+#########################
+# figures
+#########################
+
+########
+reefcols <- c("lightseagreen", "dodgerblue", "coral", "mediumorchid" )
+par(mfrow=c(1,1), mar=c(5,4,3,1), mgp=c(2,0.5,0))
+
+k=1; lwd=1 # k-day moving averages
+plot(Rf42.mean ~ Date, df.mean, type="n", ylab="Temperature (°C)",cex.axis=0.7, cex=0.7, cex.lab=0.7, ylim=c(23, 30), xaxt="n", xlab="Dates")
+axis.Date(1, at=seq(min(df.mean$Date), max(df.mean$Date), by="1 mo"), format="%m/%d/%y", cex.axis=0.7)
+
+with(na.omit(data.frame(date=df.mean$Date, mean=rollmean(df.mean$Rf44.mean, k, fill=NA))), { 
+  lines(df.mean$Date, df.mean$Rf44.mean, col=reefcols[2], lwd=1) 
+})
+with(na.omit(data.frame(date=df.mean$Date, mean=rollmean(df.mean$Rf42.mean, k, fill=NA))), { 
+  lines(df.mean$Date, df.mean$Rf42.mean, col=reefcols[1], lwd=1) 
+})
+with(na.omit(data.frame(date=df.mean$Date, mean=rollmean(df.mean$Rf10.mean, k, fill=NA))), { 
+  lines(df.mean$Date, df.mean$Rf10.mean, col=reefcols[3], lwd=1)
+})
+with(na.omit(data.frame(date=df.mean$Date, mean=rollmean(df.mean$HIMB.mean, k, fill=NA))), { 
+  lines(df.mean$Date, df.mean$HIMB.mean, col=reefcols[4], lwd=1)
+})
+legend("topright", lty=1, col=c(reefcols[1:4]), legend=c("NW","NE", "SW", "SE"), lwd=2, bty="n", cex=0.6, y.intersp = 1.5, x.intersp = 0.5)
+
+dev.copy(pdf, "figures/environmental/Temp.allsites",".pdf", height=3.5, width=6)
+dev.off()
+
+```
+  
+### Sea level correction  
+Corals were collected across in summer and winter 2016 across several different days with each period. To correct for differences in the depth of coral colonies we used NOAA tide data to correct all depth measurements to Mean Sea Level (MSL). This approach was done in [Innis et al. 2018](https://link.springer.com/article/10.1007/s00338-018-1667-0) on a larger collection of the coral samples--which have been subset in the current study.
+
+```{r sea level correction}
+#########################
+# Sea level correction
+#########################
+rm(list=ls())
+
+#### attach data files
+data<-read.csv("data/mastersheet_PanKBAY.csv") # master file
+qPCR.Innis<-read.csv("data/PanKBay_summer_qPCR.csv") # qPCR from summer (Innis et al. 2018)
+
+JuneTide=read.csv("data/environmental/sea level/Station_1612480_tide_ht_20160601-20160630.csv")
+JulyTide=read.csv("data/environmental/sea level/Station_1612480_tide_ht_20160701-20160731.csv")
+AugustTide=read.csv("data/environmental/sea level/Station_1612480_tide_ht_20160801-20160831.csv")
+DecemberTide=read.csv("data/environmental/sea level/Station_1612480_tide_ht_20161201-20161222.csv")
+
+Tide<-rbind(JuneTide, JulyTide, AugustTide, DecemberTide) # all MSL in meters
+
+Tide$Time <- as.POSIXct(Tide$TimeUTC, format="%Y-%m-%d %H:%M:%S", tz="UTC")
+attributes(Tide$Time)$tzone <- "Pacific/Honolulu"
+# use attr(as.POSIXlt(Tide$Time),"tzone") to confirm in PST
+
+Tide<-Tide[, c(-5:-8)] #remove unnecessary columns
+
+data$date.time<- as.POSIXct(paste(as.character(data$Date), as.character(data$Time.of.collection)),
+                 format="%m/%d/%y %H:%M", tz="Pacific/Honolulu") # make sure time in HST for master
+
+data$Time.r<-round_date(data$date.time,unit="6 minutes")
+Tide$Time.r <- Tide$Time
+data<-merge(data, Tide, by="Time.r", all.x=T)
+data$newDepth <- data$Depth..m-data$TideHT # new depth in METERS
+```
+  
+### Light parameters  
+  
+With Depth as a factor (<1m, 2m, 8m), we can produce a continuous graph of light (PAR or DLI) at 2m and use model intercepts to predict the light at the shallow and deep zones (ca. <1m and 8m, respectfully).  
+Here, the model is $lm(log.PAR$ ~ $Depth.factor)$. 
+```{r light as a factor figure, results='hide', fig.show='hide', collapse=TRUE}
+
+#### PAR and DLI at 3 depths  
+
+####################################################
+### Light attenuation  October deployment ##########
+####################################################
+
+# using October deployment at 3 depths
+
+df<-read.csv("data/environmental/temp and light/Field.allPAR.Oct2016.csv")
+df<-df[ , -which(names(df) %in% c("X","Rf44.shallow", "Rf44.mid"))] # remove R44 w/o 3 levels
+df$timestamp<-as.POSIXct(df$timestamp)
+df[df<=1] <- NA # remove low values to get day only
+
+Oct.PAR<-df
+colnames(Oct.PAR)[2:7]<-"PAR" # change all light columns to read "PAR" this is for rbind later
+
+Rf42.shall<-Oct.PAR[1:2] #only time and PAR
+Rf42.shall$Site<-as.factor("Rf42") # make site level
+Rf42.shall$Depth<-3*0.3048 # logger at 3 ft, convert to --> meters
+Rf42.mid<-Oct.PAR[, c(1,3)]; Rf42.mid$Site<-as.factor("Rf42"); Rf42.mid$Depth<-8*0.3048 # logger at 8 ft 
+Rf42.deep<-Oct.PAR[, c(1,4)]; Rf42.deep$Site<-as.factor("Rf42"); Rf42.deep$Depth<-27*0.3048 # logger at 27 ft
+
+HIMB.shall<-Oct.PAR[, c(1,5)]; HIMB.shall$Site<-as.factor("HIMB"); HIMB.shall$Depth<-1*0.3048 # logger at 1 ft
+HIMB.mid<-Oct.PAR[, c(1,6)]; HIMB.mid$Site<-as.factor("HIMB"); HIMB.mid$Depth<-6*0.3048 # logger at 6 ft
+HIMB.deep<-Oct.PAR[, c(1,7)]; HIMB.deep$Site<-as.factor("HIMB"); HIMB.deep$Depth<-25*0.3048 # logger at 25 ft
+
+PAR.df<-rbind(Rf42.shall, Rf42.mid, Rf42.deep, HIMB.shall, HIMB.mid, HIMB.deep)
+
+# Break up into each reef
+#####
+PAR.Rf42<-PAR.df[(PAR.df$Site=="Rf42"),] # just Rf42
+PAR.Rf42$Depth<-as.factor(PAR.Rf42$Depth) # depth as factor
+PAR.Rf42$Depth <- factor(PAR.Rf42$Depth, levels = c("2.4384", "0.9144", "8.2296"))
+PAR.Rf42$log.PAR<-log(PAR.Rf42$PAR)
+
+mod<-lm(log.PAR~Depth, data=PAR.Rf42, na.action=na.exclude) # Rf42 dataframe with Depth as a factor
+summary(mod)$coefficients # coefficients
+Rf42.coeffs<-c(coef(mod)["(Intercept)"], coef(mod)[2], coef(mod)[3])
+
+shal<-Rf42.coeffs[2]; mid<-Rf42.coeffs[1]; deep<-Rf42.coeffs[3]
+
+####
+####
+# make new dataframes for Sites
+Rf42.df<-df[1:4] 
+
+####
+# making some log data
+Rf42.df$log.shal<-log(Rf42.df$Rf42.shallow)
+Rf42.df$log.mid<-log(Rf42.df$Rf42.mid)
+Rf42.df$log.deep<-log(Rf42.df$Rf42.deep)
+
+# making some log data using coefficients
+Rf42.df$coef.shal<-Rf42.df$log.mid + shal
+Rf42.df$coef.mid<-Rf42.df$log.mid
+Rf42.df$coef.deep<-Rf42.df$log.mid + deep
+
+##################
+##### Figure #####
+# how does data compare?
+
+##### plot log data collected at each site
+par(mfrow=c(2,1), mar=c(4,4,2,2))
+plot(y=Rf42.df$log.shal, x=Rf42.df$timestamp, type="l", col="dodgerblue", 
+     main="Reef 42/NE logger (top), 2m-coeff (bottom)", cex.main=0.7, 
+     ylab="log(PAR)", xlab="", ylim=c(0,8))
+par(new=T)
+with(Rf42.df, lines(y=Rf42.df$log.mid, x=Rf42.df$timestamp, type="l", col="gray"))
+par(new=T)
+with(Rf42.df, lines(y=Rf42.df$log.deep, x=Rf42.df$timestamp, type="l", col="paleturquoise3"))
+
+##### plot of modeled 1m and 8m using <1m model coeffs. 
+plot(y=Rf42.df$coef.shal, x=Rf42.df$timestamp, type="l", col="dodgerblue", ylab="log(PAR)", 
+     xlab="Date", ylim=c(0,8))
+par(new=T)
+with(Rf42.df, lines(y=Rf42.df$coef.mid, x=Rf42.df$timestamp, type="l", col="gray"))
+par(new=T)
+with(Rf42.df, lines(y=Rf42.df$coef.deep, x=Rf42.df$timestamp, type="l", col="paleturquoise3"))
+legend("top", lty=1, col=c("dodgerblue", "gray", "paleturquoise3"), legend=c("<1m", "2m", "8m"), 
+       lwd=2, bty="n", inset=c(0, -0.5), seg.len=1, cex=1.1, xpd=TRUE, horiz=TRUE)
+
+
+################################ 
+########### HIMB ############### 
+PAR.HIMB<-PAR.df[(PAR.df$Site=="HIMB"),] # just HIMB
+PAR.HIMB$Depth<-as.factor(PAR.HIMB$Depth) # depth as factor
+PAR.HIMB$Depth <- factor(PAR.HIMB$Depth, levels = c("1.8288", "0.3048", "7.62"))
+
+mod<-lm(log(PAR)~Depth, data=PAR.HIMB, na.action=na.exclude) # HIMB dataframe with Depth as a factor
+summary(mod)$coefficients # coefficients
+HIMB.coeffs<-c(coef(mod)["(Intercept)"], coef(mod)[2], coef(mod)[3])
+shal<-HIMB.coeffs[2]; mid<-HIMB.coeffs[1]; deep<-HIMB.coeffs[3]
+
+####
+####
+# make new dataframes for Sites
+HIMB.df<-df[, c(1,5:7)]; 
+HIMB.df[HIMB.df<=1] <- NA # remove leftover values that remain low independently
+
+####
+# making some log data
+HIMB.df$log.shal<-log(HIMB.df$HIMB.shallow)
+HIMB.df$log.mid<-log(HIMB.df$HIMB.mid)
+HIMB.df$log.deep<-log(HIMB.df$HIMB.deep)
+
+# making some log data using coefficients
+HIMB.df$coef.shal<-HIMB.df$log.mid + shal
+HIMB.df$coef.mid<-HIMB.df$log.mid 
+HIMB.df$coef.deep<-HIMB.df$log.mid + deep
+
+
+##################
+##### Figure #####
+
+# plot log data
+par(mfrow=c(2,1), mar=c(4,4,2,2))
+plot(y=HIMB.df$log.shal, x=HIMB.df$timestamp, type="l", col="mediumorchid2", 
+     main="HIMB/SE logger (top), 2m-coeff (bottom)", cex.main=0.7, ylab="log(PAR)", 
+     xlab="", ylim=c(0,8))
+par(new=T)
+with(HIMB.df, lines(y=HIMB.df$log.mid, x=HIMB.df$timestamp, type="l", col="gray"))
+par(new=T)
+with(HIMB.df, lines(y=HIMB.df$log.deep, x=HIMB.df$timestamp, type="l", col="plum4"))
+
+# plot of modeled 1m and 8m using <2m model coeffs. 
+plot(y=HIMB.df$coef.shal, x=HIMB.df$timestamp, type="l", col="mediumorchid2", 
+     cex.main=0.7, ylab="log(PAR)", xlab="", ylim=c(0,8))
+par(new=T)
+with(HIMB.df, lines(y=HIMB.df$coef.mid, x=HIMB.df$timestamp, type="l", col="gray"))
+par(new=T)
+with(HIMB.df, lines(y=HIMB.df$coef.deep, x=HIMB.df$timestamp, type="l", col="plum4"))
+legend("top", lty=1, col=c("mediumorchid2", "gray", "plum4"), legend=c("<1m", "2m", "8m"), 
+       lwd=2, bty="n", inset=c(0, -0.5), seg.len=1, cex=1.1, xpd=TRUE, horiz=TRUE)
+
+
+
+####################################################
+####################################################
+### Light attenuation  November deployment #########
+####################################################
+####################################################
+
+# using November deployment at 3 depths
+
+df<-read.csv("data/environmental/temp and light/Field.allPAR.Nov2016.csv"); df<-df[-1]
+df$timestamp<-as.POSIXct(df$timestamp)
+df[df<=1] <- NA # remove low values to get day only
+
+Nov.PAR<-df
+colnames(Nov.PAR)[2:7]<-"PAR" # change all light columns to read "PAR" this is for rbind later
+
+Rf44.shall<-Nov.PAR[1:2] #only time and PAR
+Rf44.shall$Site<-as.factor("Rf44") # make site level
+Rf44.shall$Depth<-1*0.3048 # logger at 1 ft, convert to --> meters
+Rf44.mid<-Nov.PAR[, c(1,3)]; Rf44.mid$Site<-as.factor("Rf44"); Rf44.mid$Depth<-6*0.3048 # logger at 6 ft 
+Rf44.deep<-Nov.PAR[, c(1,4)]; Rf44.deep$Site<-as.factor("Rf44"); Rf44.deep$Depth<-25*0.3048 # logger at 25 ft
+
+Rf10.shall<-Nov.PAR[, c(1,5)]; Rf10.shall$Site<-as.factor("Rf10"); Rf10.shall$Depth<-2*0.3048 # logger at 2 ft
+Rf10.mid<-Nov.PAR[, c(1,6)]; Rf10.mid$Site<-as.factor("Rf10"); Rf10.mid$Depth<-6*0.3048 # logger at 6 ft
+Rf10.deep<-Nov.PAR[, c(1,7)]; Rf10.deep$Site<-as.factor("Rf10"); Rf10.deep$Depth<-26*0.3048 # logger at 26 ft
+
+# bind together
+PAR.df<-rbind(Rf44.shall, Rf44.mid, Rf44.deep, Rf10.shall, Rf10.mid, Rf10.deep)
+
+# Break up into each reef
+#####
+PAR.Rf44<-PAR.df[(PAR.df$Site=="Rf44"),] # just Rf44
+PAR.Rf44$Depth<-as.factor(PAR.Rf44$Depth) # depth as factor
+PAR.Rf44$Depth <- factor(PAR.Rf44$Depth, levels = c("1.8288", "0.3048", "7.62"))
+PAR.Rf44$log.PAR<-log(PAR.Rf44$PAR)
+
+mod<-lm(log.PAR~Depth, data=PAR.Rf44, na.action=na.exclude) # R44 dataframe with Depth as a factor
+summary(mod)$coefficients # coefficients
+Rf44.coeffs<-c(coef(mod)["(Intercept)"], coef(mod)[2], coef(mod)[3])
+shal<-Rf44.coeffs[2]; mid<-Rf44.coeffs[1]; deep<-Rf44.coeffs[3]
+
+####
+####
+# make new dataframes for Sites
+Rf44.df<-df[1:4] 
+
+####
+# making some log data
+Rf44.df$log.shal<-log(Rf44.df$Rf44.shallow)
+Rf44.df$log.mid<-log(Rf44.df$Rf44.mid)
+Rf44.df$log.deep<-log(Rf44.df$Rf44.deep)
+
+# making some log data using coefficients
+Rf44.df$coef.shal<-Rf44.df$log.mid + shal
+Rf44.df$coef.mid<-Rf44.df$log.mid
+Rf44.df$coef.deep<-Rf44.df$log.mid + deep
+
+##################
+##### Figure #####
+# how does data compare?
+
+##### plot log data collected at each site
+par(mfrow=c(2,1), mar=c(4,4,2,2))
+plot(y=Rf44.df$log.shal, x=Rf44.df$timestamp, type="l", col="yellowgreen", 
+     main="Reef 44/NW logger (top), 2m-coeff (bottom)", cex.main=0.7, 
+     ylab="log(PAR)", xlab="", ylim=c(0,8))
+par(new=T)
+with(Rf44.df, lines(y=Rf44.df$log.mid, x=Rf44.df$timestamp, type="l", col="gray"))
+par(new=T)
+with(Rf44.df, lines(y=Rf44.df$log.deep, x=Rf44.df$timestamp, type="l", col="palegreen4"))
+
+##### plot of modeled 2m and 8m using <1m model coeffs. 
+plot(y=Rf44.df$coef.shal, x=Rf44.df$timestamp, type="l", col="yellowgreen", ylab="log(PAR)", 
+     xlab="", ylim=c(0,8))
+par(new=T)
+with(Rf44.df, lines(y=Rf44.df$coef.mid, x=Rf44.df$timestamp, type="l", col="gray"))
+par(new=T)
+with(Rf44.df, lines(y=Rf44.df$coef.deep, x=Rf44.df$timestamp, type="l", col="palegreen4"))
+legend("top", lty=1, col=c("yellowgreen", "gray", "palegreen4"), legend=c("<1m", "2m", "8m"), 
+       lwd=2, bty="n", inset=c(0, -0.5), seg.len=1, cex=1.1, xpd=TRUE, horiz=TRUE)
+
+
+
+###################################
+########### Reef 10 ############### 
+PAR.Rf10<-PAR.df[(PAR.df$Site=="Rf10"),] # just Rf10
+PAR.Rf10$Depth<-as.factor(PAR.Rf10$Depth) # depth as factor
+PAR.Rf10$Depth <- factor(PAR.Rf10$Depth, levels = c("1.8288", "0.6096", "7.9248"))
+
+mod<-lm(log(PAR)~Depth, data=PAR.Rf10, na.action=na.exclude) # Rf10 dataframe with Depth as a factor
+summary(mod)$coefficients # coefficients
+Rf10.coeffs<-c(coef(mod)["(Intercept)"], coef(mod)[2], coef(mod)[3])
+shal<-Rf10.coeffs[2]; mid<-Rf10.coeffs[1]; deep<-Rf10.coeffs[3]
+
+####
+####
+# make new dataframes for Sites
+Rf10.df<-df[, c(1,5:7)]
+
+####
+# making some log data
+Rf10.df$log.shal<-log(Rf10.df$Rf10.shallow)
+Rf10.df$log.mid<-log(Rf10.df$Rf10.mid)
+Rf10.df$log.deep<-log(Rf10.df$Rf10.deep)
+
+# making some log data using coefficients
+Rf10.df$coef.shal<-Rf10.df$log.mid + shal
+Rf10.df$coef.mid<-Rf10.df$log.mid
+Rf10.df$coef.deep<-Rf10.df$log.mid + deep
+
+##################
+##### Figure #####
+
+# plot log data
+par(mfrow=c(2,1), mar=c(4,4,2,2))
+plot(y=Rf10.df$log.shal, x=Rf10.df$timestamp, type="l", col="orangered", 
+     main="Reef 10/SE logger (top), 2m-coeff (bottom)", cex.main=0.7, ylab="log(PAR)", 
+     xlab="", ylim=c(0,8))
+par(new=T)
+with(Rf10.df, lines(y=Rf10.df$log.mid, x=Rf10.df$timestamp, type="l", col="gray"))
+par(new=T)
+with(Rf10.df, lines(y=Rf10.df$log.deep, x=Rf10.df$timestamp, type="l", col="rosybrown2"))
+
+# plot of modeled 2m and 8m using <1m model coeffs. 
+plot(y=Rf10.df$coef.shal, x=Rf10.df$timestamp, type="l", col="orangered", 
+     cex.main=0.7, ylab="log(PAR)", xlab="", ylim=c(0,8))
+par(new=T)
+with(Rf10.df, lines(y=Rf10.df$coef.mid, x=Rf10.df$timestamp, type="l", col="gray"))
+par(new=T)
+with(Rf10.df, lines(y=Rf10.df$coef.deep, x=Rf10.df$timestamp, type="l", col="rosybrown2"))
+legend("top", lty=1, col=c("orangered", "gray", "rosybrown2"), legend=c("<1m", "2m", "8m"), 
+       lwd=2, bty="n", inset=c(0, -0.45), seg.len=1, cex=0.9, xpd=TRUE, horiz=TRUE)
+
+
+########
+# combine all coefficients
+all.coefficients<-rbind(Rf42.coeffs, HIMB.coeffs, Rf44.coeffs, Rf10.coeffs)
+write.csv(all.coefficients, "output/light coeffs_factor.csv")
+
+###########
+
+par(mfrow=c(4,3), mar=c(4,4,2,2))
+d<-Rf42.df
+plot(d$log.shal~d$coef.shal); abline(lm(d$log.shal~d$coef.shal), col="red")
+plot(d$log.mid~d$coef.mid, main="Northwest"); abline(lm(d$log.mid~d$coef.mid), col="red")
+plot(d$log.deep~d$coef.deep); abline(lm(d$log.deep~d$coef.deep), col="red")
+
+d<-Rf44.df
+plot(d$log.shal~d$coef.shal); abline(lm(d$log.shal~d$coef.shal), col="red")
+plot(d$log.mid~d$coef.mid, main="Northeast"); abline(lm(d$log.mid~d$coef.mid), col="red")
+plot(d$log.deep~d$coef.deep); abline(lm(d$log.deep~d$coef.deep), col="red")
+
+d<-HIMB.df
+plot(d$log.shal~d$coef.shal); abline(lm(d$log.shal~d$coef.shal), col="red")
+plot(d$log.mid~d$coef.mid, main="Southeast"); abline(lm(d$log.mid~d$coef.mid), col="red")
+plot(d$log.deep~d$coef.deep); abline(lm(d$log.deep~d$coef.deep), col="red")
+
+d<-Rf10.df
+plot(d$log.shal~d$coef.shal); abline(lm(d$log.shal~d$coef.shal), col="red")
+plot(d$log.mid~d$coef.mid, main="Southwest"); abline(lm(d$log.mid~d$coef.mid), col="red")
+plot(d$log.deep~d$coef.deep); abline(lm(d$log.deep~d$coef.deep), col="red")
+
+#dev.copy(pdf, "figures/environmental/PAR_coef_ob.ex.factor.pdf", height=6, width=6)
+#dev.off()
+
+########### 
+
+
+#########################
+#########################
+#########################
+
+##### 
+##### all PAR
+files <- list.files(path="data/environmental/temp and light/Jun_DecPAR/all PAR", pattern = "csv$", full.names = T)
+tables <- lapply(files, read.csv, header = TRUE)
+All.PAR<-do.call(rbind, tables)
+All.PAR=All.PAR[-1]
+All.PAR$timestamp<-as.POSIXct(All.PAR$timestamp) # fix date
+
+# make a date sequence for entire study
+all.date.time<-as.data.frame(seq(
+  from=as.POSIXct("2016-06-10 00:00:00", tz="HST"),
+  to=as.POSIXct("2017-01-12 00:00:00", tz="HST"),
+  by="15 min"))  
+colnames(all.date.time)[1]<-"timestamp"
+
+# merge the PAR data and the date sequence to make a complete df through time
+PAR.3site<-merge(all.date.time, All.PAR, by="timestamp", all.x=T)
+R10.par<-read.csv("data/environmental/temp and light/Jun_DecPAR/all PAR/Reef 10/Rf10.PAR.csv")
+R10.par<-R10.par[-1]; R10.par$timestamp<-as.POSIXct(R10.par$timestamp)
+
+PAR.4site<-merge(PAR.3site, R10.par, by="timestamp", all.x=T)
+PAR.4site$month <- months(as.Date(PAR.4site$timestamp)) # makes a month column
+PAR.4site<-PAR.4site[, c(1,6, 2:5)]
+
+# determine monthly mean for PAR during deployments at depth
+# write.csv(PAR.4site, "data/environmental/temp and light/Jun_DecPAR/All.PAR.csv")
+
+
+###########
+###########
+########### 
+# read in all PAR data at 2m and model what the 1m and 8m data would look like
+df<-PAR.4site # all the instantaneous light data
+df[df<=1] <- NA
+
+coeffs<-read.csv("output/light coeffs_factor.csv") # modeled coefficients
+colnames(coeffs)<-c("Site", "Intercept", "shal.coeff", "deep.coeff")
+
+# log transform PAR data to determine light at depth, then reverse transform
+
+## example calcs
+# df$log.shal<-df$log.mid - mid.coeff
+# df$log.mid<-df$log.mid
+# df$log.deep<-df$log.mid - mid.coeff + deep.coeff
+
+df$logRf42.mid<-log(df$Rf42.mid)
+df$logRf42.shall<-log(df$Rf42.mid) + coeffs[1,3]
+df$logRf42.deep<-log(df$Rf42.mid) + coeffs[1,4]
+
+df$logHIMB.mid<-log(df$HIMB.mid)
+df$logHIMB.shall<-log(df$HIMB.mid) + coeffs[2,3]
+df$logHIMB.deep<-log(df$HIMB.mid) + coeffs[2,4]
+
+df$logRf44.mid<-log(df$Rf44.mid)
+df$logRf44.shall<-log(df$Rf44.mid) + coeffs[3,3]
+df$logRf44.deep<-log(df$Rf44.mid) + coeffs[3,4]
+
+df$logRf10.mid<-log(df$Rf10.mid)
+df$logRf10.shall<-log(df$Rf10.mid) + coeffs[4,3]
+df$logRf10.deep<-log(df$Rf10.mid) + coeffs[4,4]
+
+
+df$bt.Rf42.mid<-1*exp(df$logRf42.mid)
+df$bt.Rf42.shall<-1*exp(df$logRf42.shall)
+df$bt.Rf42.deep<-1*exp(df$logRf42.deep)
+
+df$bt.Rf44.mid<-1*exp(df$logRf44.mid)
+df$bt.Rf44.shall<-1*exp(df$logRf44.shall)
+df$bt.Rf44.deep<-1*exp(df$logRf44.deep)
+
+df$bt.HIMB.mid<-1*exp(df$logHIMB.mid)
+df$bt.HIMB.shall<-1*exp(df$logHIMB.shall)
+df$bt.HIMB.deep<-1*exp(df$logHIMB.deep)
+
+df$bt.Rf10.mid<-1*exp(df$logRf10.mid)
+df$bt.Rf10.shall<-1*exp(df$logRf10.shall)
+df$bt.Rf10.deep<-1*exp(df$logRf10.deep)
+
+
+All.PAR.df<-df[, (names(df) %in% c("timestamp", "month", 
+                                   "bt.Rf42.shall", "bt.Rf42.mid", "bt.Rf42.deep",
+                                   "bt.Rf44.shall", "bt.Rf44.mid", "bt.Rf44.deep", 
+                                   "bt.HIMB.shall", "bt.HIMB.mid", "bt.HIMB.deep",  
+                                   "bt.Rf10.shall", "bt.Rf10.mid", "bt.Rf10.deep"))]
+
+colnames(All.PAR.df)<-c("timestamp", "month", 
+                        "Rf42.mid", "Rf42.shall", "Rf42.deep",
+                        "Rf44.mid", "Rf44.shall", "Rf44.deep", 
+                        "HIMB.mid", "HIMB.shall", "HIMB.deep",  
+                        "Rf10.mid", "Rf10.shall", "Rf10.deep")
+
+```
+  
+#### Figure S1-light
+```{r figure DLI at 3 depths, results='hide', fig.cap="**Figure S1a** *DLI at the four reef areas from summer to winter 2016 at three depths (<1m, 2m, 8m). Data at 2m was recorded from loggers; data at <1m and 8m were modeled using light attenuation calculations*"}
+
+#######
+####### calculate DLI and compare
+#######
+df<-All.PAR.df
+df$timestamp<-strptime(df$timestamp, format="%Y-%m-%d %H:%M:%S")
+df$timestamp<-as.Date(df$timestamp, format="%Y-%m-%d") # change to DATE ONLY format to calulate range, means
+df[is.na(df)] <- 0
+
+
+df.split <- split(df, f=df$timestamp
+                  < as.Date("2016-06-10", format="%Y-%m-%d")) # split df by date
+
+df.dli<-aggregate(data.frame(Rf42.shall.DLI=df.split[[1]]$Rf42.shall*0.0864,
+                             Rf42.mid.DLI=df.split[[1]]$Rf42.mid*0.0864,
+                             Rf42.deep.DLI=df.split[[1]]$Rf42.deep*0.0864,
+                             Rf44.shall.DLI=df.split[[1]]$Rf44.shall*0.0864,
+                             Rf44.mid.DLI=df.split[[1]]$Rf44.mid*0.0864,
+                             Rf44.deep.DLI=df.split[[1]]$Rf44.deep*0.0864,
+                             HIMB.shall.DLI=df.split[[1]]$HIMB.shall*0.0864,
+                             HIMB.mid.DLI=df.split[[1]]$HIMB.mid*0.0864,
+                             HIMB.deep.DLI=df.split[[1]]$HIMB.deep*0.0864,
+                             Rf10.shall.DLI=df.split[[1]]$Rf10.shall*0.0864,
+                             Rf10.mid.DLI=df.split[[1]]$Rf10.mid*0.0864,
+                             Rf10.deep.DLI=df.split[[1]]$Rf10.deep*0.0864),
+                  by=list(Date=df.split[[1]]$timestamp), FUN=mean)
+
+
+# make a date sequence for entire study
+all.date.time<-as.data.frame(seq(
+  from=as.POSIXct("2016-06-10", tz="HST"),
+  to=as.POSIXct("2017-01-12", tz="HST"),
+  by="1 d"))  
+colnames(all.date.time)[1]<-"Date"
+all.date.time$Date<-strptime(all.date.time$Date, format="%Y-%m-%d")
+all.date.time$Date<-as.Date(all.date.time$Date, format="%Y-%m-%d")
+
+df.dli<-merge(all.date.time, df.dli, by="Date", all.x=T)
+df.dli[df.dli<=0] <- NA
+
+
+#####################
+# Plot it!!
+# Reef 44
+par(mfrow=c(2,2), mar=c(4,5,2,2))
+
+plot(y=df.dli$Rf44.shall, x=df.dli$Date, type="h", col="palegreen3", 
+     cex.main=0.7, ylab=(expression(paste("DLI"~(mol~photons~m^-2~d^-1), sep="")))
+     , xlab="", main="Northwest", cex.main=1, ylim=c(0, 50))
+par(new=T)
+with(df.dli, lines(y=df.dli$Rf44.mid, x=df.dli$Date, type="h", col="gray"))
+par(new=T)
+with(df.dli, lines(y=df.dli$Rf44.deep, x=df.dli$Date, type="h", col="palegreen4"))
+legend("topright", lty=1, col=c("palegreen3", "gray", "palegreen4"), legend=c("<1m", "2m", "8m"), 
+       lwd=2, bty="n", inset=c(0.01, 0), seg.len=1, cex=0.9, x.intersp=0.2, y.intersp=1)
+
+
+# Plot it!!
+# Reef 42
+plot(y=df.dli$Rf42.shall, x=df.dli$Date, type="h", col="mediumturquoise", 
+     cex.main=0.7, ylab=(expression(paste("DLI"~(mol~photons~m^-2~d^-1), sep="")))
+     , xlab="", main="Northeast", cex.main=1, ylim=c(0, 50))
+par(new=T)
+with(df.dli, lines(y=df.dli$Rf42.mid, x=df.dli$Date, type="h", col="gray"))
+par(new=T)
+with(df.dli, lines(y=df.dli$Rf42.deep, x=df.dli$Date, type="h", col="dodgerblue2"))
+legend("topright", lty=1, col=c("mediumturquoise", "gray", "dodgerblue2"), legend=c("<1m", "2m", "8m"), 
+       lwd=2, bty="n", inset=c(0.01, 0), seg.len=1, cex=0.9, x.intersp=0.2, y.intersp=1)
+
+# Plot it!!
+# Reef 10
+plot(y=df.dli$Rf10.shall, x=df.dli$Date, type="h", col="orangered", 
+     cex.main=0.7, ylab=(expression(paste("DLI"~(mol~photons~m^-2~d^-1), sep="")))
+     , xlab="Dates", main="Southwest", cex.main=1, ylim=c(0, 50))
+par(new=T)
+with(df.dli, lines(y=df.dli$Rf10.mid, x=df.dli$Date, type="h", col="gray"))
+par(new=T)
+with(df.dli, lines(y=df.dli$Rf10.deep, x=df.dli$Date, type="h", col="lightsalmon3"))
+legend("topright", lty=1, col=c("orangered", "gray", "lightsalmon3"), legend=c("<1m", "2m", "8m"), 
+       lwd=2, bty="n", inset=c(0.01, 0), seg.len=1, cex=0.9, x.intersp=0.2, y.intersp=1)
+
+# Plot it!
+# HIMB
+plot(y=df.dli$HIMB.shall, x=df.dli$Date, type="h", col="mediumorchid2", 
+     cex.main=0.7, ylab=(expression(paste("DLI"~(mol~photons~m^-2~d^-1), sep="")))
+     , xlab="Dates", main="Southeast", cex.main=1, ylim=c(0, 50))
+par(new=T)
+with(df.dli, lines(y=df.dli$HIMB.mid, x=df.dli$Date, type="h", col="gray"))
+par(new=T)
+with(df.dli, lines(y=df.dli$HIMB.deep, x=df.dli$Date, type="h", col="plum4"))
+legend("topright", lty=1, col=c("mediumorchid2", "gray", "plum4"), legend=c("<1m", "2m", "8m"), 
+       lwd=2, bty="n", inset=c(0.01, 0), seg.len=1, cex=0.9, x.intersp=0.2, y.intersp=1)
+
+dev.copy(pdf, "figures/environmental/DLIcalc.all depths.pdf", height=7, width=8)
+dev.off()
+```
+  
+#### Figure S2
+```{r bar plot of DLI at depths, fig.dim=c(7.5,4), fig.cap="**Figure S2** Mean (+/- SE) daily light integral (DLI) for four reef locations at three depths pooled from June - January. DLI estimated from light attenuation coefficents using depth as a fixed effect against baseline loggers at 2 m depth"}
+
+# mean DLI from 10 June 2016 – 12 January 2017 
+
+DLI.summary<-read.csv("data/environmental/temp and light/Jun_DecPAR/DLI.3depth.summary.csv")
+DLI.summary$Location<-factor(DLI.summary$Location, levels=c("NW", "NE", "SW", "SE"))
+DLI.summary$Depth.zone<-factor(DLI.summary$Depth.zone, levels=c("shallow", "mid", "deep"))
+
+#####
+# figure formatting script
+Fig.formatting<-(theme_classic()) +
+  theme(text=element_text(size=10),
+        axis.line=element_blank(),
+        legend.justification=c(1,1), legend.position=c(1,1),
+        legend.background = element_rect("transparent", colour=NA),
+        legend.text=element_text(size=10),
+        legend.title = element_blank(),
+        panel.border = element_rect(fill=NA, colour = "black", size=0.8),
+        aspect.ratio=1, 
+        axis.ticks = element_line(colour = 'black', size = 0.4),
+        axis.ticks.length=unit(0.25, "cm"),
+        axis.text.y=element_text(
+          margin=unit(c(0.5, 0.5, 0.5, 0.5), "cm"), colour="black", size=10), 
+        axis.text.x=element_text(
+          margin=unit(c(0.5, 0.5, 0.5, 0.5), "cm"), colour="black", size=10)) +
+theme(legend.spacing.x = unit(0.2, 'cm'),
+      legend.key.size = unit(0.4, "cm"))
+
+pd <- position_dodge(0.7) #offset for error bars and columns
+#####
+
+Location.label<-c("NW", "NE", "SW", "SE")
+Depth.label<-c("<1m", "2m", "8m")
+plot_colors2<-c("lightskyblue", "dodgerblue", "deepskyblue4")
+plot_stat<-c("slategray", "dodgerblue2", "steelblue1", "slategray", "dodgerblue2", "steelblue1",
+             "slategray", "dodgerblue2", "steelblue1","slategray", "dodgerblue2", "steelblue1")
+
+# DLI by site and depth
+Fig.DLI<-ggplot(DLI.summary, aes(x=Location, y=DLI.mean, fill=Depth.zone)) +
+  geom_bar(stat="identity", col=plot_stat, position = pd, width=0.7, size=0.3) +
+  geom_errorbar(aes(ymin=DLI.mean-DLI.se, ymax=DLI.mean+DLI.se),
+                size=0.4, width=0, position=pd, col=plot_stat) +
+  xlab("Locations") +
+  ylab(expression(paste("DLI", ~(mol~photons~m^-2~d^-1), sep=""))) +
+  scale_x_discrete(labels=Location.label) +
+  scale_y_continuous(expand=c(0,0), limits=c(0, 35)) +
+  scale_fill_manual(values=alpha(c(plot_colors2), 0.6), 
+                    labels=Depth.label)+ Fig.formatting; Fig.DLI
+
+ggsave(file="figures/environmental/DLI.bar.pdf", height=4, width=4)
+```
+  
+  
+### Dissolved nutrients  
+  
+Dissolved inorganic nutrients in seawater were quantified on water samples (ca. 100 ml)  taken from each site and filtered through a GF/F filter and stored in acid-washed bottles and frozen at -20 °C until analyzes.  Dissolved inorganic nutrients-phosphate (PO~4~^3-^), ammonium (NH~4~^+^), nitrate + nitrite (NO~3~^-^ + NO~2~^-^), and silicate (Si(OH)~4~)—were measured at University of Hawai‘i at Mānoa SOEST Laboratory for Analytical Biogeochemistry using a Seal Analytical AA3 HR nutrient autoanalyzer and expressed as μmol l^-1^.   
+  
+Silicate showed no effects (p > 0.323). Phosphate increased in the winter (p=0.046) most notably at northern sites. N+N was higher in northern sites relative to southern sites and increased during the winter at all sites compared to the summer. Ammonium increased in the winter as well (p <0.001).  
+  
+#### Figure S3  
+```{r nutrients, fig.dim=c(7,3), fig.align='center', results='hide', fig.cap="**Figure S3.** Molar concentrations of the dissolved inorganic nutrients (μmol L-1) phosphate (PO~4~^3^-), ammonium (NH~4~^+^), nitrate+nitrite (NO^3^~-~ + NO^2^~-~ or N+N) and silicate (Si(OH)~4~) in seawater (points, n = 1) collected during two sampling periods in summer and winter 2016 from four reef locations", collapse=TRUE}
+
+#########################
+#########################
+# nutrients
+nutr<-read.csv("data/environmental/PanKBay_nutrients.csv")
+
+#models
+mod<-lm(phosphate~Location+Date, data=nutr); Anova(mod, type=2)
+mod<-lm(ammonium~Location+Date, data=nutr); Anova(mod, type=2)
+mod<-lm(N.N~Location+Date, data=nutr); print(Anova(mod, type=2), digits=8)
+mod<-lm(silicate~Location+Date, data=nutr); Anova(mod, type=2)
+
+nutr$Date<-mdy(nutr$Date) # corrects date format
+dates<-cbind("10-Aug '16", "20-Dec '16")
+
+RfHIMB<-nutr[(nutr$Reef=="HIMB"), ]
+Rf42<-nutr[(nutr$Reef=="R42"), ]
+Rf46<-nutr[(nutr$Reef=="F1-46"), ]
+RF10<-nutr[(nutr$Reef=="F8-R10"), ]
+
+Reefs<-c("Reef 46", "Reef 42", "Reef 10", "HIMB")
+Locations<-c("NW", "NE", "SW", "SE")
+plot_colors<-c("mediumseagreen", "dodgerblue", "salmon", "orchid")
+
+###############
+# Phosphate
+# par(mfrow=c(1,1), mar=c(2,4,1,1), mgp=c(2,0.5,0))
+
+# figure layout
+layout(matrix(c(1,2,3,4), nrow=1, byrow=TRUE))
+par(mar=c(5,4.5,7,1.5))
+
+###############
+# Phosphate
+plot(y=Rf46$phosphate, x=Rf46$Date, xaxt="n", type="o", xlab=NA, ylab=expression(paste("phosphate"~(mu*mol~L^-1), sep="")), ylim=c(0, 0.25), pch=19, lty=2, cex=1, lwd=1, col=plot_colors[1], cex.axis=0.8)
+axis(side=1, at=Rf46$Date, labels=dates, cex.axis=0.8) # plots Rf46 /NW
+#plots Reef 42 / NE
+with(Rf46, lines(Rf42$phosphate, x=Rf42$Date, type="o", pch=19, lty=2, cex=1, lwd=1, col=plot_colors[2]))
+#plots Reef 10 /SW
+with(Rf46, lines(RF10$phosphate, x=RF10$Date, type="o", pch=19, lty=2, cex=1, lwd=1, col=plot_colors[3]))
+#plots HIMB / SE
+with(RfHIMB, lines(RfHIMB$phosphate, x=RfHIMB$Date, type="o", pch=19, lty=2, cex=1, lwd=1, col=plot_colors[4]))
+
+###############
+# Ammonium
+plot(y=Rf46$ammonium, x=Rf46$Date, xaxt="n", type="o", xlab=NA, ylab=expression(paste("ammonium"~(mu*mol~L^-1), sep="")), ylim=c(0, 1.5), pch=19, lty=2, cex=1, lwd=1, col=plot_colors[1], cex.axis=0.8)
+axis(side=1, at=Rf46$Date, labels=dates, cex.axis=0.8) # plots Reef 46/ NW
+#plots Reef 42 /NE
+with(Rf46, lines(Rf42$ammonium, x=Rf42$Date, type="o", pch=19, lty=2, cex=1, lwd=1, col=plot_colors[2]))
+#plots Reef 10/ SW
+with(Rf46, lines(RF10$ammonium, x=RF10$Date, type="o", pch=19, lty=2, cex=1, lwd=1, col=plot_colors[3]))
+#plots HIMB /SE
+with(RfHIMB, lines(RfHIMB$ammonium, x=RfHIMB$Date, type="o", pch=19, lty=2, cex=1, lwd=1, col=plot_colors[4]))
+
+###############
+# N+N
+plot(y=Rf46$N.N, x=Rf46$Date, xaxt="n", type="o", xlab=NA, ylab=expression(paste("nitrate+nitrite"~(mu*mol~L^-1), sep="")), ylim=c(0, 1.5), pch=19, lty=2, cex=1, lwd=1, col=plot_colors[1], cex.axis=0.8)
+axis(side=1, at=Rf46$Date, labels=dates, cex.axis=0.8) # plots Reef 46/ NW
+#plots Reef 42/ NE
+with(Rf46, lines(Rf42$N.N, x=Rf42$Date, type="o", pch=19, lty=2, cex=1, lwd=1, col=plot_colors[2]))
+#plots Reef 10 / SE
+with(Rf46, lines(RF10$N.N, x=RF10$Date, type="o", pch=19, lty=2, cex=1, lwd=1, col=plot_colors[3]))
+#plots HIMB / SW
+with(RfHIMB, lines(RfHIMB$N.N, x=RfHIMB$Date, type="o", pch=19, lty=2, cex=1, lwd=1, col=plot_colors[4]))
+
+###############
+# Silicate
+plot(y=Rf46$silicate, x=Rf46$Date, xaxt="n", type="o", xlab=NA, ylab=expression(paste("silicate"~(mu*mol~L^-1), sep="")), ylim=c(0, 15), pch=19, lty=2, cex=1, lwd=1, col=plot_colors[1], cex.axis=0.8)
+axis(side=1, at=Rf46$Date, labels=dates, cex.axis=0.8) # plots Reef 46 / NW
+#plots Reef 42/ NE
+with(Rf46, lines(Rf42$silicate, x=Rf42$Date, type="o", pch=19, lty=2, cex=1, lwd=1, col=plot_colors[2]))
+#plots Reef 10/ SW
+with(Rf46, lines(RF10$silicate, x=RF10$Date, type="o", pch=19, lty=2, cex=1, lwd=1, col=plot_colors[3]))
+#plots HIMB/ SE
+with(RfHIMB, lines(RfHIMB$silicate, x=RfHIMB$Date, type="o", pch=19, lty=2, cex=1, lwd=1, col=plot_colors[4]))
+legend("topleft", legend=Locations, col=plot_colors[1:4], lwd=1, pch=19, lty=2, cex=0.8, bty="n", x.intersp=0.2, y.intersp=1, inset=c(0.01, 0), seg.len=1.5)
+
+
+dev.copy(pdf, "figures/environmental/all.nutrients.pdf", encod="MacRoman", height=3, width=7)
+dev.off()
+```
+  
+### Isotopes of plankton/SPM  
+  
+Plankton tows and seawater collections to parameterized particulates and plankters as potential heterotrophic end members available to reef corals. Sampling was done at 4 sites where corals were collected [*North*: (Reef 42, fringe-Reef 46), and *South*: (HIMB, fringe-Reef 10)], as well as two reefs in central region of the bay where corals were not collected (*Central*: Reef 25, fringe-Reef 25) to increase spatial resolution of suspended particulate isotope sample sizes. Using size-fractioned materials collected in seawater and plankton tows, we examined the spatial (*among reef sites*) and temporal patterns (*among seasons*) in stable isotope values of size-fractioned end members. Carbon and nitrogen isotope values among the 6 reef sites were not significantly different (*p* > 0.140), season had marginal effects (*p* > 0.049), whereas fraction influenced isotope values significantly (*p*< 0.001). Therefore, isotope values were pooled among reefs and seasons to best interpret size-fraction isotope values.  *Samples were not acidified prior to analysis as to not affect nitrogen isotope values.*
+  
+  Tables here show **CARBON** then **NITROGEN** tests.
+```{r seawater isotopes}
+SWiso<-read.csv("data/isotopes_SW_all times.csv")
+
+mod<-(lm(d13C~Location+Season+SW.fraction..um, data=SWiso)); Anova(mod, type=2) # no location effect
+mod<-(lm(d15N~Location+Season+SW.fraction..um, data=SWiso)); Anova(mod, type=2) # no location effect
+posthoc<-emmeans(mod, ~Season)
+multcomp::cld(posthoc, Letters=letters)
+
+SWiso$Reef<-factor(SWiso$Reef, levels=c("F1-46", "R42", "F2-R25", "R25", "F8-R10", "HIMB"))
+SWiso$Location<-factor(SWiso$Location, levels=c("NW", "NE", "CW", "CE", "SW", "SE"))
+SWiso$SW.fraction..um<-factor(SWiso$SW.fraction..um, levels=c(">243", "<243", "100-243", "10-100", "0-10"))
+
+winter.data<-SWiso[(SWiso$Season=="winter"),]
+summer.data<-SWiso[(SWiso$Season=="summer"),]
+```
+  
+**Figures (below)**  show, (1) box plots show the seasonal isotope values for carbon and nitrogen according to size fractions, then the same size-fractioned isotope data as above, but stratified by location and pooled across seasons. Finally, pooling the isotope data across sites and seasons (where effects were absent or negligible), this planktonic foodweb for carbon and nitrogen illustrates differences in the food sources and their isotopic composition. 
+
+```{r isotope sw figures boxplot1, results="hide", fig.cap="*Size-fractioned samples isotope values stratified by seasons (summer and winter)*"}
+# These box plots show the seasonal isotope values for carbon and nitrogen according to size fractions.
+# plots of SW isotopes by Season-- first showing by size, then by site
+op<-par(mfrow = c(2,2), mar=c(5,5,2,1))
+
+######### Sizes
+# Summer size d13C
+plot(d13C~SW.fraction..um, data=summer.data, ylim=c(-25,-10), 
+     main=expression(paste("summer"~ delta^{13}, "C")), ylab=expression(paste(delta^{13}, "C (‰, V-PDB)")),
+     col="paleturquoise3", cex.axis=0.7, cex.main=1, cex.lab= 0.8, xlab=expression(paste("Size Fraction (", mu,m,")")))
+
+# Winter size d13C
+plot(d13C~SW.fraction..um, data=winter.data, ylim=c(-25,-10), 
+     main=expression(paste("winter"~ delta^{13}, "C")), ylab=expression(paste(delta^{13}, "C (‰, V-PDB)")),
+     col="paleturquoise3", cex.axis=0.7, cex.main=1, cex.lab= 0.8, xlab=expression(paste("Size Fraction (", mu,m,")")))
+
+# Summer size d15N
+plot(d15N~SW.fraction..um, data=summer.data, ylim=c(3,10), 
+     main=expression(paste("summer"~ delta^{15}, "N")), col="plum", cex.axis=0.7, cex.main=1, cex.lab= 0.8,
+     xlab=expression(paste("Size Fraction (", mu,m,")")),
+     ylab=expression(paste(delta^{15}, "N (‰, air)")))
+
+# Winter size d15N
+plot(d15N~SW.fraction..um, data=winter.data, ylim=c(3,10), 
+     main=expression(paste("winter"~ delta^{15}, "N")), ylab=expression(paste(delta^{15}, "N (‰, air)")),
+     col="plum", cex.axis=0.7, cex.main=1, cex.lab= 0.8, xlab=expression(paste("Size Fraction (", mu,m,")")))
+```
+  
+  
+```{r isotope sw figures boxplot2, results="hide", fig.cap="*Isotope values in seawater particles stratified by sites (northwest to southeast)*"}
+######## Sites
+op<-par(mfrow = c(2,2), mar=c(5,5,2,1))
+
+# Summer site d13C
+plot(d13C~Location, data=summer.data, ylim=c(-25,-10), 
+     main=expression(paste("summer"~ delta^{13}, "C")), ylab=expression(paste(delta^{13}, "C (‰, V-PDB)")),
+     col="lightskyblue", cex.axis=0.7, cex.main=1, cex.lab= 0.8, xlab="Reef Sites")
+
+# Winter site d13C
+plot(d13C~Location, data=winter.data, ylim=c(-25,-10), 
+     main=expression(paste("winter"~ delta^{13}, "C")), ylab=expression(paste(delta^{13}, "C (‰, V-PDB)")),
+     col="lightskyblue", cex.axis=0.7, cex.main=1, cex.lab= 0.8, xlab="Reef Sites")
+
+# Summer site d15N
+plot(d15N~Location, data=summer.data, ylim=c(3,10), 
+     main=expression(paste("summer"~ delta^{15}, "N")), col="salmon", cex.axis=0.7, cex.main=1, cex.lab= 0.8,
+     ylab=expression(paste(delta^{15}, "N (‰, air)")), xlab="Reef Sites")
+
+# Winter site d15N
+plot(d15N~Location, data=winter.data, ylim=c(3,10), 
+     main=expression(paste("winter"~ delta^{15}, "N")), ylab=expression(paste(delta^{15}, "N (‰, air)")),
+     col="salmon", cex.axis=0.7, cex.main=1, xlab="Reef Sites")
+```
+  
+#### Figure S4   
+```{r SW isotope figure, results="hide", fig.cap="**Figure S4** *Isotope values for size-fractioned seawater particles and plankters pooled across seasons and reef sites. Values are mean +/-SE.*", fig.dim=c(4.5,4.5), fig.align='center'}
+
+mod<-lm(d13C~SW.fraction..um, data=SWiso); Anova(mod, type=2)
+posthoc<-emmeans(mod, ~SW.fraction..um)
+multcomp::cld(posthoc, Letters=letters)
+
+mod<-lm(d15N~SW.fraction..um, data=SWiso); Anova(mod, type=2)
+posthoc<-emmeans(mod, ~SW.fraction..um)
+multcomp::cld(posthoc, Letters=letters)
+
+
+rm(mean)
+####
+#### making scatter for d15N and d13C, pooled across seasons and sites
+mix.N.mean<-aggregate(d15N~SW.fraction..um, data=SWiso, mean)
+mix.N.se<-aggregate(d15N~SW.fraction..um, data=SWiso, std.error)
+mix.N.n<-aggregate(d15N~SW.fraction..um, data=SWiso, length)
+mix.C.mean<-aggregate(d13C~SW.fraction..um, data=SWiso, mean)
+mix.C.se<-aggregate(d13C~SW.fraction..um, data=SWiso, std.error)
+mix.C.n<-aggregate(d13C~SW.fraction..um, data=SWiso, length)
+mix.data<-cbind(mix.N.mean, mix.C.mean[c(2,0)], mix.N.se[c(2,0)], mix.C.se[c(2,0)]); colnames(mix.data)=c("fraction", "d15N", "d13C", "d15N.se", "d13C.se")
+
+colors=c("#FF6A6A", "#00B2EE", "#FFB90F", "#3CB371", "#8B7500")
+op<-par(mfrow = c(1,1), mar=c(5,4,1,5),xpd=TRUE, pty="sq")
+
+size.labels=c(expression(paste("> 243"~mu,m)), expression(paste("< 243"~mu,m)), expression(paste("100-243"~mu,m)), expression(paste("10-100"~mu,m)), expression(paste("< 10"~mu,m)))
+
+#### make the plot
+plot(d15N~d13C, data=mix.data, type="n", ylim=c(4.5,8), xlim=c(-23,-17), tck=-0.03, cex.axis=0.7, cex.lab=0.7,
+     ylab=expression(paste(delta^{15}, "N (‰, air)")), xlab=expression(paste(delta^{13}, "C (‰, V-PDB)")))
+legend("topleft", inset=c(0.05,0.0), legend=size.labels, col=colors, pch=19, cex=0.6, bty="n", x.intersp=1.8, y.intersp = 1.4)
+arrows(mix.data$d13C-mix.data$d13C.se, mix.data$d15N, mix.data$d13C+mix.data$d13C.se, mix.data$d15N, length=0.0, angle=90, code=3, lwd=0.7, col=colors)
+arrows(mix.data$d13C, mix.data$d15N-mix.data$d15N.se, mix.data$d13C, mix.data$d15N+mix.data$d15N.se, length=0.0, angle=90, code=3, lwd=0.7, col=colors)
+points(d15N~d13C, data=mix.data, pch=19, cex=0.8, col=colors)
+
+dev.copy(pdf, "figures/environmental/iso.sources.KBay.pdf", encod="MacRoman", height=4, width=4)
+dev.off()
+```
+
+#### Attenuation and Light-at-Depth  
+A periodic deployment of loggers (October and November) at ca. <1m and ca. 7m were used to model the relationship between 2m light and light at other depths.  
+  
+Using the logger data, the difference in light at 1 and 7m was calculated relative to 2m (i.e, PAR baseline (2m) - PAR other), then the difference in depth at 1 and 7m was calculated realtive to logger depth i.e, depth logger other - depth logger (2m baseline). A no-intercept model was used to fit difference in log(DLI) and depth (i.e, log(delta-DLI) and delta-depth) with depth as a *continous/numeric variable* to determine *kd*: $lm(delta.log.DLI$~$delta.Depth + 0)$.  
+  
+Site-specific kd values were used to generate a continuous variable of "light at depth". At each time period (summer or winter) the daily light integral was averaged over 3 months: *summer 2016 (June, July, August)* and *winter 2016 (November, December, January)*. Discrete monthly seasonal-mean DLI means was used to generate an estimate of light at depth for corals at each site, as this integrates the site and seasoanl variance.   
+  
+Light at Depth was calculated following Beer-Lambert: $Ez{_d} = Ez_{_0}e^{(-k_d *d)}$, where $d$ is depth, $k_d$ is the attenuation coefficient for each site, $Ez{_d}$ is light at depth $d$ and $Ez{_0}$ is measured light. Calculations were relative to light at 2m depth (i.e., $Ez_{_0}$ was the light at 2m depth) and $d$ was the difference between coral depth relative to depth of the logger (i.e., 2m). 
+
+```{r site-specifc kd, results='hide', fig.show='hide', echo=FALSE}
+
+df<-read.csv("data/environmental/temp and light/DLI.Oct2016.csv")
+df<-df[ , -which(names(df) %in% c("X","Rf44.shall.DLI", "Rf44.mid.DLI"))] # remove R44 w/o 3 levels
+df$Date<-as.Date(df$Date)
+
+Oct.DLI<-df
+colnames(Oct.DLI)[2:7]<-"DLI" # change all light columns to read "PAR" this is for rbind later
+
+
+# Adding Depth of logger to dataframe
+Rf42.shall<-Oct.DLI[1:2] #only time and PAR
+Rf42.shall$Site<-as.factor("Rf42") # make site level
+Rf42.shall$Depth<-3*0.3048 # logger at 3 ft, convert to --> meters
+Rf42.mid<-Oct.DLI[, c(1,3)]; Rf42.mid$Site<-as.factor("Rf42"); Rf42.mid$Depth<-8*0.3048 # logger at 8 ft 
+Rf42.deep<-Oct.DLI[, c(1,4)]; Rf42.deep$Site<-as.factor("Rf42"); Rf42.deep$Depth<-27*0.3048 # logger at 27 ft
+
+HIMB.shall<-Oct.DLI[, c(1,5)]; HIMB.shall$Site<-as.factor("HIMB"); HIMB.shall$Depth<-1*0.3048 # logger at 1 ft
+HIMB.mid<-Oct.DLI[, c(1,6)]; HIMB.mid$Site<-as.factor("HIMB"); HIMB.mid$Depth<-6*0.3048 # logger at 6 ft
+HIMB.deep<-Oct.DLI[, c(1,7)]; HIMB.deep$Site<-as.factor("HIMB"); HIMB.deep$Depth<-25*0.3048 # logger at 25 ft
+
+# bind together all the data in single dataframe with 4 columns: time, PAR, Site, Depth
+DLI.df<-rbind(Rf42.shall, Rf42.mid, Rf42.deep, HIMB.shall, HIMB.mid, HIMB.deep)
+DLI.df$log.DLI<-log(DLI.df$DLI) # log transform PAR data
+DLI.df<-DLI.df[, c(1,3:4,2,5)]
+
+####
+# make new dataframes for Sites
+Rf42.df<-df[1:4] 
+Rf42.depths<-c(3*0.3048, 8*0.3048, 27*0.3048)
+
+####
+# Beer-Lambert Law:   Ez(d) = Ez(0)e^(-k_d *d)  
+# where d is depth, k_d is the attenuation coefficient, Ez(d) is the light reaching depth d and Ez(0) is the incident light at the surface.
+
+# with 2m as baseline:  E(depth) = E(2m)*e^(-k_d*(depth - 2m))
+# making some log data
+Rf42.df$log.shal<-log(Rf42.df$Rf42.shall.DLI)
+Rf42.df$log.mid<-log(Rf42.df$Rf42.mid.DLI)
+Rf42.df$log.deep<-log(Rf42.df$Rf42.deep.DLI)
+
+Rf42.df$log.delta.mid.deep<-Rf42.df$log.mid-Rf42.df$log.deep # difference in 2m - 8m light
+Rf42.df$log.delta.mid.shal<-Rf42.df$log.mid-Rf42.df$log.shal # difference in 2m - 1m light
+Rf42.df$dm.depth<-Rf42.depths[3]-Rf42.depths[2] # difference in depth 8m - 2m
+Rf42.df$sm.depth<-Rf42.depths[1]-Rf42.depths[2] # difference in depth 1m - 2m
+Rf42.df$mm.depth<-Rf42.depths[2]-Rf42.depths[2] # difference in depth 2m - 2m
+
+new.df<-Rf42.df[8:11]; colnames(new.df)<-c("log.DLI.delta", "log.DLI.delta", "Depth.delta", "Depth.delta")
+new.df1<-rbind(new.df[1], new.df[2]); new.df2<-rbind(new.df[3], new.df[4])
+df.test<-cbind(new.df1, new.df2) # for both columns has delta PAR and depth
+
+kd.mod<-lm(log.DLI.delta~Depth.delta+0, data=df.test, na.action=na.exclude) # Rf42 dataframe with Depth as a factor
+kd<-coef(kd.mod)[1] # use KD here to calculate light at any depth
+
+kd.R42<-kd ### save this
+
+# example
+par(mfrow=c(3,1))
+Rf42.df$Rf42.expect<-Rf42.df$Rf42.mid.DLI*exp(-kd*Rf42.df$sm.depth)
+plot(Rf42.df$Rf42.expect~Rf42.df$Rf42.shall.DLI, main="lm(log.DLI.delta~Depth.delta + 0)", 
+     ylab="expected DLI", xlab="SHALLOW observed DLI")
+abline(lm(Rf42.df$Rf42.expect~Rf42.df$Rf42.shall.DLI), col="red"); abline(0, 1, col="green")
+legend("topleft", lty=1, col=c("red", "green"), legend=c("model", "1:1 line"), 
+       lwd=1, bty="n", seg.len=1, cex=1.1, y.intersp=0.5)
+
+Rf42.df$Rf42.expect<-Rf42.df$Rf42.mid.DLI*exp(-kd*Rf42.df$mm.depth)
+plot(Rf42.df$Rf42.expect~Rf42.df$Rf42.mid.DLI, main="lm(log.DLI.delta~Depth.delta + 0)", 
+     ylab="expected DLI", xlab="MID DEPTH observed DLI")
+abline(lm(Rf42.df$Rf42.expect~Rf42.df$Rf42.mid.DLI), col="red"); abline(0, 1, col="green")
+legend("topleft", lty=1, col=c("red", "green"), legend=c("model", "1:1 line"), 
+       lwd=1, bty="n", seg.len=1, cex=1.1, y.intersp=0.5)
+
+Rf42.df$Rf42.expect<-Rf42.df$Rf42.mid.DLI*exp(-kd*Rf42.df$dm.depth)
+plot(Rf42.df$Rf42.expect~Rf42.df$Rf42.deep.DLI, main="lm(log.DLI.delta~Depth.delta + 0)", 
+     ylab="expected DLI", xlab="DEEP observed DLI")
+abline(lm(Rf42.df$Rf42.expect~Rf42.df$Rf42.deep.DLI), col="red"); abline(0, 1, col="green")
+legend("topleft", lty=1, col=c("red", "green"), legend=c("model", "1:1 line"), 
+       lwd=1, bty="n", seg.len=1, cex=1.1, y.intersp=0.3)
+
+
+# making some data
+# notice that you need kd to be (+) here--or do absolute value of depth
+Rf42.df$coef.shal<-Rf42.df$Rf42.mid.DLI*exp(-kd*Rf42.df$sm.depth)
+Rf42.df$coef.mid<-Rf42.df$Rf42.mid.DLI*exp(-kd*Rf42.df$mm.depth)
+Rf42.df$coef.deep<-Rf42.df$Rf42.mid.DLI*exp(-kd*Rf42.df$dm.depth)
+
+##################
+##### Figure #####
+# how does data compare?
+
+##### plot log data collected at each site
+par(mfrow=c(2,1), mar=c(4,4,2,2))
+plot(y=Rf42.df$Rf42.shall.DLI, x=Rf42.df$Date, type="l", col="dodgerblue", 
+     main="Reef 42/NE logger (top), 2m-coeff (bottom)", cex.main=0.7, 
+     ylab="DLI", xlab="", ylim=c(0,40), lwd=2)
+par(new=T)
+with(Rf42.df, lines(y=Rf42.df$Rf42.mid.DLI, x=Rf42.df$Date, type="l", col="gray", lwd=2))
+par(new=T)
+with(Rf42.df, lines(y=Rf42.df$Rf42.deep.DLI, x=Rf42.df$Date, type="l", col="paleturquoise3", lwd=2))
+
+##### plot of modeled 1m and 8m using <1m model coeffs. 
+plot(y=Rf42.df$coef.shal, x=Rf42.df$Date, type="l", col="dodgerblue", ylab="log(PAR)", 
+     xlab="Date", ylim=c(0,40), lwd=2)
+par(new=T)
+with(Rf42.df, lines(y=Rf42.df$coef.mid, x=Rf42.df$Date, type="l", col="gray", lwd=2))
+par(new=T)
+with(Rf42.df, lines(y=Rf42.df$coef.deep, x=Rf42.df$Date, type="l", col="paleturquoise3", lwd=2))
+legend("top", lty=1, col=c("dodgerblue", "gray", "paleturquoise3"), legend=c("<1m", "2m", "8m"), 
+       lwd=2, bty="n", inset=c(0, -0.5), seg.len=1, cex=1.1, xpd=TRUE, horiz=TRUE)
+
+
+####################################
+###################################
+
+############ HIMB ############
+# make new dataframes for Sites
+HIMB.df<-df[, c(1,5:7)] 
+HIMB.depths<-c(1*0.3048, 6*0.3048, 25*0.3048)
+
+####
+# with 2m as baseline:  E(depth) = E(2m)*e^(-k_d*(depth - 2m))
+# making some log data
+HIMB.df$log.shal<-log(HIMB.df$HIMB.shall.DLI)
+HIMB.df$log.mid<-log(HIMB.df$HIMB.mid.DLI)
+HIMB.df$log.deep<-log(HIMB.df$HIMB.deep.DLI)
+
+HIMB.df$log.delta.mid.deep<-HIMB.df$log.mid-HIMB.df$log.deep # difference in 2m - 8m light
+HIMB.df$log.delta.mid.shal<-HIMB.df$log.mid-HIMB.df$log.shal # difference in 2m - 1m light
+HIMB.df$dm.depth<-HIMB.depths[3]-HIMB.depths[2] # difference in depth 8m - 2m
+HIMB.df$sm.depth<-HIMB.depths[1]-HIMB.depths[2] # difference in depth 1m - 2m
+HIMB.df$mm.depth<-HIMB.depths[2]-HIMB.depths[2] # difference in depth 2m - 2m
+
+new.df<-HIMB.df[8:11]; colnames(new.df)<-c("log.DLI.delta", "log.DLI.delta", "Depth.delta", "Depth.delta")
+new.df1<-rbind(new.df[1], new.df[2]); new.df2<-rbind(new.df[3], new.df[4])
+df.test<-cbind(new.df1, new.df2) # for both columns has delta PAR and depth
+
+kd.mod<-lm(log.DLI.delta~Depth.delta+0, data=df.test, na.action=na.exclude) # HIMB dataframe with Depth as a factor
+kd<-coef(kd.mod)[1] # use KD here to calculate light at any depth
+
+kd.HIMB<-kd ### save this
+
+# example
+par(mfrow=c(3,1))
+HIMB.df$HIMB.expect<-HIMB.df$HIMB.mid.DLI*exp(-kd*HIMB.df$sm.depth)
+plot(HIMB.df$HIMB.expect~HIMB.df$HIMB.shall.DLI, main="lm(log.DLI.delta~Depth.delta + 0)", 
+     ylab="expected DLI", xlab="SHALLOW observed DLI")
+abline(lm(HIMB.df$HIMB.expect~HIMB.df$HIMB.shall.DLI), col="red"); abline(0, 1, col="green")
+legend("topleft", lty=1, col=c("red", "green"), legend=c("model", "1:1 line"), 
+       lwd=1, bty="n", seg.len=1, cex=1.1, y.intersp=0.5)
+
+HIMB.df$HIMB.expect<-HIMB.df$HIMB.mid.DLI*exp(-kd*HIMB.df$mm.depth)
+plot(HIMB.df$HIMB.expect~HIMB.df$HIMB.mid.DLI, main="lm(log.DLI.delta~Depth.delta + 0)", 
+     ylab="expected DLI", xlab="MID DEPTH observed DLI")
+abline(lm(HIMB.df$HIMB.expect~HIMB.df$HIMB.mid.DLI), col="red"); abline(0, 1, col="green")
+legend("topleft", lty=1, col=c("red", "green"), legend=c("model", "1:1 line"), 
+       lwd=1, bty="n", seg.len=1, cex=1.1, y.intersp=0.5)
+
+HIMB.df$HIMB.expect<-HIMB.df$HIMB.mid.DLI*exp(-kd*HIMB.df$dm.depth)
+plot(HIMB.df$HIMB.expect~HIMB.df$HIMB.deep.DLI, main="lm(log.DLI.delta~Depth.delta + 0)", 
+     ylab="expected DLI", xlab="DEEP observed DLI")
+abline(lm(HIMB.df$HIMB.expect~HIMB.df$HIMB.deep.DLI), col="red"); abline(0, 1, col="green")
+legend("topleft", lty=1, col=c("red", "green"), legend=c("model", "1:1 line"), 
+       lwd=1, bty="n", seg.len=1, cex=1.1, y.intersp=0.3)
+
+
+# making some data
+# notice that you need kd to be (+) here--or do absolute value of depth
+HIMB.df$coef.shal<-HIMB.df$HIMB.mid.DLI*exp(-kd*HIMB.df$sm.depth)
+HIMB.df$coef.mid<-HIMB.df$HIMB.mid.DLI*exp(-kd*HIMB.df$mm.depth)
+HIMB.df$coef.deep<-HIMB.df$HIMB.mid.DLI*exp(-kd*HIMB.df$dm.depth)
+
+##################
+##### Figure #####
+# how does data compare?
+
+##### plot log data collected at each site
+par(mfrow=c(2,1), mar=c(4,4,2,2))
+plot(y=HIMB.df$HIMB.shall.DLI, x=HIMB.df$Date, type="l", col="dodgerblue", 
+     main="HIMB/SE logger (top), 2m-coeff (bottom)", cex.main=0.7, 
+     ylab="DLI", xlab="", ylim=c(0,40), lwd=2)
+par(new=T)
+with(HIMB.df, lines(y=HIMB.df$HIMB.mid.DLI, x=HIMB.df$Date, type="l", col="gray", lwd=2))
+par(new=T)
+with(HIMB.df, lines(y=HIMB.df$HIMB.deep.DLI, x=HIMB.df$Date, type="l", col="paleturquoise3", lwd=2))
+
+##### plot of modeled 1m and 8m using <1m model coeffs. 
+plot(y=HIMB.df$coef.shal, x=HIMB.df$Date, type="l", col="dodgerblue", ylab="log(PAR)", 
+     xlab="Date", ylim=c(0,40), lwd=2)
+par(new=T)
+with(HIMB.df, lines(y=HIMB.df$coef.mid, x=HIMB.df$Date, type="l", col="gray", lwd=2))
+par(new=T)
+with(HIMB.df, lines(y=HIMB.df$coef.deep, x=HIMB.df$Date, type="l", col="paleturquoise3", lwd=2))
+legend("top", lty=1, col=c("dodgerblue", "gray", "paleturquoise3"), legend=c("<1m", "2m", "8m"), 
+       lwd=2, bty="n", inset=c(0, -0.5), seg.len=1, cex=1.1, xpd=TRUE, horiz=TRUE)
+
+
+
+####################################################
+####################################################
+### Light attenuation  November deployment #########
+####################################################
+####################################################
+
+# using November deployment at 3 depths
+
+df<-read.csv("data/environmental/temp and light/DLI.Nov2016.csv")
+df<-df[ , -which(names(df) %in% "X")] # remove "X"
+df$Date<-as.Date(df$Date)
+
+Nov.DLI<-df
+colnames(Nov.DLI)[2:7]<-"DLI" # change all light columns to read "PAR" this is for rbind later
+
+# Adding Depth of logger to dataframe
+Rf44.shall<-Nov.DLI[1:2] #only time and PAR
+Rf44.shall$Site<-as.factor("Rf44") # make site level
+Rf44.shall$Depth<-1*0.3048 # logger at 1 ft, convert to --> meters
+Rf44.mid<-Nov.DLI[, c(1,3)]; Rf44.mid$Site<-as.factor("Rf44"); Rf44.mid$Depth<-6*0.3048 # logger at 6 ft 
+Rf44.deep<-Nov.DLI[, c(1,4)]; Rf44.deep$Site<-as.factor("Rf44"); Rf44.deep$Depth<-25*0.3048 # logger at 25 ft
+
+Rf10.shall<-Nov.DLI[, c(1,5)]; Rf10.shall$Site<-as.factor("Rf10"); Rf10.shall$Depth<-2*0.3048 # logger at 2 ft
+Rf10.mid<-Nov.DLI[, c(1,6)]; Rf10.mid$Site<-as.factor("Rf10"); Rf10.mid$Depth<-6*0.3048 # logger at 6 ft
+Rf10.deep<-Nov.DLI[, c(1,7)]; Rf10.deep$Site<-as.factor("Rf10"); Rf10.deep$Depth<-26*0.3048 # logger at 26 ft
+
+# bind together all the data in single dataframe with 4 columns: time, PAR, Site, Depth
+DLI.df<-rbind(Rf44.shall, Rf44.mid, Rf44.deep, Rf10.shall, Rf10.mid, Rf10.deep)
+DLI.df$log.DLI<-log(DLI.df$DLI) # log transform PAR data
+DLI.df<-DLI.df[, c(1,3:4,2,5)]
+
+###############
+###############
+
+# make new dataframes for Sites
+Rf44.df<-df[1:4] 
+Rf44.depths<-c(1*0.3048, 6*0.3048, 25*0.3048)
+
+####
+# with 2m as baseline:  E(depth) = E(2m)*e^(-k_d*(depth - 2m))
+# making some log data
+Rf44.df$log.shal<-log(Rf44.df$Rf44.shall.DLI)
+Rf44.df$log.mid<-log(Rf44.df$Rf44.mid.DLI)
+Rf44.df$log.deep<-log(Rf44.df$Rf44.deep.DLI)
+
+Rf44.df$log.delta.mid.deep<-Rf44.df$log.mid-Rf44.df$log.deep # difference in 2m - 8m light
+Rf44.df$log.delta.mid.shal<-Rf44.df$log.mid-Rf44.df$log.shal # difference in 2m - 1m light
+Rf44.df$dm.depth<-Rf44.depths[3]-Rf44.depths[2] # difference in depth 8m - 2m
+Rf44.df$sm.depth<-Rf44.depths[1]-Rf44.depths[2] # difference in depth 1m - 2m
+Rf44.df$mm.depth<-Rf44.depths[2]-Rf44.depths[2] # difference in depth 2m - 2m
+
+new.df<-Rf44.df[8:11]; colnames(new.df)<-c("log.DLI.delta", "log.DLI.delta", "Depth.delta", "Depth.delta")
+new.df1<-rbind(new.df[1], new.df[2]); new.df2<-rbind(new.df[3], new.df[4])
+df.test<-cbind(new.df1, new.df2) # for both columns has delta PAR and depth
+
+kd.mod<-lm(log.DLI.delta~Depth.delta+0, data=df.test, na.action=na.exclude) # Rf44 dataframe with Depth as a factor
+kd<-coef(kd.mod)[1] # use KD here to calculate light at any depth
+
+kd.R44<-kd ### save this
+
+# example
+par(mfrow=c(3,1))
+Rf44.df$Rf44.expect<-Rf44.df$Rf44.mid.DLI*exp(-kd*Rf44.df$sm.depth)
+plot(Rf44.df$Rf44.expect~Rf44.df$Rf44.shall.DLI, main="lm(log.DLI.delta~Depth.delta + 0)", 
+     ylab="expected DLI", xlab="SHALLOW observed DLI")
+abline(lm(Rf44.df$Rf44.expect~Rf44.df$Rf44.shall.DLI), col="red"); abline(0, 1, col="green")
+legend("topleft", lty=1, col=c("red", "green"), legend=c("model", "1:1 line"), 
+       lwd=1, bty="n", seg.len=1, cex=1.1, y.intersp=0.5)
+
+Rf44.df$Rf44.expect<-Rf44.df$Rf44.mid.DLI*exp(-kd*Rf44.df$mm.depth)
+plot(Rf44.df$Rf44.expect~Rf44.df$Rf44.mid.DLI, main="lm(log.DLI.delta~Depth.delta + 0)", 
+     ylab="expected DLI", xlab="MID DEPTH observed DLI")
+abline(lm(Rf44.df$Rf44.expect~Rf44.df$Rf44.mid.DLI), col="red"); abline(0, 1, col="green")
+legend("topleft", lty=1, col=c("red", "green"), legend=c("model", "1:1 line"), 
+       lwd=1, bty="n", seg.len=1, cex=1.1, y.intersp=0.5)
+
+Rf44.df$Rf44.expect<-Rf44.df$Rf44.mid.DLI*exp(-kd*Rf44.df$dm.depth)
+plot(Rf44.df$Rf44.expect~Rf44.df$Rf44.deep.DLI, main="lm(log.DLI.delta~Depth.delta + 0)", 
+     ylab="expected DLI", xlab="DEEP observed DLI")
+abline(lm(Rf44.df$Rf44.expect~Rf44.df$Rf44.deep.DLI), col="red"); abline(0, 1, col="green")
+legend("topleft", lty=1, col=c("red", "green"), legend=c("model", "1:1 line"), 
+       lwd=1, bty="n", seg.len=1, cex=1.1, y.intersp=0.3)
+
+
+# making some data
+# notice that you need kd to be (+) here--or do absolute value of depth
+Rf44.df$coef.shal<-Rf44.df$Rf44.mid.DLI*exp(-kd*Rf44.df$sm.depth)
+Rf44.df$coef.mid<-Rf44.df$Rf44.mid.DLI*exp(-kd*Rf44.df$mm.depth)
+Rf44.df$coef.deep<-Rf44.df$Rf44.mid.DLI*exp(-kd*Rf44.df$dm.depth)
+
+##################
+##### Figure #####
+# how does data compare?
+
+##### plot log data collected at each site
+par(mfrow=c(2,1), mar=c(4,4,2,2))
+plot(y=Rf44.df$Rf44.shall.DLI, x=Rf44.df$Date, type="l", col="dodgerblue", 
+     main="Reef 44/NW logger (top), 2m-coeff (bottom)", cex.main=0.7, 
+     ylab="DLI", xlab="", ylim=c(0,40), lwd=2)
+par(new=T)
+with(Rf44.df, lines(y=Rf44.df$Rf44.mid.DLI, x=Rf44.df$Date, type="l", col="gray", lwd=2))
+par(new=T)
+with(Rf44.df, lines(y=Rf44.df$Rf44.deep.DLI, x=Rf44.df$Date, type="l", col="paleturquoise3", lwd=2))
+
+##### plot of modeled 1m and 8m using <1m model coeffs. 
+plot(y=Rf44.df$coef.shal, x=Rf44.df$Date, type="l", col="dodgerblue", ylab="log(PAR)", 
+     xlab="Date", ylim=c(0,40), lwd=2)
+par(new=T)
+with(Rf44.df, lines(y=Rf44.df$coef.mid, x=Rf44.df$Date, type="l", col="gray", lwd=2))
+par(new=T)
+with(Rf44.df, lines(y=Rf44.df$coef.deep, x=Rf44.df$Date, type="l", col="paleturquoise3", lwd=2))
+legend("top", lty=1, col=c("dodgerblue", "gray", "paleturquoise3"), legend=c("<1m", "2m", "8m"), 
+       lwd=2, bty="n", inset=c(0, -0.5), seg.len=1, cex=1.1, xpd=TRUE, horiz=TRUE)
+
+
+################
+################
+
+## Reef 10 ############
+
+# make new dataframes for Sites
+Rf10.df<-df[, c(1,5:7)] 
+Rf10.depths<-c(2*0.3048, 6*0.3048, 26*0.3048)
+
+####
+# with 2m as baseline:  E(depth) = E(2m)*e^(-k_d*(depth - 2m))
+# making some log data
+Rf10.df$log.shal<-log(Rf10.df$Rf10.shall.DLI)
+Rf10.df$log.mid<-log(Rf10.df$Rf10.mid.DLI)
+Rf10.df$log.deep<-log(Rf10.df$Rf10.deep.DLI)
+
+Rf10.df$log.delta.mid.deep<-Rf10.df$log.mid-Rf10.df$log.deep # difference in 2m - 8m light
+Rf10.df$log.delta.mid.shal<-Rf10.df$log.mid-Rf10.df$log.shal # difference in 2m - 1m light
+Rf10.df$dm.depth<-Rf10.depths[3]-Rf10.depths[2] # difference in depth 8m - 2m
+Rf10.df$sm.depth<-Rf10.depths[1]-Rf10.depths[2] # difference in depth 1m - 2m
+Rf10.df$mm.depth<-Rf10.depths[2]-Rf10.depths[2] # difference in depth 2m - 2m
+
+new.df<-Rf10.df[8:11]; colnames(new.df)<-c("log.DLI.delta", "log.DLI.delta", "Depth.delta", "Depth.delta")
+new.df1<-rbind(new.df[1], new.df[2]); new.df2<-rbind(new.df[3], new.df[4])
+df.test<-cbind(new.df1, new.df2) # for both columns has delta PAR and depth
+
+kd.mod<-lm(log.DLI.delta~Depth.delta+0, data=df.test, na.action=na.exclude) # Rf10 dataframe with Depth as a factor
+kd<-coef(kd.mod)[1] # use KD here to calculate light at any depth
+
+kd.R10<-kd ### save this
+
+# example
+par(mfrow=c(3,1))
+Rf10.df$Rf10.expect<-Rf10.df$Rf10.mid.DLI*exp(-(kd+0.3)*Rf10.df$sm.depth)
+plot(Rf10.df$Rf10.expect~Rf10.df$Rf10.shall.DLI, main="lm(log.DLI.delta~Depth.delta + 0)", 
+     ylab="expected DLI", xlab="SHALLOW observed DLI")
+abline(lm(Rf10.df$Rf10.expect~Rf10.df$Rf10.shall.DLI), col="red"); abline(0, 1, col="green")
+legend("topleft", lty=1, col=c("red", "green"), legend=c("model", "1:1 line"), 
+       lwd=1, bty="n", seg.len=1, cex=1.1, y.intersp=0.5)
+
+Rf10.df$Rf10.expect<-Rf10.df$Rf10.mid.DLI*exp(-kd*Rf10.df$mm.depth)
+plot(Rf10.df$Rf10.expect~Rf10.df$Rf10.mid.DLI, main="lm(log.DLI.delta~Depth.delta + 0)", 
+     ylab="expected DLI", xlab="MID DEPTH observed DLI")
+abline(lm(Rf10.df$Rf10.expect~Rf10.df$Rf10.mid.DLI), col="red"); abline(0, 1, col="green")
+legend("topleft", lty=1, col=c("red", "green"), legend=c("model", "1:1 line"), 
+       lwd=1, bty="n", seg.len=1, cex=1.1, y.intersp=0.5)
+
+Rf10.df$Rf10.expect<-Rf10.df$Rf10.mid.DLI*exp(-(kd-0.09)*Rf10.df$dm.depth)
+plot(Rf10.df$Rf10.expect~Rf10.df$Rf10.deep.DLI, main="lm(log.DLI.delta~Depth.delta + 0)", 
+     ylab="expected DLI", xlab="DEEP observed DLI")
+abline(lm(Rf10.df$Rf10.expect~Rf10.df$Rf10.deep.DLI), col="red"); abline(0, 1, col="green")
+legend("topleft", lty=1, col=c("red", "green"), legend=c("model", "1:1 line"), 
+       lwd=1, bty="n", seg.len=1, cex=1.1, y.intersp=0.3)
+
+
+# making some data
+# notice that you need kd to be (+) here--or do absolute value of depth
+Rf10.df$coef.shal<-Rf10.df$Rf10.mid.DLI*(exp)(-kd*Rf10.df$sm.depth)
+Rf10.df$coef.mid<-Rf10.df$Rf10.mid.DLI*exp(-kd*Rf10.df$mm.depth)
+Rf10.df$coef.deep<-Rf10.df$Rf10.mid.DLI*exp(-kd*Rf10.df$dm.depth)
+
+##################
+##### Figure #####
+# how does data compare?
+
+##### plot log data collected at each site
+par(mfrow=c(2,1), mar=c(4,4,2,2))
+plot(y=Rf10.df$Rf10.shall.DLI, x=Rf10.df$Date, type="l", col="dodgerblue", 
+     main="Reef 10/SW logger (top), 2m-coeff (bottom)", cex.main=0.7, 
+     ylab="DLI", xlab="", ylim=c(0,40), lwd=2)
+par(new=T)
+with(Rf10.df, lines(y=Rf10.df$Rf10.mid.DLI, x=Rf10.df$Date, type="l", col="gray", lwd=2))
+par(new=T)
+with(Rf10.df, lines(y=Rf10.df$Rf10.deep.DLI, x=Rf10.df$Date, type="l", col="paleturquoise3", lwd=2))
+
+##### plot of modeled 1m and 8m using <1m model coeffs. 
+plot(y=Rf10.df$coef.shal, x=Rf10.df$Date, type="l", col="dodgerblue", ylab="log(PAR)", 
+     xlab="Date", ylim=c(0,40), lwd=2)
+par(new=T)
+with(Rf10.df, lines(y=Rf10.df$coef.mid, x=Rf10.df$Date, type="l", col="gray", lwd=2))
+par(new=T)
+with(Rf10.df, lines(y=Rf10.df$coef.deep, x=Rf10.df$Date, type="l", col="paleturquoise3", lwd=2))
+legend("top", lty=1, col=c("dodgerblue", "gray", "paleturquoise3"), legend=c("<1m", "2m", "8m"), 
+       lwd=2, bty="n", inset=c(0, -0.5), seg.len=1, cex=1.1, xpd=TRUE, horiz=TRUE)
+
+kd.all<-as.data.frame(c(kd.R42, kd.R44, kd.HIMB, kd.R10))
+kd.all$Sites<-as.factor(c("Rf42", "Rf44", "HIMB", "Rf10")); kd.all<-kd.all[2:1]
+colnames(kd.all)<-c("Site", "kd")
+
+write.csv(kd.all, "output/kd.all.csv")
+
+####
+#### end
+####
+```
+  
+#### Figure S5
+```{r light at depth, fig.dim=c(6,4), results='hide', collapse=TRUE, fig.align='center', fig.cap="**Figure S5** *Relationship between mean seasonal light availability (mean daily light integral) at depth of coral fragment collection*"}
+########################## # LIGHT AT DEPTH
+#############
+###### 
+# using new depth and the site-specific kd (light attenuation) determine approximate "light at depth" for each colony sample. 
+
+######
+
+### attach necessary files
+logger.depths<-read.csv("data/environmental/temp and light/light.logger.depths.csv") # depths for loggers
+
+# 'kd.all'  -- this is a dataframe of kds for each site, depth as continuous
+
+# Seasonal DLI used for "period of collection" light levels
+month.DLI<-read.csv("data/environmental/temp and light/Jun_DecPAR/All.DLI_long.csv")
+
+# corals collected in June-July-August use summer time DLI for these months as indicator of average DLI
+summer.DLI<-month.DLI[(month.DLI$Month=="June" | month.DLI$Month=="July" | month.DLI$Month=="August"),]
+winter.DLI<-month.DLI[(month.DLI$Month=="November" | month.DLI$Month=="December" |month.DLI$Month=="January"),]
+
+
+# summer mean and SE dataframe
+sum.mean<-aggregate(DLI~Site, summer.DLI, mean)
+sum.SE<-aggregate(DLI~Site, summer.DLI, std.error)
+sum.n<-aggregate(DLI~Site, summer.DLI, length)
+sum.light.df<-cbind(sum.mean, sum.SE[2])
+colnames(sum.light.df)=c("Site", "mean.DLI", "se.DLI")
+sum.light.df$Season<-as.factor("summer")
+
+# winter mean and SE dataframe
+wint.mean<-aggregate(DLI~Site, winter.DLI, mean)
+wint.SE<-aggregate(DLI~Site, winter.DLI, std.error)
+wint.n<-aggregate(DLI~Site, winter.DLI, length)
+wint.light.df<-cbind(wint.mean, wint.SE[2])
+colnames(wint.light.df)=c("Site", "mean.DLI", "se.DLI")
+wint.light.df$Season<-as.factor("winter")
+
+season.DLI<-rbind(sum.light.df[,c(4,1,2:3)], wint.light.df[,c(4,1,2:3)]) # compiled means for DLI at ~2m
+season.DLI$Location<- as.factor(c("SE", "SW", "NE", "NW", "SE", "SW", "NE", "NW")); season.DLI<-season.DLI[,c(1,5,2:4)]
+
+write.csv(season.DLI, "output/season.DLI.csv")
+#######################################
+### make new dataframe for calculations
+df.light<- data[, c("Season", "Reef", "Location", "newDepth")]
+
+# make a column of "depth differences" relative to where ~2m logger was deployed
+df.light$depth.diff<-ifelse(df.light$Reef=="F1-R46", df.light$newDepth-1.8288,
+                          ifelse(df.light$Reef=="F8-R10", df.light$newDepth-1.8288, 
+                                 ifelse(df.light$Reef=="HIMB", df.light$newDepth-1.8288, 
+                                        df.light$newDepth-2.4384))) # last statement for remaining site (Rf42)
+
+# make a column for sample-specific light at depth (estimate) based on kd
+# follow: #with 2m as baseline#  E(depth) = E(2m)*exp(-k_d*(depth - 2m))
+# so that:     light at depth = DLI at mid.depth * exp (-kd *(delta shallow-deep in m))
+
+
+df.light$Light<-ifelse(df.light$Reef=="HIMB" & df.light$Season=="summer", 
+                          season.DLI$mean.DLI[1]*exp(-kd.all$kd[1]*df.light$depth.diff), # summer HIMB
+                   ifelse(df.light$Reef=="F8-R10" & df.light$Season=="summer", 
+                          season.DLI$mean.DLI[2]*exp(-kd.all$kd[2]*df.light$depth.diff), # summer R10
+                   ifelse(df.light$Reef=="R42" & df.light$Season=="summer", 
+                          season.DLI$mean.DLI[3]*exp(-kd.all$kd[3]*df.light$depth.diff), # summer R42
+                   ifelse(df.light$Reef=="F1-R46" & df.light$Season=="summer", 
+                                 season.DLI$mean.DLI[4]*exp(-kd.all$kd[4]*df.light$depth.diff), # summer R46
+                          
+                   ifelse(df.light$Reef=="HIMB" & df.light$Season=="winter", 
+                          season.DLI$mean.DLI[5]*exp(-kd.all$kd[1]*df.light$depth.diff), # winter HIMB
+                   ifelse(df.light$Reef=="F8-R10" & df.light$Season=="winter", 
+                          season.DLI$mean.DLI[6]*exp(-kd.all$kd[2]*df.light$depth.diff), # winter R10
+                   ifelse(df.light$Reef=="R42" & df.light$Season=="winter", 
+                          season.DLI$mean.DLI[7]*exp(-kd.all$kd[3]*df.light$depth.diff), # winter R42
+                          season.DLI$mean.DLI[8]*exp(-kd.all$kd[4]*df.light$depth.diff)) # winter R46
+                            ))))))
+
+###### plot of light x depth by season
+df.light$Reef <- factor(df.light$Reef, levels = c("F1-R46", "R42", "F8-R10", "HIMB"))
+df.light$Location <- factor(df.light$Location, levels=c("NW", "NE", "SW", "SE"))
+
+plot.by.sites=ggplot(df.light, aes(Light)) + geom_density(aes(fill=Location), alpha=0.3, position = 'stack') + scale_x_continuous(limits=c(0, 40)) + ggtitle("Light at Depth by Seasons") 
+
+plot.by.site=ggplot(df.light, aes(Light)) + geom_density(aes(fill=Season), alpha=0.3, position = 'stack') +
+  scale_x_continuous(limits=c(0, 40)) + ggtitle("Light at Depth by Seasons") + facet_wrap(~Location, scales="free") + scale_fill_manual(values=c("darkorange1", "dodgerblue1"))
+
+######
+# can loop as a list
+p=ggplot(df.light, aes(Light, fill=Season)) + geom_density(alpha=0.3, position = 'stack') + scale_x_continuous(limits=c(0, 40)) + ggtitle("Light at Depth by Seasons") 
+
+plots=dlply(df.light, .(Location), function(x) p %+% x + facet_wrap(~Location))
+
+
+###### plot of light x depth by season with exponential curve fitting
+Sum<-df.light[(df.light$Season=="summer"),]
+Win<-df.light[(df.light$Season=="winter"),]
+
+
+#BW 
+plot(Light~newDepth, Sum, col="gray30", bg="gray40", pch=21, xlab="Depth (m)", ylab="DLI at coral", 
+     ylim=c(0, 30), xlim=c(0, 10), cex=0.6,  cex.lab=0.6, cex.axis=0.6)
+summod<-lm(log(Light)~newDepth, Sum)
+curve(exp(coef(summod)["(Intercept)"]+coef(summod)["newDepth"]*x), add=TRUE, col="gray40", lwd=2, xlim=c(0,9.5))
+par(new=T)
+plot(Light~newDepth, Win, col="gray60", bg="gray80", pch=21, xaxt="n", yaxt="n", cex=0.7, 
+     xlab="", ylab="", ylim=c(0, 30), xlim=c(0, 10), cex.axis=0.7)
+wintmod<-lm(log(Light)~newDepth, Win)
+curve(exp(coef(wintmod)["(Intercept)"]+coef(wintmod)["newDepth"]*x), add=TRUE, col="gray80", 
+      lwd=2, xlim=c(0,7.8))
+legend("topright", legend=c("Summer", "Winter"), col=c("gray30", "gray60"), pt.bg=c("gray40", "gray80"), lty=c(1,1), lwd=c(1,1), pch=c(21,21), bty="n", cex=0.6,
+       y.intersp = 1.5, x.intersp = 0.4, inset=c(0.1, 0))
+dev.copy(pdf, "figures/symbionts/Light by Depth_symbs.pdf", encod="MacRoman", height=3.5, width=4.5)
+dev.off()
+```
+  
+## Biology
+  
+Corals were collected and their tissues were analyzed, generating measures of area-normalized total biomass, symbiont densities, total chlorophyll (*a* + *c~2~*), and symbiont-cell normalized chlorophyll contents. The corals, their symbionts, and their skeletons were also analyzed for carbon stable isotope analysis and nitrogen isotopes (sans the skeleton). DNA extraction and qPCR amplification was used to determine symbiont communities and the dominant symbionts (either *Cladocopium* spp. or *Durusdinium glynnii*). 
+
+```{r Biological responses, results="hide"}
+################################
+### Biological responses
+################################
+
+#data : this is the master file
+
+# add in light at depth column from df.light dataframe
+data$Light<-df.light$Light
+
+##### produce a categorical depth bin ####
+depth<-data$newDepth
+data$depth.bin<-factor(ifelse(depth<2, "<2m", ifelse(depth >2 & depth <4, "2-4m", ifelse(depth >4 & depth <6, "4-6m", ">6m"))), levels=c("<2m", "2-4m", "4-6m", ">6m"))
+
+aggregate(Sample.ID~depth.bin+Season+Location, data, length)
+data$depth.bin.small<-factor(ifelse(depth<4, "<4m", ">4m"), levels= c("<4m", ">4m"))
+
+################################################
+# calculate, normalized dependent variables
+################################################
+str(data)
+data$cells.ml<-as.numeric(data$cells.ml)
+
+# helpful shorthand
+SA<-data$surface.area # surface area in cm2
+blastate<-data$total.blastate.ml # tissue slurry blastate in ml
+
+# AFDW.mg. == convert AFDW g to mg, mutiply by blastate volume, divide by cm2
+data$biomass<- (data$mg.biomass.ml*blastate)/SA
+
+# Symbiodinium.cells. == cell.ml * blastate / SA
+data$zoox<- (data$cells.ml*blastate)/SA
+
+# total chlorophyll == ug.chl.a.ml * blastate + ug.chl.c2.ml * blastate / SA
+data$chltot<-(data$ug.chl.a.ml)+(data$ug.chl.c2.ml)*blastate/SA
+
+# pg.chlorophyll.a..cell + pg.chlorophyll.c2..cell == ug.chltot.ml * 10^6 / cells.ml
+data$chlcell<- (data$ug.chl.a.ml*10^6+data$ug.chl.c2.ml*10^6)/data$cells.ml
+```
+
+
+### qPCR
+```{r qPCR data, results='hide'}
+####################
+# qPCR
+#########
+
+# qPCR
+
+library(devtools)
+# Use steponeR to import data and calculate proporation of C and D symbionts
+source_url("https://raw.githubusercontent.com/jrcunning/steponeR/master/steponeR.R")
+Mcap.plates <- list.files(path="data/qPCR", pattern = "txt$", full.names = T); Mcap.plates
+Mcap <- steponeR(files=Mcap.plates, delim="\t",
+                 target.ratios=c("C.D"),
+                 fluor.norm=list(C=2.26827, D=0),
+                 copy.number=list(C=33, D=3),
+                 ploidy=list(C=1, D=1), 
+                 extract=list(C=0.813, D=0.813))
+
+Mcap <- Mcap$result
+head(Mcap)
+
+# remove +/-control
+Mcap <- Mcap[grep("+C52", Mcap$Sample.Name, fixed=T, invert = T), ]
+Mcap <- Mcap[grep("H2O", Mcap$Sample.Name, fixed=T, invert = T), ]
+
+# to remove any early-amplification CT noise
+Mcap$C.CT.mean[which(Mcap$C.CT.mean < 15)] <- 0
+
+#Remove failed samples, i.e., those where either C or D were NOT found in both reps
+Mcap$fail <- ifelse(Mcap$C.reps < 2 & Mcap$D.reps < 2, TRUE, FALSE)
+fails <- Mcap[Mcap$fail==TRUE, ]
+Mcap <- Mcap[which(Mcap$fail==FALSE),]
+
+# replace CT means with 'NA' as zero
+Mcap$C.CT.mean[is.na(Mcap$C.CT.mean)] <-0
+Mcap$D.CT.mean[is.na(Mcap$D.CT.mean)] <-0
+
+Mcap$C.D[is.na(Mcap$C.D)] <- 1 # sets all infinity (= 100% C) to 1.0
+
+# caluclate proportion C and proprtion D where C and D are both present
+Mcap$propC<- Mcap$C.D / (Mcap$C.D + 1)
+Mcap$propD<- 1 / (Mcap$C.D + 1)
+
+# where C and D are not cooccuring...
+# if C.D = 1 = 100% C, make 'PropC' = 1 and 'PropD' = 0
+# if C.D = 0 = 100% D, make 'PropD' = 1 and 'PropC' = 0
+Mcap$propC[which(Mcap$C.D==1)] <- 1
+Mcap$propD[which(Mcap$propC==1)] <- 0
+Mcap$propD[which(Mcap$C.D==0)] <- 1
+
+# calculate FOUR COMMUNITY categories: C, C>D, D>C, D
+Mcap$Mix <- factor(ifelse(Mcap$propC > Mcap$propD, ifelse(Mcap$propD!= 0, "CD", "C"), ifelse(Mcap$propD > Mcap$propC, ifelse(Mcap$propC!=0, "DC", "D"), NA)), levels=c("C", "CD", "DC", "D"))
+
+# Identify SINGLE dominant symbiont clade: C or D
+Mcap$Dom <- factor(substr(as.character(Mcap$Mix), 1, 1))
+
+
+######## look for duplicates in dataset by year and type of event (bleach/recover)
+Mcap[duplicated(Mcap$Sample.Name), ] ## duplicates
+
+# remove duplicated
+Mcap<-Mcap[!(Mcap$Sample.Name=="HIMB_15" & Mcap$File.Name=="Wall_PanKbay_plate1.txt"),] 
+Mcap<-Mcap[!(Mcap$Sample.Name=="R10_05" & Mcap$File.Name=="Wall_PanKbay_plate1.txt"),] 
+Mcap<-Mcap[!(Mcap$Sample.Name=="R42_06" & Mcap$File.Name=="Wall_PanKbay_plate1.txt"),] 
+Mcap<-Mcap[!(Mcap$Sample.Name=="R46_01" & Mcap$File.Name=="Wall_PanKbay_plate1.txt"),] 
+Mcap<-Mcap[!(Mcap$Sample.Name=="R46_02" & Mcap$File.Name=="Wall_PanKbay_plate2.txt"),] 
+Mcap<-Mcap[!(Mcap$Sample.Name=="R46_03" & Mcap$File.Name=="Wall_PanKbay_plate1.txt"),] 
+Mcap<-Mcap[!(Mcap$Sample.Name=="HIMB_13" & Mcap$File.Name=="Wall_PanKbay_plate2.txt"),] 
+Mcap<-Mcap[!(Mcap$Sample.Name=="HIMB_14" & Mcap$File.Name=="Wall_PanKbay_plate2.txt"),] 
+Mcap<-Mcap[!(Mcap$Sample.Name=="R10_15" & Mcap$File.Name=="Wall_PanKbay_plate3.txt"),] 
+Mcap<-Mcap[!(Mcap$Sample.Name=="R10_15" & Mcap$File.Name=="Wall_PanKbay_plate1.txt"),] 
+Mcap<-Mcap[!(Mcap$Sample.Name=="R42_11" & Mcap$File.Name=="Wall_PanKbay_plate2.txt"),] 
+
+# parse Sample ID and Site from "Site.Name"
+Mcap<-cbind(Mcap, colsplit(Mcap$Sample.Name, pattern= "_", c("Reef", "Sample.ID")))
+Mcap$Season<-as.factor("winter")
+Mcap$Reef<-as.factor(Mcap$Reef)
+
+Mcap$Reef<-revalue(Mcap$Reef, c("R10"="F8-R10", "R46"="F1-R46")) # rename factor levels
+
+# make new factors for bay region and reef type
+Mcap$Bay.region <- ifelse(Mcap$Reef=="R42" | Mcap$Reef=="F1-R46", "northern", "southern")
+Mcap$Reef.type <- ifelse(Mcap$Reef=="R42" | Mcap$Reef=="HIMB", "patch", "fringe")
+Mcap$Location <- ifelse(Mcap$Reef=="F1-R46", "NW", ifelse(Mcap$Reef=="R42", "NE", 
+                       ifelse(Mcap$Reef=="F8-R10", "SW", "SE")))
+
+### reorder columns and finish
+Mcap<-Mcap[, c(17,15,20,19,18,16,1:14)] # reordered to match masterdata, and finish
+
+### structure winter and summer qPCR dataframes to have same columns and combine dataframe 
+qPCR.winter<-Mcap[ , (names(Mcap) %in% 
+        c("Season", "Reef", "Location", "Reef.type", "Bay.region", "Sample.ID", "propC", "propD", "Mix", "Dom"))]
+qPCR.summer<-qPCR.Innis[ , (names(qPCR.Innis) %in% 
+        c("Season", "Reef", "Location", "Reef.type", "Bay.region", "Sample.ID", "propC", "propD", "Mix", "Dom"))] 
+
+# merge qPCR files
+qPCR.all<-rbind(qPCR.winter, qPCR.summer)
+
+# add to master data
+data.all<-merge(data, qPCR.all, by=c("Season", "Reef", "Location", "Reef.type", "Bay.region", "Sample.ID"), all.x=T)
+
+###### remove columns no longer needed, update "Depth" to be tide-corrected depth )= newDepth
+data.trim<-data.all[ , !(names(data.all) %in% c("total.blastate.ml", "Date", "Time.of.collection", "Depth..m", "Time.r", "surface.area.cm2", "cells.ml", "ug.chl.a.ml", "ug.chl.c2.ml", "mg.biomass.ml", "host..mass.mg", "host..ugN", "host..ugC", "symb..mass.mg", "symb..ugN", "symb..ugC", "stationId", "datum", "TimeUTC", "TideHT", "Time"))]
+
+data.trim$symb..C.N[data.trim$symb..C.N>=12.520270]=NA # set this outlier to NA
+```
+
+**qPCR figure**
+The distribution of C and D symbiont types is modeled using a logistic regression with dominant symbiont community (C vs. D) as a response and *Depth (m)*, *Season*, and reef *Location* as a predictor. A  generalized linear model with a binomial distribution and logit link function is used. Model selection (by model AIC values) between a fully crossed model (*crossed*) and additive model (*add*) were compared. The additive mode best fit the data; main effects were tested in *anova* with a Chi-square test.  
+  
+Tables here show FIRST **both seasons** and then **summer only** and **winter only**
+
+```{r qPCR models Depth predictor, fig.dim=c(7.5,4)}
+## qPCR figures
+
+#####
+final.data<-data.trim[,c(17, 1:5, 18:25, 7:16, 26:29)] # for general use
+model.data<-data.trim[,c(17, 1:5, 18:25, 7:16, 26:29)] # for models, transformations
+
+#########################
+#########################
+#########################
+
+# Plots with DEPTH as the predictor
+# qPCR and symbionts
+
+#########################
+###### Plot Dominant Symbiont and Depth (both seasons)
+Symb<-final.data
+Symb$Reef <- factor(Symb$Reef, levels = c("F1-R46", "R42", "F8-R10", "HIMB")) # set levels
+Symb$Location <- factor(Symb$Location, levels = c("NW", "NE", "SW", "SE")) # set levels
+
+Symb$Dominant <- ifelse(Symb$Dom=="D", 1, 0)
+add <-glm(Dominant~newDepth+Season+Location, family = "binomial", data = Symb)
+crossed <-glm(Dominant~newDepth*Season+Location, family = "binomial", data = Symb)
+ # AIC(add, crossed) # crossed model best
+anova(crossed, test = "Chisq")
+
+results.all<-crossed
+
+
+#summary(results.all)
+plot(allEffects(results.all), par.strip.text=list(cex=0.6))
+
+results.all.mod <-glm(Dominant~newDepth, family = "binomial", data = Symb)
+fitted.all <- predict(results.all.mod, newdata = list(newDepth=seq(0,9.5,0.1)), type = "response")
+
+###### summer only symbionts
+sum.dat<-Symb[(Symb$Season=="summer"),]
+results.sum=glm(Dominant~newDepth, family = "binomial", data = sum.dat)
+anova(results.sum, test = "Chisq")
+#summary(results.sum)
+fitted.sum <- predict(results.sum, newdata = list(newDepth=seq(0,9.5,0.1)), type = "response")
+# plot(fitted.sum, ylab="proportion D", ylim=c(0,1))
+
+###### winter only symbionts
+wint.dat<-Symb[(Symb$Season=="winter"),]
+results.win=glm(Dominant~newDepth, family = "binomial", data = wint.dat)
+anova(results.win, test = "Chisq")
+#summary(results.win)
+fitted.win <- predict(results.win, newdata = list(newDepth=seq(0,8,0.1)), type = "response")
+# plot(fitted.win, ylab="proportion D", ylim=c(0,1))
+```
+  
+Logistic regression of the probability of *Montipora capitata* have a *Durusdinium*-dominant symbiont community (probability of 1.0) versus one dominated by *Cladocopium* spp. symbiont (probability of 0). Both seasons show similar patterns, although the probability of corals being *Durusdinium*-dominant increases in winter months as a function of Depth relative to summer months.  
+   
+#### Figure 2 
+```{r qPCR figures, results="hide",fig.dim=c(6,4), fig.cap="**Figure 2** Probability of *Montipora capitata* hosting D-colonies symbionts across a depth gradient in summer and winter seasons. Lines represent model fit to data by logistic regression for summer alone, winter alone, and combined (summer + winter) data"}
+
+######
+######
+## Figure of Dominant symbiont clades across seasons
+## **Note** where points equal 0.0 is 100% D, where they equal 0 is 100% C
+par(mar=c(5,4,3,2))
+plot(sum.dat$propD~sum.dat$newDepth, xlab="Depth (m)", ylab = "Proportion of Durusdinium", pch=21,
+     col="gray30", bg="gray40", xlim=c(0,10), ylim=c(0.0, 1.0), cex=0.7, cex.lab=0.7, cex.axis=0.7)
+par(new=T)
+plot(wint.dat$propD~wint.dat$newDepth, pch=21, xlim=c(0,10), ylim=c(0.0, 1.0), xaxt="n", yaxt="n",
+     col="gray60", bg="gray80", xlab="", ylab="", cex=0.7)
+lines(fitted.all ~ seq(0,9.5,0.1), col="black", lwd=1, lty=2)
+lines(fitted.sum ~ seq(0,9.5,0.1), col="gray40", lwd=1)
+lines(fitted.win ~ seq(0,8,0.1), col="gray80", lwd=1)
+legend("topright", pch=c(21,21, NA), lty=c(1,1,2), pt.bg=c("gray40", "gray80", NA), col=c("gray 30", "gray60", "black"), legend=c("Summer", "Winter", "Combined"), lwd=1, bty="n", x.intersp=1, pt.cex=0.8, y.intersp=2, cex=0.5, inset=c(0.08, -0.01), seg.len=4)
+
+dev.copy(pdf, "figures/symbionts/Symbionts_by_Season_depth.pdf", encod="MacRoman", height=3, width=4)
+dev.off()
+```
+  
+Seen another way--**Histograms**. By separating these data into 2 histograms the probability of *Durusdinium*- (1.0) and *Cladocopium*-dominance (0.0) can be visualized. Here it is clear that there is a greater probability of finding corals with *Durusdinium* dominant communites at shallow depths, whereas in winter there is a slightly greater probability of finding D-colonies in corals with increasing depth.
+```{r Symbiont qPCR and light at depth histograms by seasons, results='hide', fig.dim=c(6,4), fig.cap="*Histograms of probability of Montipora capitata hosting Durusdinium symbionts across a depth gradient among seasons. Lines represent model fit to data by logistic regression*"}
+#######
+#######
+par(mfrow=c(1,2))
+Dom <- subset(Symb, !is.na(newDepth) & !is.na(Dominant))
+Dom.sum<-Dom[(Dom$Season=="summer"),]
+Dom.win<-Dom[(Dom$Season=="winter"),]
+
+logi.hist.plot(Dom.sum$newDepth, Dom.sum$Dominant, boxp = FALSE, type = "hist", col="coral", xlabel = "Depth (m)", ylabel = "", ylabel2 = "", main="summer")
+mtext(side = 2, text = "Probability of Durusdinium", line = 3, cex = 1)
+
+logi.hist.plot(Dom.win$newDepth, Dom.win$Dominant, boxp = FALSE, type = "hist", col="lightskyblue", xlabel = "Depth (m)", ylabel = "", ylabel2 = "", main="winter")
+mtext(side = 4, text = "Frequency", line = 0.5, cex=1)
+mtext(side = 4, text = "C                                             D", line = 0.5, cex = 0.8)
+dev.copy(pdf, "figures/symbionts/Symb_Season_Light_logistic.pdf", encod="MacRoman", height=5, width=8)
+dev.off()
+```
+
+
+
+```{r assumptions, results='hide', fig.show='hide'}
+## **Model assumptions**
+
+
+###### model dataframe for analysis
+#####
+# model.data is dataframe for analysis, ordered as <-data.trim[,c(17, 1:5, 18:25, 7:16, 26:29)]
+
+##########
+##########
+
+##transformations
+model.data$zoox<-log(model.data$zoox)
+model.data$chlcell<-log(model.data$chlcell)
+model.data$host..C.N<-log(model.data$host..C.N)
+model.data$symb..C.N<-log(model.data$symb..C.N)
+
+#model.data$d13C..host.sym<-sign(model.data$d13C..host.sym)*log(abs(model.data$d13C..host.sym)+1)
+
+## tests for assumptions
+for(i in c(11:23)){
+  Y<-model.data[,i]
+  full<-lmer(Y~Season*Light*Dom + (1|Location), data=model.data, na.action=na.exclude)
+  R <- resid(full) #save glm residuals
+  Y.shapiro <- shapiro.test(R) #runs a normality test on residuals
+  print(Y.shapiro) # null = normally distrubuted (P<0.05 = non-normal
+  
+  op<-par(mfrow = c(2,3), mar=c(5,4,1,2), pty="sq")
+  plot(full, add.smooth = FALSE, which=1)
+  QQ <- qqnorm(R, main = colnames(model.data)[i]) 
+  QQline <- qqline(R)
+  hist(R, xlab="Residuals", main = colnames(model.data)[i])
+  plot(model.data$Season, R, xlab=colnames(model.data)[i], ylab="Residuals")
+  plot(model.data$Light, R, xlab=colnames(model.data)[i], ylab="Residuals")
+  plot(model.data$Dom, R, xlab=colnames(model.data)[i], ylab="Residuals")
+  plot(model.data$Location, R, xlab=colnames(model.data)[i], ylab="Residuals")
+}
+```
+
+#### Physiology models
+**Total Biomass**
+```{r total biomass, results='hide'}
+########## ########## 
+######### biomass ---- 
+Y<-model.data$biomass
+full<-lmer(Y~Season*Light*Dom+ (1|Location), data=model.data, na.action=na.exclude)
+add<-lmer(Y~Season+Light+Dom+ (1|Location), data=model.data, na.action=na.exclude)
+anova(full, add) #use additive model
+
+summary(add)
+ranova(add)
+```
+```{r, fig.dim=c(6,6)}
+print(anova(add, type=2), digits=5)
+var.table<-as.data.frame(VarCorr(add),comp="Variance")
+var.table$prop.var<-c(var.table$vcov[1]/(var.table$vcov[1]+var.table$vcov[2]), "")
+var.biomass=var.table
+var.biomass$response<-"biomass"
+
+plot(allEffects(add), ylab="biomass", par.strip.text=list(cex=0.7))
+```
+  
+  
+**Symbiont density**
+```{r symbiont density, results='hide'}
+######### symbionts-- 
+Y<-model.data$zoox
+full<-lmer(Y~Season*Light*Dom+ (1|Location), data=model.data, na.action=na.exclude)
+add<-lmer(Y~Season+Light+Dom+Season:Light + (1|Location), data=model.data, na.action=na.exclude)
+anova(full, add) #use additive model
+
+summary(add)
+ranova(add)
+```
+```{r, fig.dim=c(7.5,4)}
+print(anova(add, type=2), digits=5)
+var.table<-as.data.frame(VarCorr(add),comp="Variance")
+var.table$prop.var<-c(var.table$vcov[1]/(var.table$vcov[1]+var.table$vcov[2]), "")
+var.symb=var.table
+var.symb$response<-"symb"
+
+posthoc<-emmeans(add, ~Dom)
+multcomp::cld(posthoc, Letters=letters)
+
+plot(allEffects(add), ylab="symbiont density", par.strip.text=list(cex=0.7))
+```
+  
+
+**Chlorophyll a**
+```{r chlorophyll a, results='hide'}
+######### chltotal-- 
+Y<-model.data$chltot
+full<-lmer(Y~Season*Light*Dom+ (1|Location), data=model.data, na.action=na.exclude)
+add<-lmer(Y~Season+Light+Dom+Season:Dom + (1|Location), data=model.data, na.action=na.exclude)
+anova(full, add) #use additive model
+
+summary(add)
+ranova(add)
+```
+```{r, fig.dim=c(7.5,4)}
+print(anova(add, type=2), digits=5)
+var.table<-as.data.frame(VarCorr(add),comp="Variance")
+var.table$prop.var<-c(var.table$vcov[1]/(var.table$vcov[1]+var.table$vcov[2]), "")
+var.chl=var.table
+var.chl$response<-"chl"
+
+posthoc<-emmeans(add, ~Season)
+multcomp::cld(posthoc, Letters=letters)
+
+posthoc<-emmeans(add, ~Dom|Season)
+multcomp::cld(posthoc, Letters=letters)
+
+plot(allEffects(add), ylab="total chlor", par.strip.text=list(cex=0.7))
+```
+  
+**Chlorophyll per symbiont cell**
+```{r chlorophyll per cell, results='hide'}
+######### chlcell -- 
+Y<-model.data$chlcell
+full<-lmer(Y~Season*Light*Dom+ (1|Location), data=model.data, na.action=na.exclude)
+add<-lmer(Y~Season+Light+Dom+ (1|Location), data=model.data, na.action=na.exclude)
+anova(full, add) #use additive model
+
+summary(add)
+ranova(add)
+```
+```{r, fig.dim=c(6,6)}
+print(anova(add, type=2), digits=5)
+var.table<-as.data.frame(VarCorr(add),comp="Variance")
+var.table$prop.var<-c(var.table$vcov[1]/(var.table$vcov[1]+var.table$vcov[2]), "")
+var.chlcell=var.table
+var.chlcell$response<-"chlcell"
+
+plot(allEffects(add), ylab="chla cell", par.strip.text=list(cex=0.7))
+```
+  
+#### Isotope models  
+**host δ^13^C**
+```{r host d13C, results='hide'}
+########## host..d13C -- 
+Y<-model.data$host..d13C
+full<-lmer(Y~Season*Light*Dom+ (1|Location), data=model.data, na.action=na.exclude)
+add<-lmer(Y~Season+Light+Dom+ Season:Light+ Season:Dom+(1|Location), data=model.data, na.action=na.exclude)
+anova(full, add) #use additive model
+
+summary(add)
+ranova(add)
+```
+```{r, fig.dim=c(7.5,4)}
+print(anova(add), digits=5)
+var.table<-as.data.frame(VarCorr(add),comp="Variance")
+var.table$prop.var<-c(var.table$vcov[1]/(var.table$vcov[1]+var.table$vcov[2]), "")
+var.d13C.H=var.table
+var.d13C.H$response<-"d13C.H"
+
+posthoc<-emmeans(add, ~Dom)
+multcomp::cld(posthoc, Letters=letters)
+
+posthoc<-emmeans(add, ~Dom| Season)
+multcomp::cld(posthoc, Letters=letters)
+
+plot(allEffects(add), ylab="d13Chost", par.strip.text=list(cex=0.7))
+```
+  
+**symbiont δ^13^C**
+```{r symbiont d13C, results='hide'}
+########## symb..d13C --
+Y<-model.data$symb..d13C
+full<-lmer(Y~Season*Light*Dom+ (1|Location), data=model.data, na.action=na.exclude)
+add<-lmer(Y~Season+Light+Dom+ Season:Dom +(1|Location), data=model.data, na.action=na.exclude)
+anova(full, add) #use additive model
+
+summary(add)
+ranova(add)
+```
+```{r, fig.dim=c(7.5,4)}
+print(anova(add, type=2), digits=5)
+var.table<-as.data.frame(VarCorr(add),comp="Variance")
+var.table$prop.var<-c(var.table$vcov[1]/(var.table$vcov[1]+var.table$vcov[2]), "")
+var.d13C.S=var.table
+var.d13C.S$response<-"d13C.S"
+
+posthoc<-emmeans(add, ~Dom)
+multcomp::cld(posthoc, Letters=letters)
+
+posthoc<-emmeans(add, ~Dom| Season)
+multcomp::cld(posthoc, Letters=letters)
+
+plot(allEffects(add), ylab="d13Csymb", par.strip.text=list(cex=0.7))
+```
+  
+**host-symbiont δ^13^C**
+```{r host-symb d13C, results='hide'}
+######### d13C..host.sym --
+Y<-model.data$d13C..host.sym
+full<-lmer(Y~Season*Light*Dom+ (1|Location), data=model.data, na.action=na.exclude)
+add<-lmer(Y~Season+Light+Dom+ Season:Light +Season:Dom +(1|Location), data=model.data, na.action=na.exclude)
+anova(full, add) #use add model
+
+summary(add)
+ranova(add)
+```
+```{r, fig.dim=c(7.5,4)}
+print(anova(add, type=2), digits=4)
+var.table<-as.data.frame(VarCorr(add),comp="Variance")
+var.table$prop.var<-c(var.table$vcov[1]/(var.table$vcov[1]+var.table$vcov[2]), "")
+var.d13C.HS=var.table
+var.d13C.HS$response<-"d13C.HS"
+
+posthoc<-emmeans(add, ~Dom)
+multcomp::cld(posthoc, Letters=letters)
+
+posthoc<-emmeans(add, ~Dom|Season)
+multcomp::cld(posthoc, Letters=letters)
+
+plot(allEffects(add), ylab="d13C-hs", par.strip.text=list(cex=0.7))
+```
+  
+**skeleton δ^13^C**
+```{r skelton d13C, results='hide'}
+####### d13C..skel --
+Y<-model.data$d13C..skel
+full<-lmer(Y~Season*Light*Dom+ (1|Location), data=model.data, na.action=na.exclude)
+add<-lmer(Y~Season+Light+Dom+ (1|Location), data=model.data, na.action=na.exclude)
+anova(full, add) #use add model
+
+summary(add)
+ranova(add)
+```
+```{r, fig.dim=c(6,6)}
+print(anova(add, type=2), digits=4)
+var.table<-as.data.frame(VarCorr(add),comp="Variance")
+var.table$prop.var<-c(var.table$vcov[1]/(var.table$vcov[1]+var.table$vcov[2]), "")
+var.d13C.sk=var.table
+var.d13C.sk$response<-"d13C.sk"
+
+posthoc<-emmeans(add, ~Season)
+multcomp::cld(posthoc, Letters=letters)
+plot(allEffects(add), ylab="d13C-skel", par.strip.text=list(cex=0.7))
+```
+  
+**host δ^15^N**
+```{r host d15N, results='hide'}
+####### host..d15N --
+Y<-model.data$host..d15N
+full<-lmer(Y~Season*Light*Dom+ (1|Location), data=model.data, na.action=na.exclude)
+add<-lmer(Y~Season+Light+Dom+(1|Location), data=model.data, na.action=na.exclude)
+anova(full, add) #use add model
+
+summary(add)
+ranova(add)
+```
+```{r, fig.dim=c(6,6)}
+print(anova(add, type=2), digits=4)
+var.table<-as.data.frame(VarCorr(add),comp="Variance")
+var.table$prop.var<-c(var.table$vcov[1]/(var.table$vcov[1]+var.table$vcov[2]), "")
+var.d15N.H=var.table
+var.d15N.H$response<-"d15N.H"
+
+plot(allEffects(add), ylab="d15Nhost", par.strip.text=list(cex=0.7))
+```
+  
+**symbiont δ^15^N**
+```{r symbiont d15N, results='hide'}
+######## symb..d15N --
+Y<-model.data$symb..d15N
+full<-lmer(Y~Season*Light*Dom+ (1|Location), data=model.data, na.action=na.exclude)
+add<-lmer(Y~Season+Light+Dom+ Season:Dom + (1|Location), data=model.data, na.action=na.exclude)
+anova(full, add) #use add model
+
+summary(add)
+ranova(add)
+```
+```{r, fig.dim=c(7.5,4)}
+print(anova(add, type=2), digits=6)
+var.table<-as.data.frame(VarCorr(add),comp="Variance")
+var.table$prop.var<-c(var.table$vcov[1]/(var.table$vcov[1]+var.table$vcov[2]), "")
+var.d15N.S=var.table
+var.d15N.S$response<-"d15N.S"
+
+posthoc<-emmeans(add, ~Dom|Season)
+multcomp::cld(posthoc, Letters=letters)
+
+plot(allEffects(add), ylab="d15Nsymb", par.strip.text=list(cex=0.7))
+```
+  
+**host-symbiont δ^15^N**
+```{r host-symbiont d15N, results='hide'}
+####### d15N..host.sym  -- 
+Y<-model.data$d15N..host.sym
+full<-lmer(Y~Season*Light*Dom+ (1|Location), data=model.data, na.action=na.exclude)
+add<-lmer(Y~Season+Light+Dom+ Season:Dom+  (1|Location), data=model.data, na.action=na.exclude)
+anova(full, add) #use add model
+
+summary(add)
+ranova(add)
+```
+```{r, fig.dim=c(7.5,4)}
+print(anova(add, type=2), digits=4)
+var.table<-as.data.frame(VarCorr(add),comp="Variance")
+var.table$prop.var<-c(var.table$vcov[1]/(var.table$vcov[1]+var.table$vcov[2]), "")
+var.d15N.HS<-var.table
+var.d15N.HS$response<-"d15N.HS"
+
+posthoc<-emmeans(add, ~Dom|Season)
+multcomp::cld(posthoc, Letters=letters)
+
+plot(allEffects(add), ylab="d15N-hs", par.strip.text=list(cex=0.7))
+```
+  
+**host C:N**
+```{r host CN, results='hide'}
+###### host..C.N --
+Y<-model.data$host..C.N
+full<-lmer(Y~Season*Light*Dom+ (1|Location), data=model.data, na.action=na.exclude)
+add<-lmer(Y~Season+Light+Dom+ (1|Location), data=model.data, na.action=na.exclude)
+anova(full, add) #use add model
+
+summary(add)
+ranova(add)
+```
+```{r, fig.dim=c(7,7)}
+print(anova(add, type=2), digits=4)
+var.table<-as.data.frame(VarCorr(add),comp="Variance")
+var.table$prop.var<-c(var.table$vcov[1]/(var.table$vcov[1]+var.table$vcov[2]), "")
+var.CN.H<-var.table
+var.CN.H$response<-"CN.Host"
+
+plot(allEffects(add), ylab="C:N host", par.strip.text=list(cex=0.7))
+```
+  
+**symbiont C:N**
+```{r symbiont CN, results='hide'}
+####### symb..C.N -- 
+Y<-model.data$symb..C.N
+full<-lmer(Y~Season*Light*Dom+ (1|Location), data=model.data, na.action=na.exclude)
+add<-lmer(Y~Season+Light+Dom+ (1|Location), data=model.data, na.action=na.exclude)
+anova(full, add) #use add model
+
+summary(add)
+ranova(add)
+```
+```{r, fig.dim=c(7,7)}
+print(anova(add, type=2), digits=5)
+var.table<-as.data.frame(VarCorr(add),comp="Variance")
+var.table$prop.var<-c(var.table$vcov[1]/(var.table$vcov[1]+var.table$vcov[2]), "")
+var.CN.S<-var.table
+var.CN.S$response<-"CN.Symb"
+
+plot(allEffects(add), ylab="C:N symb", par.strip.text=list(cex=0.7))
+```
+
+Using compiled models above, a summary table and figure for random effects can be generated. This table figure shows the proportion of variance explained by the random effect *Location*. For symbiont tissue C:N,  Location explained <0.00001 of variance. 
+  
+#### Figure S6
+```{r random variance, fig.dim=c(7,3), fig.cap="**Figure S6** *Proportion of linear mixed effect model variance explained by the random effects of Location for each response metric.  N/A represents models where the proportion of variance accounted for by random effects was not different from zero*"}
+# random effect table
+
+rand.eff.table<-rbind(var.biomass, var.symb, var.chl, var.chlcell, var.d13C.H, var.d13C.S, var.d13C.HS, var.d13C.sk, var.d15N.H, var.d15N.S, var.d15N.HS, var.CN.H, var.CN.S); rand.eff.table=rand.eff.table[-2:-3]
+colnames(rand.eff.table)<-c("group", "variance", "stdev", "prop.var", "response")
+rand.eff.table=rand.eff.table[,c(5,1:4)]
+rand.eff.summary<-rand.eff.table[,c(1,5)]
+
+rand.eff.df<- rand.eff.summary[-which(rand.eff.summary$prop.var==""), ] # removing blank values
+rand.eff.df$prop.var<-as.numeric(rand.eff.df$prop.var)
+
+rand.eff.df$response<-as.factor(rand.eff.df$response)
+rand.eff.df$response<-factor(rand.eff.df$response, levels = c("biomass", "symb", "chl", "chlcell", 
+                                        "d13C.H", "d13C.S", "d13C.HS", "d13C.sk", 
+                                        "d15N.H", "d15N.S", "d15N.HS",
+                                        "CN.Host", "CN.Symb"))
+
+var.labs<-c("biomass", "symbionts", "chlorophyll", "chl/cell", 
+            (expression(paste(delta^{13}, C[H]))), (expression(paste(delta^{13}, C[S]))),
+            (expression(paste(delta^{13}, C[H-S]))), (expression(paste(delta^{13}, C[Sk]))),
+            (expression(paste(delta^{15}, N[H]))), (expression(paste(delta^{15}, N[S]))),
+            (expression(paste(delta^{15}, N[H-S]))), 
+            (expression(paste(C:N[H]))), (expression(paste(C:N[S]))))
+
+
+# make plot
+Fig.rand.eff<-ggplot(rand.eff.df, aes(x=response, y=prop.var, fill=response)) +
+  geom_bar(stat="identity", position = pd, width=0.7, size=0.4) +
+  theme(axis.text.x = element_text(size=10, angle=45, hjust = 1)) +
+  scale_x_discrete(name="Responses", label=var.labs) +
+  annotate("text", x = 13, y = 0.05, label = "italic(N/A)", parse=TRUE) +
+  theme(axis.title.y= element_text(size=10),
+        axis.text.y= element_text(size=10))+
+  ylab(expression(paste("variance proportion", sep=""))) +
+  scale_y_continuous(expand=c(0,0), limits=c(0, 1)) + theme(legend.position="none"); Fig.rand.eff
+ggsave(file="figures/models/variance.pdf", height=3.5, width=6)
+
+```
+
+### Principal Components  
+Tests of the relationship between response metrics, spatiotemporal factors (i.e., season, location, colony depth-bins), and symbiont community were performed using a principal components analyses (PCA) of a scaled and centered correlation matrix; PERMANOVA tests of main effects were also evaluated.
+  
+**PERMANOVA TABLE**
+```{r PCA and PERMANOVA}
+# multivariate test using adonis-- Manova, mutivariate analysis of variance
+
+install_github("vqv/ggbiplot")
+
+df.PCA<-final.data
+
+# remove columns unnecessary for final analysis, few factors retained
+df.PCA<-df.PCA[ , !names(df.PCA) %in% c("date.time", "newDepth", "Reef", "Reef.type", "Bay.region", "Light", "depth.bin.small", "d15N..host.sym", "d13C..host.sym", "d18O..skel", "propC", "propD","symb..C.N", "host..C.N", "Mix")]
+
+# remove factors, leaving only "Location"
+# subset(df.PCA, select = c(-Season, -newDepth, -Light, -Dom))
+
+df.manova<-df.PCA[,c(4:12)]
+df.manova.fac<-df.PCA[,c(1:2,13,3)]
+
+perman.test<-adonis2(df.manova~Season+Location+Dom+depth.bin, data=df.PCA,permutations=1000, 
+                method="bray", sqrt.dist = TRUE)
+perman.test
+```
+  
+#### Figure 3  
+```{r PCA all data, result="hide", fig.dim=c(8,7), fig.cap="**Figure 3.** *Principal component analyses (PCA) on a matrix of physiological responses and isotope values in the coral Montipora capitata evaluating the influence of season, location, symbiont community, and depth-bin. Axis values in parentheses represent the proportion of total variance associated with the respective PC. Arrows represent significant (p<0.05) correlation vectors for response variables; ellipses represent 90% point densities.*"}
+###################
+# PCA by LOCATION 
+# apply PCA - scale. = TRUE for center as advised
+PC.Kbay <- prcomp(df.PCA[,c(-1:-3,-13)], center = TRUE, scale= TRUE)  
+# correlatin matrix helps to standardize the data and account for different scales
+
+# print(PC.area) <<< to show loadings
+PC.summary<-(summary(PC.Kbay)) #signficance of PCs: proportion of variance captured, cumulative variance
+#In general, we are interested in keeping only those principal components whose eigenvalues are greater than 1. 
+
+# the SDEV^2 is the eignevalue
+ev<-PC.Kbay$sdev^2 # PC1-2 have eignevalues >1
+# ev.area/sum(ev.area) #gives proportional eignevalues
+
+newdat<-PC.Kbay$x[,1:4] # 4 PCs
+# plot(PC.Kbay, type="lines", main="PC.Kbay eigenvalues") # plots PCA, equivalent to ev.area
+
+
+####### plot: Season
+## PC1 and PC2
+Season<-df.PCA[,1]
+PC.Seas.fig <- ggbiplot(PC.Kbay, choices = 1:2, obs.scale = 1, var.scale = 1, 
+              groups= Season, ellipse = TRUE, ellipse.prob = 0.90,
+              circle = FALSE, alpha=0, PC.Seas.fig) +
+  scale_color_manual(name = '', values=c("coral1", "deepskyblue3")) +
+  geom_point(aes(colour=Season), shape=17, size = 0.8, alpha=6/10)+
+  theme_bw() +
+  scale_x_continuous(limits=c(-5, 5), breaks=pretty_breaks(n=5))+
+  scale_y_continuous(limits=c(-5, 5), breaks=pretty_breaks(n=5))+ 
+  theme(axis.ticks.length=unit(-0.25, "cm"), axis.text.y=element_text(margin=unit(c(0.5, 0.5, 0.5, 0.5), "cm")), axis.text.x=element_text(margin=unit(c(0.5, 0.5, 0.5, 0.5), "cm"))) +
+  theme(legend.text=element_text(size=10)) +
+  theme(panel.background = element_rect(colour = "black", size=1))+
+  theme(legend.key = element_blank())+
+  theme(legend.direction = 'horizontal', legend.position = 'top') + theme(aspect.ratio=0.7)
+
+
+####### plot: Location
+## PC1 and PC2 
+Location<-df.PCA[,2]
+PC.Loc.fig <- ggbiplot(PC.Kbay, choices = 1:2, obs.scale = 1, var.scale = 1, 
+              groups= Location, ellipse = TRUE, ellipse.prob = 0.90,
+              circle = FALSE, alpha=0) +
+  scale_color_manual(name = '', values=c("coral1", "deepskyblue3", "chartreuse3", "darkorchid")) +
+  geom_point(aes(colour=Location), shape=17, size = 0.8, alpha=6/10)+
+  theme_bw() +
+  scale_x_continuous(limits=c(-5, 5), breaks=pretty_breaks(n=5))+
+  scale_y_continuous(limits=c(-5, 5), breaks=pretty_breaks(n=5))+ 
+  theme(axis.ticks.length=unit(-0.25, "cm"), axis.text.y=element_text(margin=unit(c(0.5, 0.5, 0.5, 0.5), "cm")), axis.text.x=element_text(margin=unit(c(0.5, 0.5, 0.5, 0.5), "cm"))) +
+  theme(legend.text=element_text(size=10)) +
+  theme(panel.background = element_rect(colour = "black", size=1))+
+  theme(legend.key = element_blank())+
+  theme(legend.direction = 'horizontal', legend.position = 'top') + theme(aspect.ratio=0.7)
+
+
+
+#### PCA by Symb
+Symbs<-df.PCA[,13]
+PC.Symb.fig <- ggbiplot(PC.Kbay, choices = 1:2, obs.scale = 1, var.scale = 1, 
+              groups= Symbs, ellipse = TRUE, ellipse.prob = 0.90,
+              circle = FALSE, alpha=0) +
+  scale_color_manual(name = '', values=c("coral1", "deepskyblue3")) +
+  geom_point(aes(colour=Symbs), shape=16, size = 0.8, alpha=6/10)+
+  theme_bw() +
+  scale_x_continuous(limits=c(-5, 5), breaks=pretty_breaks(n=5))+
+  scale_y_continuous(limits=c(-5, 5), breaks=pretty_breaks(n=5))+ 
+  theme(axis.ticks.length=unit(-0.25, "cm"), axis.text.y=element_text(margin=unit(c(0.5, 0.5, 0.5, 0.5), "cm")), axis.text.x=element_text(margin=unit(c(0.5, 0.5, 0.5, 0.5), "cm"))) +
+  theme(legend.text=element_text(size=10)) +
+  theme(panel.background = element_rect(colour = "black", size=1))+
+  theme(legend.key = element_blank())+
+  theme(legend.direction = 'horizontal', legend.position = 'top') + theme(aspect.ratio=0.7)
+
+
+#### PCA by Depth
+Depth<-df.PCA[,3]
+PC.Depth.fig <- ggbiplot(PC.Kbay, choices = 1:2, obs.scale = 1, var.scale = 1, 
+              groups= Depth, ellipse = TRUE, ellipse.prob = 0.90,
+              circle = FALSE, alpha=0) +
+  scale_color_manual(name = '', values=c("coral1", "deepskyblue3", "chartreuse3", "darkorchid")) +
+  geom_point(aes(colour=Depth), shape=16, size = 0.8, alpha=6/10)+
+  theme_bw() +
+  scale_x_continuous(limits=c(-5, 5), breaks=pretty_breaks(n=5))+
+  scale_y_continuous(limits=c(-5, 5), breaks=pretty_breaks(n=5))+ 
+  theme(axis.ticks.length=unit(-0.25, "cm"), axis.text.y=element_text(margin=unit(c(0.5, 0.5, 0.5, 0.5), "cm")), axis.text.x=element_text(margin=unit(c(0.5, 0.5, 0.5, 0.5), "cm"))) +
+  theme(legend.text=element_text(size=10)) +
+  theme(panel.background = element_rect(colour = "black", size=1))+
+  theme(legend.key = element_blank())+
+  theme(legend.direction = 'horizontal', legend.position = 'top') + theme(aspect.ratio=0.7)
+
+
+grid.arrange(PC.Seas.fig, PC.Loc.fig, PC.Symb.fig, PC.Depth.fig, ncol = 2)
+G<-arrangeGrob(PC.Seas.fig, PC.Loc.fig, PC.Symb.fig, PC.Depth.fig, ncol=2)
+ggsave(file="figures/multivariate/PCx4.pdf", G, height=6, width=7)
+
+```
+
+### Physiology figures  
+Here are the figures for coral physiological traits.  
+  
+```{r physiology figure dataframes, results="hide"}
+#########################
+# all data
+df.fig<-data.trim[,c(17, 1:5, 18:25, 7:16, 26:29)]
+table(df.fig$Dom:df.fig$Season)
+
+##################
+################## 
+
+## season relationship
+data.summer<-df.fig[df.fig$Season=="summer", ]
+data.winter<-df.fig[df.fig$Season=="winter", ]
+
+## Symbiont relationship
+C.sum.df<-df.fig[(df.fig$Dom=="C" & df.fig$Season=="summer") ,]
+C.win.df<-df.fig[(df.fig$Dom=="C" & df.fig$Season=="winter") ,]
+
+D.sum.df<-df.fig[(df.fig$Dom=="D" & df.fig$Season=="summer") ,]
+D.win.df<-df.fig[(df.fig$Dom=="D" & df.fig$Season=="winter") ,]
+
+##transformations
+# model.data$zoox<-log(model.data$zoox)
+# model.data$chlcell<-log(model.data$chlcell)
+# model.data$host..C.N<-log(model.data$host..C.N)
+# model.data$symb..C.N<-log(model.data$symb..C.N)
+```
+
+```{r tidy fix, include=FALSE}
+# issue with broom:tidy that currently won't support lmer model output in lmerTest
+# work around from https://github.com/tidymodels/broom/issues/309
+# run the function below and name all 'tidy' calls 'tidy_lmer'
+
+tidy_lmer <- function(x, effects = c("ran_pars","fixed"),
+                        scales = NULL, ## c("sdcor",NA),
+                        ran_prefix=NULL,
+                        conf.int = FALSE,
+                        conf.level = 0.95,
+                        conf.method = "Wald",
+                        ...) {
+    effect_names <- c("ran_pars", "fixed", "ran_modes")
+    if (!is.null(scales)) {
+        if (length(scales) != length(effects)) {
+            stop("if scales are specified, values (or NA) must be provided ",
+                 "for each effect")
+        }
+    }
+    if (length(miss <- setdiff(effects,effect_names))>0)
+        stop("unknown effect type ",miss)
+    base_nn <- c("estimate", "std.error", "df", "statistic", "p.value")
+    ret_list <- list()
+    if ("fixed" %in% effects) {
+        # return tidied fixed effects rather than random
+        ret <- stats::coef(summary(x))
+
+        # p-values may or may not be included
+        nn <- base_nn[1:ncol(ret)]
+
+        if (conf.int) {
+            cifix <- confint(x,parm="beta_",method=conf.method,...)
+            ret <- data.frame(ret,cifix)
+            nn <- c(nn,"conf.low","conf.high")
+        }
+        if ("ran_pars" %in% effects || "ran_modes" %in% effects) {
+            ret <- data.frame(ret,group="fixed")
+            nn <- c(nn,"group")
+        }
+        ret_list$fixed <-
+            fix_data_frame(ret, newnames = nn)
+    }
+    if ("ran_pars" %in% effects) {
+        if (is.null(scales)) {
+            rscale <- "sdcor"
+        } else rscale <- scales[effects=="ran_pars"]
+        if (!rscale %in% c("sdcor","vcov"))
+            stop(sprintf("unrecognized ran_pars scale %s",sQuote(rscale)))
+        ret <- as.data.frame(VarCorr(x))
+        ret[] <- lapply(ret, function(x) if (is.factor(x))
+                                 as.character(x) else x)
+        if (is.null(ran_prefix)) {
+            ran_prefix <- switch(rscale,
+                                 vcov=c("var","cov"),
+                                 sdcor=c("sd","cor"))
+        }
+        pfun <- function(x) {
+            v <- na.omit(unlist(x))
+            if (length(v)==0) v <- "Observation"
+            p <- paste(v,collapse=".")
+            if (!identical(ran_prefix,NA)) {
+                p <- paste(ran_prefix[length(v)],p,sep="_")
+            }
+            return(p)
+        }
+
+        rownames(ret) <- paste(apply(ret[c("var1","var2")],1,pfun),
+                                ret[,"grp"], sep = ".")
+
+        ## FIXME: this is ugly, but maybe necessary?
+        ## set 'term' column explicitly, disable fix_data_frame
+        ##  rownames -> term conversion
+        ## rownames(ret) <- seq(nrow(ret))
+
+        if (conf.int) {
+            ciran <- confint(x,parm="theta_",method=conf.method,...)
+            ret <- data.frame(ret,ciran)
+            nn <- c(nn,"conf.low","conf.high")
+        }
+
+        
+        ## replicate lme4:::tnames, more or less
+        ret_list$ran_pars <- fix_data_frame(ret[c("grp", rscale)],
+                                            newnames = c("group", "estimate"))
+    }
+    if ("ran_modes" %in% effects) {
+        ## fix each group to be a tidy data frame
+
+        nn <- c("estimate", "std.error")
+        re <- ranef(x,condVar=TRUE)
+        getSE <- function(x) {
+            v <- attr(x,"postVar")
+            setNames(as.data.frame(sqrt(t(apply(v,3,diag)))),
+                     colnames(x))
+        }
+        fix <- function(g,re,.id) {
+             newg <- fix_data_frame(g, newnames = colnames(g), newcol = "level")
+             # fix_data_frame doesn't create a new column if rownames are numeric,
+             # which doesn't suit our purposes
+             newg$level <- rownames(g)
+             newg$type <- "estimate"
+
+             newg.se <- getSE(re)
+             newg.se$level <- rownames(re)
+             newg.se$type <- "std.error"
+
+             data.frame(rbind(newg,newg.se),.id=.id,
+                        check.names=FALSE)
+                        ## prevent coercion of variable names
+        }
+
+        mm <- do.call(rbind,Map(fix,coef(x),re,names(re)))
+
+        ## block false-positive warnings due to NSE
+        type <- spread <- est <- NULL
+        mm %>% gather(term, estimate, -.id, -level, -type) %>%
+            spread(type,estimate) -> ret
+
+        ## FIXME: doesn't include uncertainty of population-level estimate
+
+        if (conf.int) {
+            if (conf.method != "Wald")
+                stop("only Wald CIs available for conditional modes")
+
+            mult <- qnorm((1+conf.level)/2)
+            ret <- transform(ret,
+                             conf.low=estimate-mult*std.error,
+                             conf.high=estimate+mult*std.error)
+        }
+
+        ret <- dplyr::rename(ret,group=.id)
+        ret_list$ran_modes <- ret
+    }
+    return(rbind.fill(ret_list))
+}
+```
+  
+#### Figure 4
+```{r physio figures, fig.dim=c(5,8), results="hide", fig.cap="**Figure 4.** *Physiological metrics for Montipora capitata colonies dominated by C (Cladocopium) or D (Durusdinium) symbionts collected from four Kāne‘ohe Bay reef locations in summer (left) and winter (right) spanning a light availability gradient across <1–10 m depth.*"}
+
+### Physiology paired figures
+### (a) biomass, (b) zoox, (c) total chl, (d), chl/cell
+
+par(mfrow=c(4,2), mar=c(4,5,1,1))
+##################
+# Fig: biomass over season and depth
+################## 
+
+mod<-lmer(biomass~Season+Light+Dom+ (1|Location), data=model.data, na.action=na.exclude)
+intercept<-coef(summary(mod))[1] # intercept
+fixed_params <- tidy_lmer(mod, effects = "fixed")[,c("term", "estimate")]; #fixed_params
+
+# C summer
+plot(biomass~Light, data=C.sum.df, col='red3', ylim=c(0, 80), xlim=c(25, 0), yaxt="n", xaxt="n", cex=0.9, pch=21, bg="salmon", ylab="", xlab ="", cex.main=0.9, main="Summer")
+ablineclip(intercept, coef(summary(mod))["Light",1], col="salmon", x1 = min(C.sum.df$Light), x2 = max(C.sum.df$Light), lwd=2)
+legend("topright", c("C-colonies", "D-colonies"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.7, y.intersp = 0.7, x.intersp = 0.4, bty="n", inset=c(0.1, 0.02))
+legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.7, y.intersp = 0.7, x.intersp = 0.4, bty="n", inset=c(0.35, 0.02))
+par(new=T)
+
+# D summer
+plot(biomass~Light, data=D.sum.df, col='blue', ylim=c(0, 80), xaxt="n", xlim=c(25, 0), cex=0.9, pch=21, bg="deepskyblue1", xlab="",
+     #xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))) 
+     ylab=expression(paste("biomass", ~(mg~cm^-2), sep="")), cex.axis=0.8,
+     cex.lab=0.8)
+axis(side=1,labels=F) 
+ablineclip((intercept+ coef(summary(mod))["DomD",1]), coef(summary(mod))["Light",1], col="deepskyblue1", x1 = min(D.sum.df$Light), x2 = max(D.sum.df$Light), lwd=2)
+
+
+# C winter
+plot(biomass~Light, data=C.win.df, col='red3', ylim=c(0, 80), xlim=c(15, 0), yaxt="n", xaxt="n",
+     cex=0.8, pch=21, bg="salmon", ylab="", xlab ="", cex.main=0.9, main="Winter")
+ablineclip((intercept + coef(summary(mod))["Seasonwinter",1]), coef(summary(mod))["Light",1], col="salmon", x1 = min(C.win.df$Light), x2 = max(C.win.df$Light), lwd=2)
+par(new=T)
+
+# D winter
+plot(biomass~Light, data=D.win.df, col='blue', ylim=c(0, 80), xlim=c(15, 0), yaxt="n", xaxt="n", cex=0.9, pch=21, 
+     bg="deepskyblue1", xlab="",
+     #xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))) 
+     ylab="", cex.axis=0.8, cex.lab=0.8)
+axis(side=1,labels=F) 
+axis(side=2,labels=F)
+ablineclip((intercept+ coef(summary(mod))["Seasonwinter",1]+ coef(summary(mod))["DomD",1]) , coef(summary(mod))["Light",1], col="deepskyblue1", x1 = min(D.win.df$Light), x2 = max(D.win.df$Light), lwd=2)
+
+
+
+##################
+# Fig: symbionts over season and depth
+##################  
+
+# model.data$zoox<-log(model.data$zoox)
+mod<-lmer(zoox~Season+Light+Dom+Season:Light + (1|Location), data=model.data, na.action=na.exclude)
+intercept<-coef(summary(mod))[1] # intercept
+fixed_params <- tidy_lmer(mod, effects = "fixed")[,c("term", "estimate")]; #fixed_params
+
+
+
+##### back transformed
+x_light=seq(1,23, 0.5)
+ypred= exp(intercept+ coef(summary(mod))["Light",1]*x_light)
+
+# C summer
+plot(zoox~Light, data=C.sum.df, col='red3', ylim=c(0, 6000000), xlim=c(25, 0), yaxt="n", xaxt="n", cex=0.9, pch=21, bg="salmon", ylab="", xlab ="")
+lines(x_light, ypred, col="salmon", lwd=2)
+#legend("topright", c("C-colonies", "D-colonies"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.1, 0))
+#legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.355, 0))
+par(new=T)
+
+# D summer
+x_light=seq(5,24, 0.5)
+ypred= exp(intercept+ coef(summary(mod))["DomD",1]+coef(summary(mod))["Light",1]*x_light)
+
+plot(zoox~Light, data=D.sum.df, col='blue', ylim=c(0, 6000000), xlim=c(25, 0), cex=0.9, pch=21, bg="deepskyblue1",
+     xaxt="n", xlab="",
+     #xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), main="Summer", 
+     ylab=expression(paste("symbionts ", "(",cells~cm^-2~")", sep="")), 
+     cex.axis=0.8, cex.lab=0.8, cex.main=0.7)
+axis(side=1,labels=F) 
+lines(x_light, ypred, col="deepskyblue1", lwd=2)
+
+
+
+# C winter
+x_light=seq(0.3,14, 0.5)
+ypred= exp(intercept + coef(summary(mod))["Seasonwinter",1]+ coef(summary(mod))["Light",1]+ coef(summary(mod))["Seasonwinter:Light",1]*x_light)
+
+plot(zoox~Light, data=C.win.df, col='red3', ylim=c(0, 6000000), xlim=c(15, 0), yaxt="n", xaxt="n",cex=0.9, pch=21, bg="salmon", ylab="", xlab ="")
+lines(x_light, ypred, col="salmon", lwd=2)
+
+par(new=T)
+
+# D winter
+x_light=seq(1.5,15, 0.5)
+ypred= exp(intercept+ coef(summary(mod))["Seasonwinter",1]+ coef(summary(mod))["Light",1]+ coef(summary(mod))["DomD",1] + coef(summary(mod))["Seasonwinter:Light",1]*x_light)
+
+plot(zoox~Light, data=D.win.df, col='blue', ylim=c(0, 6000000), xlim=c(15, 0), cex=0.9, pch=21, bg="deepskyblue1",
+     #xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), main="Winter",
+     ylab="", cex.axis=0.8, xlab="", xaxt="n", yaxt="n",
+     cex.axis=0.8, cex.lab=0.8, cex.main=0.7)
+axis(side=1,labels=F) 
+axis(side=2,labels=F)
+lines(x_light, ypred, col="deepskyblue1", lwd=2)
+
+##################
+# Fig: chlorophyll (total) over season and depth
+################## 
+
+# model 
+mod<-lmer(chltot~Season+Light+Dom+Season:Dom + (1|Location), data=model.data, na.action=na.exclude)
+fixed_params <- tidy_lmer(mod, effects = "fixed")[,c("term", "estimate")]; #fixed_params
+
+intercept<-coef(summary(mod))[1] # intercept
+# coef(summary(mod))["Seasonwinter",1] # winter, summer = 0
+# coef(summary(mod))["Light",1] # light relationship (slope for all figures)
+# coef(summary(mod))["DomD",1] # domD, domC = 0
+# coef(summary(mod))["Seasonwinter:DomD",1] #D in winter, winter C = 0, summer C = 0
+
+# C summer
+plot(chltot~Light, data=C.sum.df, col='red3', ylim=c(0, 15), xlim=c(25, 0), yaxt="n", xaxt="n", cex=0.9, pch=21, bg="salmon", ylab="", xlab ="", cex.main=0.7)
+     #main="Summer"
+ablineclip(intercept, coef(summary(mod))["Light",1], col="salmon", x1 = min(C.sum.df$Light), x2 = max(C.sum.df$Light), lwd=2)
+#legend("topright", c("C-colonies", "D-colonies"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.1, 0))
+#legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.355, 0))
+par(new=T)
+
+# D summer
+plot(chltot~Light, data=D.sum.df, col='blue', ylim=c(0, 15), xlim=c(25, 0), cex=0.9, pch=21, bg="deepskyblue1",
+     #xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab=expression(paste("total chlorophyll", ~(mu*g~cm^-2), sep="")), cex.axis=0.8,
+     cex.lab=0.8, xlab="", xaxt="n")
+axis(side=1,labels=F) 
+ablineclip((intercept+ coef(summary(mod))["DomD",1]), coef(summary(mod))["Light",1], col="deepskyblue1", x1 = min(D.sum.df$Light), x2 = max(D.sum.df$Light), lwd=2)
+
+# C winter
+plot(chltot~Light, data=C.win.df, col='red3', ylim=c(0, 15), xlim=c(15, 0), yaxt="n", xaxt="n",cex=0.9, pch=21, bg="salmon", ylab="", xlab ="", cex.main=0.7)
+     #main="Winter"
+ablineclip((intercept + coef(summary(mod))["Seasonwinter",1]), coef(summary(mod))["Light",1], col="salmon", x1 = min(C.win.df$Light), x2 = max(C.win.df$Light), lwd=2)
+par(new=T)
+
+# D winter
+plot(chltot~Light, data=D.win.df, col='blue', ylim=c(0, 15), xlim=c(15, 0), cex=0.8, pch=21, bg="deepskyblue1",
+     #xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab="",
+     cex.lab=0.8, cex.axis=0.8, xlab="", xaxt="n", yaxt="n")
+axis(side=1,labels=F) 
+axis(side=2,labels=F) 
+ablineclip((intercept+ coef(summary(mod))["Seasonwinter",1]+ coef(summary(mod))["DomD",1] + coef(summary(mod))["Seasonwinter:DomD",1]) , coef(summary(mod))["Light",1], col="deepskyblue1", x1 = min(D.win.df$Light), x2 = max(D.win.df$Light), lwd=2)
+
+
+
+##################
+# Fig: chlorophyll/cell over season and depth
+##################  
+# model.data$chlcell<-log(model.data$chlacell)
+mod<-lmer(chlcell~Season+Light+Dom+ (1|Location), data=model.data, na.action=na.exclude)
+intercept<-coef(summary(mod))[1] # intercept
+fixed_params <- tidy_lmer(mod, effects = "fixed")[,c("term", "estimate")]; #fixed_params
+
+##### back transformed
+x_light=seq(1,23, 0.5)
+ypred= exp(intercept+ coef(summary(mod))["Light",1]*x_light)
+
+# C summer
+plot(chlcell~Light, data=C.sum.df, col='red3', ylim=c(0, 15), xlim=c(25, 0), yaxt="n", xaxt="n", cex=0.9,
+     pch=21, bg="salmon", ylab="", xlab ="")
+lines(x_light, ypred, col="salmon", lwd=2)
+#legend("topright", c("C-colonies", "D-colonies"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.1, 0))
+#legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.355, 0))
+par(new=T)
+
+# D summer
+x_light=seq(5,24, 0.5)
+ypred= exp(intercept+ coef(summary(mod))["DomD",1]+coef(summary(mod))["Light",1]*x_light)
+
+plot(chlcell~Light, data=D.sum.df, col='blue', ylim=c(0, 15), xlim=c(25, 0), cex=0.9, pch=21,
+     bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))),
+     ylab=(expression(paste("chlorophyll (",pg~cell^-1, ")", sep=""))), 
+     #main="Summer",
+     cex.axis=0.8, cex.lab=0.8, cex.main=0.7)
+lines(x_light, ypred, col="deepskyblue1", lwd=2)
+
+
+# C winter
+x_light=seq(0.3,14, 0.5)
+ypred= exp(intercept + coef(summary(mod))["Seasonwinter",1] + coef(summary(mod))["Light",1]*x_light)
+
+plot(chlcell~Light, data=C.win.df, col='red3', ylim=c(0, 15), xlim=c(15, 0), yaxt="n", xaxt="n",cex=0.9,
+     pch=21, bg="salmon", ylab="", xlab ="")
+lines(x_light, ypred, col="salmon", lwd=2)
+
+par(new=T)
+
+# D winter
+x_light=seq(1.5,15, 0.5)
+ypred= exp(intercept+ coef(summary(mod))["Seasonwinter",1] + coef(summary(mod))["DomD",1] +
+             coef(summary(mod))["Light",1]*x_light)
+
+plot(chlcell~Light, data=D.win.df, col='blue', ylim=c(0, 15), xlim=c(15, 0), cex=0.9, pch=21,
+     bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))),
+     ylab="", yaxt="n",
+     #main="Winter",
+     cex.axis=0.8, cex.lab=0.8, cex.main=0.7)
+axis(side=2,labels=F) 
+lines(x_light, ypred, col="deepskyblue1", lwd=2)
+
+
+dev.copy(pdf, "figures/physiology/physio_multipanel.pdf", width=5, height=8)
+dev.off()
+```
+
+### Isotope figures
+  
+#### Figure 5
+```{r isotope carbon figs, fig.dim=c(5,6), results="hide", fig.cap="**Figure 5.** *Carbon isotope valuesfor Montipora capitata host and symbionts dominated by C (Cladocopium) or D (Durusdinium) Symbiodiniaceae collected from four Kāne‘ohe Bay reef locations in summer (left) and winter (right) spanning a light availability gradient across <1–10 m depth.*" }
+
+### Isotope figures
+### 3 panel horizontal for carbon
+
+##################
+# Fig: d13C host over season and depth
+##################        
+par(mfrow=c(3,2), mar=c(4,5,1,1))
+
+# model.data$host..d13C
+mod<-lmer(host..d13C~Season+Light+Dom+ Season:Dom+ Season:Light+(1|Location), data=model.data, na.action=na.exclude)
+intercept<-coef(summary(mod))[1] # intercept
+fixed_params <- tidy_lmer(mod, effects = "fixed")[,c("term", "estimate")]; #fixed_params
+
+# C summer
+plot(host..d13C~Light, data=C.sum.df, col='red3', ylim=c(-20, -10), xlim=c(25, 0), yaxt="n", xaxt="n", cex=0.9, pch=21, bg="salmon", ylab="", xlab ="", main="Summer", cex.main=0.9)
+ablineclip(intercept, coef(summary(mod))["Light",1], col="salmon", 
+           x1 = min(C.sum.df$Light), x2 = max(C.sum.df$Light), lwd=2)
+legend("topright", c("C-colonies", "D-colonies"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.7, y.intersp = 0.8, x.intersp = 0.4, bty="n", inset=c(0.18, 0.05))
+legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.7, y.intersp = 0.8, x.intersp = 0.4, bty="n", inset=c(0.43, 0.05))
+par(new=T)
+
+# D summer
+plot(host..d13C~Light, data=D.sum.df, col='blue', ylim=c(-20, -10), xlim=c(25, 0), cex=0.9, pch=21, bg="deepskyblue1",
+     #xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab=(expression(paste(delta^{13}, C[H], " (\u2030, V-PDB)"))), cex.axis=0.8,
+     cex.lab=0.8, xaxt="n", xlab="")
+axis(side=1,labels=F) 
+ablineclip((intercept+ coef(summary(mod))["DomD",1]), coef(summary(mod))["Light",1], col="deepskyblue1", x1 = min(D.sum.df$Light), x2 = max(D.sum.df$Light), lwd=2)
+
+# C winter
+plot(host..d13C~Light, data=C.win.df, col='red3', ylim=c(-20, -10), xlim=c(15, 0), yaxt="n", xaxt="n",
+     cex=0.9, pch=21, bg="salmon", ylab="", xlab ="", main="Winter", cex.main=0.9)
+ablineclip((intercept + coef(summary(mod))["Seasonwinter",1]),   (coef(summary(mod))["Light",1]+coef(summary(mod))["Seasonwinter:Light",1]), col="salmon", x1 = min(C.win.df$Light), x2 = max(C.win.df$Light), lwd=2)
+par(new=T)
+
+# D winter
+plot(host..d13C~Light, data=D.win.df, col='blue', ylim=c(-20, -10), xlim=c(15, 0), cex=0.9, pch=21, bg="deepskyblue1",
+     #xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab="", cex.axis=0.8, cex.lab=0.8, yaxt="n", xaxt="n", xlab="")
+axis(side=1,labels=F) 
+axis(side=2,labels=F)
+ablineclip((intercept+ coef(summary(mod))["Seasonwinter",1]+ coef(summary(mod))["DomD",1]+ coef(summary(mod))["Seasonwinter:DomD",1]), (coef(summary(mod))["Light",1]+coef(summary(mod))["Seasonwinter:Light",1]), 
+           col="deepskyblue1", x1 = min(D.win.df$Light), x2 = max(D.win.df$Light), lwd=2)
+
+
+##################
+# Fig: d13C symb over season and depth
+##################        
+# model.data$symb..d13C
+mod<-lmer(symb..d13C~Season+Light+Dom+ Season:Dom+ Season:Light+(1|Location), data=model.data, na.action=na.exclude)
+intercept<-coef(summary(mod))[1] # intercept
+fixed_params <- tidy_lmer(mod, effects = "fixed")[,c("term", "estimate")]; #fixed_params
+
+# C summer
+plot(symb..d13C~Light, data=C.sum.df, col='red3', ylim=c(-20, -10), xlim=c(25, 0), yaxt="n", xaxt="n", cex=0.9,
+     #main="Summer",
+     pch=21, bg="salmon", ylab="", xlab ="", cex.main=0.7)
+ablineclip(intercept, coef(summary(mod))["Light",1], col="salmon", 
+           x1 = min(C.sum.df$Light), x2 = max(C.sum.df$Light), lwd=2)
+#legend("topright", c("C-colonies", "D-colonies"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.1, 0))
+#legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.355, 0))
+par(new=T)
+
+# D summer
+plot(symb..d13C~Light, data=D.sum.df, col='blue', ylim=c(-20, -10), xlim=c(25, 0), cex=0.9, pch=21, bg="deepskyblue1",
+     #xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab=(expression(paste(delta^{13}, C[S], " (\u2030, V-PDB)"))), cex.axis=0.8,
+     cex.lab=0.8, xlab="", xaxt="n")
+axis(side=1,labels=F) 
+ablineclip((intercept+ coef(summary(mod))["DomD",1]), coef(summary(mod))["Light",1], col="deepskyblue1", x1 = min(D.sum.df$Light), x2 = max(D.sum.df$Light), lwd=2)
+
+# C winter
+plot(symb..d13C~Light, data=C.win.df, col='red3', ylim=c(-20, -10), xlim=c(15, 0), yaxt="n", xaxt="n",
+     #main="Winter",
+     cex=0.9, pch=21, bg="salmon", ylab="", xlab ="", cex.main=0.7)
+ablineclip((intercept + coef(summary(mod))["Seasonwinter",1]), (coef(summary(mod))["Light",1]+ coef(summary(mod))["Seasonwinter:Light",1]), col="salmon", x1 = min(C.win.df$Light), x2 = max(C.win.df$Light), lwd=2)
+par(new=T)
+
+# D winter
+plot(symb..d13C~Light, data=D.win.df, col='blue', ylim=c(-20, -10), xlim=c(15, 0), cex=0.9, pch=21, bg="deepskyblue1",
+     #xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab="", cex.axis=0.8, cex.lab=0.8, xaxt="n", xlab="", yaxt="n")
+axis(side=1,labels=F) 
+axis(side=2,labels=F)
+ablineclip((intercept+ coef(summary(mod))["Seasonwinter",1]+ coef(summary(mod))["DomD",1]+ coef(summary(mod))["Seasonwinter:DomD",1]),
+           (coef(summary(mod))["Light",1]+coef(summary(mod))["Seasonwinter:Light",1]), col="deepskyblue1", x1 = min(D.win.df$Light), x2 = max(D.win.df$Light), lwd=2)
+
+
+##################
+# Fig: d13C host-symb over season and depth
+##################        
+# model.data$d13C..host.sym
+mod<-lmer(d13C..host.sym~Season+Light+Dom+ Season:Light +Season:Dom +(1|Location), data=model.data, na.action=na.exclude)
+intercept<-coef(summary(mod))[1] # intercept
+fixed_params <- tidy_lmer(mod, effects = "fixed")[,c("term", "estimate")]; #fixed_params
+
+# C summer
+plot(d13C..host.sym~Light, data=C.sum.df, col='red3', ylim=c(-2, 2), xlim=c(25, 0), yaxt="n", xaxt="n", cex=0.9, 
+     #main="Summer",
+     pch=21, bg="salmon", ylab="", xlab ="", cex.main=0.7)
+ablineclip(intercept, coef(summary(mod))["Light",1], col="salmon", 
+           x1 = min(C.sum.df$Light), x2 = max(C.sum.df$Light), lwd=2)
+#legend("topright", c("C-colonies", "D-colonies"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.1, 0))
+#legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.355, 0))
+par(new=T)
+
+# D summer
+plot(d13C..host.sym~Light, data=D.sum.df, col='blue', ylim=c(-2, 2), xlim=c(25, 0), cex=0.9, pch=21, bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab=(expression(paste(delta^{13}, C[H-S], " (\u2030, V-PDB)"))), cex.axis=0.8,
+     cex.lab=0.8)
+ablineclip((intercept+ coef(summary(mod))["DomD",1]), coef(summary(mod))["Light",1], col="deepskyblue1", x1 = min(D.sum.df$Light), x2 = max(D.sum.df$Light), lwd=2)
+
+# C winter
+plot(d13C..host.sym~Light, data=C.win.df, col='red3', ylim=c(-2, 2), xlim=c(15, 0), yaxt="n", xaxt="n",
+     #main="Winter",
+     cex=0.9, pch=21, bg="salmon", ylab="", xlab ="", cex.main=0.7)
+ablineclip((intercept + coef(summary(mod))["Seasonwinter",1]), (coef(summary(mod))["Light",1]+coef(summary(mod))["Seasonwinter:Light",1]), col="salmon", x1 = min(C.win.df$Light), x2 = max(C.win.df$Light), lwd=2)
+par(new=T)
+
+# D winter
+plot(d13C..host.sym~Light, data=D.win.df, col='blue', ylim=c(-2, 2), xlim=c(15, 0), cex=0.9, pch=21, bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab="", cex.axis=0.8, cex.lab=0.8, yaxt="n")
+axis(side=2, labels=F)
+ablineclip((intercept+ coef(summary(mod))["Seasonwinter",1]+ coef(summary(mod))["DomD",1]+
+              coef(summary(mod))["Seasonwinter:DomD",1]),
+           (coef(summary(mod))["Light",1]+ coef(summary(mod))["Seasonwinter:Light",1]), 
+           col="deepskyblue1", x1 = min(D.win.df$Light), x2 = max(D.win.df$Light), lwd=2)
+
+
+dev.copy(pdf, "figures/isotope/isotope_multipanel.pdf", encod="MacRoman", width=5, height=6)
+dev.off()
+```
+
+#### Figure S7  
+  
+**Coral skeleton δ^13^C and δ^18^O values**
+```{r isotopes skeleton, results="hide", fig.dim=c(5.5,5), fig.cap="**Figure S7.** *Stable isotope values skeletal carbonates from Montipora capitata colonies dominated by C (Cladocopium spp.) or D (Durusdinium spp.) symbionts.  (Top) The relationship between oxygen δ^18^O and carbon isotopes δ^13^CSk, and (bottom) changes in carbon isotopes in skeletal material in response to light availability across seasons.*"}
+
+##################
+# Fig: d13C skeleton over season and depth
+##################        
+layout(matrix(c(1,1,2,3), 2,2, byrow=TRUE))
+#### oxygen and carbon
+C.skel<-df.fig[df.fig$Dom=="C", ]
+D.skel<-df.fig[df.fig$Dom=="D", ]
+
+# df.fig
+plot(d18O..skel~d13C..skel, data=C.skel, col='red3', ylim=c(-6, -1), xlim=c(-5, 0.5), yaxt="n", xaxt="n", cex=0.8, pch=21, bg="salmon", ylab="", xlab ="", cex.main=0.7)
+par(new=T)
+
+plot(d18O..skel~d13C..skel, data=D.skel, col='blue', ylim=c(-6, -1), xlim=c(-5, 1), cex=0.8, pch=21, bg="deepskyblue1",
+     ylab=(expression(paste(delta^{18}, O, " (\u2030, V-PDB)"))), 
+     xlab=(expression(paste(delta^{13}, C[Sk], " (\u2030, V-PDB)"))), cex.axis=0.8,
+     cex.lab=0.8)
+legend("topright", c("C-colonies", "D-colonies"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.72, -0.04))
+legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.5, bty="n", inset=c(0.855, -0.04))
+
+par(new=T)
+abline(a=-1.40, b=.33, lty=2)
+ablineclip(-3.84584, 0.08954, col="salmon", 
+           x1 = min(C.skel$d13C..skel), x2 = max(C.skel$d13C..skel), lwd=2) # significant for C
+ablineclip(-3.19236, 0.31486, col="deepskyblue1", 
+           x1 = min(D.skel$d13C..skel), x2 = max(D.skel$d13C..skel), lwd=2) # significant for C
+
+C.skel.mod<-lm(d18O..skel~d13C..skel, data=C.skel) # significant for C
+fixed_params <- tidy_lmer(C.skel.mod, effects = "fixed")[,c("term", "estimate")]; #fixed_params
+# intercept= -3.85, d13C coeff = 0.0895
+
+D.skel.mod<-lm(d18O..skel~d13C..skel, data=D.skel) # significant (p<0.001), R2 = 0.57
+fixed_params <- tidy_lmer(D.skel.mod, effects = "fixed")[,c("term", "estimate")]; #fixed_params
+# intercept= -3.19, d13C coeff = 0.315
+
+### KIE line
+# carbon equil at 2.85 permil
+# oxygen equil at -1.24 peril for temp range
+# if (-1.24, 2.85) on line and slope of 0.33 used at ratio of 1:3 oxygen : carbon, then y intercept is -1.40
+
+#### SEASONS
+par(mar=c(5,4.5,0.8,1.5))
+# model.data$d13C..skel
+mod<-lmer(d13C..skel~Season+Light+Dom+ (1|Location), data=model.data, na.action=na.exclude)
+intercept<-coef(summary(mod))[1] # intercept
+fixed_params <- tidy_lmer(mod, effects = "fixed")[,c("term", "estimate")]; #fixed_params
+
+
+# C summer
+plot(d13C..skel~Light, data=C.sum.df, col='red3', ylim=c(-8, 4), xlim=c(25, 0), yaxt="n", xaxt="n", cex=0.8, pch=21, bg="salmon", ylab="", xlab ="", main="Summer", cex.main=0.9)
+ablineclip(intercept, coef(summary(mod))["Light",1], col="salmon", 
+           x1 = min(C.sum.df$Light), x2 = max(C.sum.df$Light), lwd=2)
+par(new=T)
+
+# D summer
+plot(d13C..skel~Light, data=D.sum.df, col='blue', ylim=c(-8, 4), xlim=c(25, 0), cex=0.8, pch=21, bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab=(expression(paste(delta^{13}, C[Sk], " (\u2030, V-PDB)"))), cex.axis=0.8,
+     cex.lab=0.8)
+ablineclip((intercept+ coef(summary(mod))["DomD",1]), coef(summary(mod))["Light",1], col="deepskyblue1", x1 = min(D.sum.df$Light), x2 = max(D.sum.df$Light), lwd=2)
+
+# C winter
+plot(d13C..skel~Light, data=C.win.df, col='red3', ylim=c(-8, 4), xlim=c(15, 0), yaxt="n", xaxt="n",
+     cex=0.8, pch=21, bg="salmon", ylab="", xlab ="", main="Winter", cex.main=0.9)
+ablineclip((intercept + coef(summary(mod))["Seasonwinter",1]), coef(summary(mod))["Light",1], col="salmon", x1 = min(C.win.df$Light), x2 = max(C.win.df$Light), lwd=2)
+par(new=T)
+
+# D winter
+plot(d13C..skel~Light, data=D.win.df, col='blue', ylim=c(-8, 4), xlim=c(15, 0), cex=0.8, pch=21, bg="deepskyblue1",
+     ylab="", cex.axis=0.8, cex.lab=0.8, yaxt="n")
+axis(side=2, labels=F)
+ablineclip((intercept+ coef(summary(mod))["Seasonwinter",1]+ coef(summary(mod))["DomD",1]),
+           coef(summary(mod))["Light",1], 
+           col="deepskyblue1", x1 = min(D.win.df$Light), x2 = max(D.win.df$Light), lwd=2)
+
+dev.copy(pdf, "figures/isotope/suppm.Cskel.pdf", encod="MacRoman", width=5.5, height=5)
+dev.off()
+```
+
+Regression of symbiont carbon isotope values (δ^13^C~S~) against symbiont traits (cell densities and photopigmentation [areal and symbiont cell-specific content]). Then accounting for the differences in symbiont densities and how this may affect the overall difference in isotope values of host and symbiont (δ^13^C~H-S~). Together these two figures represent *Supplemental Figures S8 and S9*.
+  
+#### Figure S8
+```{r d13C scatter with host and symbiont physiology, fig.dim=c(5,7), results="hide", fig.align='center', collapse=TRUE, fig.cap="**Figure S8.** *The relationship between symbiont isotope values (δ^13^C~S~) and (a) symbiont densities, (b) total chlorophyll, and (c) chlorophyll per symbiont cells for Montipora capitata colonies dominated by C (Cladocopium spp.) or D (Durusdinium spp.)*"}
+
+### IN THE SYMBIONT ###
+
+##### C-colonies
+# ZOOX in the winter influence d13C
+# CHLCELL in summer and winter influences d13C
+
+summary(lm(symb..d13C~zoox, data=C.sum.df)) # NS
+summary(lm(symb..d13C~zoox, data=C.win.df)) # signif p<0.0001
+
+summary(lm(symb..d13C~chltot, data=C.sum.df)) # NS
+summary(lm(symb..d13C~chltot, data=C.win.df)) # NS
+
+summary(lm(symb..d13C~chlcell, data=C.sum.df)) # signif p=0.004
+summary(lm(symb..d13C~chlcell, data=C.win.df)) # signif p=0.030
+
+
+#### D-colonies
+# ZOOX in winter influence d13C
+
+summary(lm(symb..d13C~zoox, data=D.sum.df)) # NS
+summary(lm(symb..d13C~zoox, data=D.win.df)) # signif p=0.007
+
+summary(lm(symb..d13C~chltot, data=D.sum.df)) # NS
+summary(lm(symb..d13C~chltot, data=D.win.df)) # NS
+
+summary(lm(symb..d13C~chlcell, data=D.sum.df)) # NS 
+summary(lm(symb..d13C~chlcell, data=D.win.df)) # NS
+
+##### IN HOST-SYMBIONT
+## zoox
+summary(lm(d13C..host.sym~zoox, data=C.sum.df)) # NS
+summary(lm(d13C..host.sym~zoox, data=C.win.df)) # signif p=0.014
+summary(lm(d13C..host.sym~zoox, data=D.sum.df)) # signif p=0.004
+summary(lm(d13C..host.sym~zoox, data=D.win.df)) # signif p=0.007
+
+
+## not used, but justification for using symbiont and not host -- the patterns are the same, symbiont driven.
+### IN THE HOST ###
+
+##### C-colonies
+# ZOOX in the winter influence d13C
+# CHLCELL in summer influences d13C
+
+summary(lm(host..d13C~zoox, data=C.sum.df)) # NS
+summary(lm(host..d13C~zoox, data=C.win.df)) # signif p=0.0001
+
+summary(lm(host..d13C~chltot, data=C.sum.df)) # NS
+summary(lm(host..d13C~chltot, data=C.win.df)) # NS
+
+summary(lm(host..d13C~chlcell, data=C.sum.df)) # signif p = 0.024
+summary(lm(host..d13C~chlcell, data=C.win.df)) # almost p=0.059
+
+
+#### D-colonies
+# ZOOX in winter influence d13C
+
+summary(lm(host..d13C~zoox, data=D.sum.df)) # NS
+summary(lm(host..d13C~zoox, data=D.win.df)) # signif p=0.030
+
+summary(lm(host..d13C~chltot, data=D.sum.df)) # NS
+summary(lm(host..d13C~chltot, data=D.win.df)) # NS
+
+summary(lm(host..d13C~chlcell, data=D.sum.df)) # NS 
+summary(lm(host..d13C~chlcell, data=D.win.df)) # NS
+
+
+
+
+############################
+
+ # plots for symbiont isotope x physiology
+
+############################
+######### symbionts cm-2 and symbiont-d13C
+
+par(mfrow=c(3,2),mar=c(5,4.5,2,1))
+
+# C summer plot
+plot(symb..d13C~zoox, data=C.sum.df, col='red3', ylim=c(-20, -12), xlim=c(0, 6000000), cex=0.9, pch=21, bg="salmon", main="Summer", cex.main=0.9,
+     xlab=expression(paste("symbionts ", "(",cells~cm^-2~")", sep="")), 
+     ylab=(expression(paste(delta^{13}, C[S], " (\u2030, V-PDB)"))), cex.axis=0.8,
+     cex.lab=0.8)
+Axis(side=2, at = seq(-20, -12, by = 2), cex.axis=0.8)
+legend("topright", c("C-colonies", "D-colonies"), lty=c(1,1), lwd=c(2,2), seg.len=1.4, col=c("salmon", "deepskyblue1"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.09, -0.01))
+legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.35, -0.01))
+ablineclip(lm(symb..d13C~zoox, data=C.sum.df), col='salmon', x1 = min(C.sum.df$zoox), x2 = max(C.sum.df$zoox), lwd=2)
+
+# D summer plot
+par(new=T)
+plot(symb..d13C~zoox, data=D.sum.df, col='blue', ylim=c(-20, -12), xlim=c(0, 6000000), cex=0.9, pch=21, bg="deepskyblue1", xaxt="n", yaxt="n", ylab="", xlab ="", cex.main=0.7)
+ablineclip(lm(symb..d13C~zoox, data=D.sum.df), col='deepskyblue1', x1 = min(D.sum.df$zoox), x2 = max(D.sum.df$zoox), lwd=2)
+
+# C winter plot
+plot(symb..d13C~zoox, data=C.win.df, col='red3', ylim=c(-20, -12), xlim=c(0, 6000000), cex=0.9, pch=21, bg="salmon", xaxt="n", yaxt="n", main="Winter", ylab="", xlab ="", cex.main=0.9)
+ablineclip(lm(symb..d13C~zoox, data=C.win.df), col='salmon', x1 = min(C.win.df$zoox), x2 = max(C.win.df$zoox), lwd=2)
+
+# D winter plot
+par(new=T)
+plot(symb..d13C~zoox, data=D.win.df, col='blue', ylim=c(-20, -12), xlim=c(0, 6000000), cex=0.9, pch=21, bg="deepskyblue1", ylab="", cex.main=0.7, yaxt="n",
+xlab=expression(paste("symbionts ", "(",cells~cm^-2~")", sep="")), cex.axis=0.8,
+     cex.lab=0.8)
+Axis(side=2, at = seq(-20, -12, by = 2), cex.axis=0.8)
+ablineclip(lm(symb..d13C~zoox, data=D.win.df), col='deepskyblue1', x1 = min(D.win.df$zoox), x2 = max(D.win.df$zoox), lwd=2)
+
+
+############################
+######### total chlorophyll a cm-2 and symbiont-d13C
+
+# C summer plot
+plot(symb..d13C~chltot, data=C.sum.df, col='red3', ylim=c(-20, -12), xlim=c(0, 12), cex=0.9, pch=21, bg="salmon",  cex.main=0.7,
+     xlab=expression(paste("total chlorophyll", ~(mu*g~cm^-2), sep="")),
+     ylab=(expression(paste(delta^{13}, C[S], " (\u2030, V-PDB)"))), cex.axis=0.8,
+     cex.lab=0.8)
+#legend("topright", c("C-colonies", "D-colonies"), lty=c(1,1), lwd=c(2,2), seg.len=0.7, col=c("salmon", "deepskyblue1"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(-0.4, -0.03))
+#legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.3, -0.03))
+ablineclip(lm(symb..d13C~chltot, data=C.sum.df), col='salmon', x1 = min(C.sum.df$chltot), x2 = max(C.sum.df$chltot), lwd=2)
+
+# D summer plot
+par(new=T)
+plot(symb..d13C~chltot, data=D.sum.df, col='blue', ylim=c(-20, -12), xlim=c(0, 12), cex=0.9, pch=21, bg="deepskyblue1", xaxt="n", yaxt="n", ylab="", xlab ="", cex.main=0.7)
+ablineclip(lm(symb..d13C~chltot, data=D.sum.df), col='deepskyblue1', x1 = min(D.sum.df$chltot), x2 = max(D.sum.df$chltot), lwd=2)
+
+# C winter plot
+plot(symb..d13C~chltot, data=C.win.df, col='red3', ylim=c(-20, -12), xlim=c(0, 12), cex=0.9, pch=21, bg="salmon",  yaxt="n", ylab="", xlab ="", cex.main=0.7, cex.axis=0.8)
+ablineclip(lm(symb..d13C~chltot, data=C.win.df), col='salmon', x1 = min(C.win.df$chltot), x2 = max(C.win.df$chltot), lwd=2)
+
+# D winter plot
+par(new=T)
+plot(symb..d13C~chltot, data=D.win.df, col='blue', ylim=c(-20, -12), xlim=c(0, 12), cex=0.9, pch=21, bg="deepskyblue1", ylab="", cex.main=0.7, yaxt="n", xaxt="n",
+xlab=expression(paste("total chlorophyll", ~(mu*g~cm^-2), sep="")), cex.axis=0.8,
+     cex.lab=0.8)
+Axis(side=2, labels=FALSE)
+ablineclip(lm(symb..d13C~chltot, data=D.win.df), col='deepskyblue1', x1 = min(D.win.df$chltot), x2 = max(D.win.df$chltot), lwd=2)
+
+
+
+############################
+######### chlorophyll a cell-1 and symbiont-d13C
+
+# C summer plot
+plot(symb..d13C~chlcell, data=C.sum.df, col='red3', ylim=c(-20, -12), xlim=c(0, 12), cex=0.9, pch=21, bg="salmon", cex.main=0.7,
+     xlab=(expression(paste("chlorophyll (",pg~cell^-1, ")", sep=""))),
+     ylab=(expression(paste(delta^{13}, C[S], " (\u2030, V-PDB)"))), cex.axis=0.8,
+     cex.lab=0.8)
+#legend("topright", c("C-colonies", "D-colonies"), lty=c(1,1), lwd=c(2,2), seg.len=0.7, col=c("salmon", "deepskyblue1"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(-0.4, -0.03))
+#legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.3, -0.03))
+ablineclip(lm(symb..d13C~chlcell, data=C.sum.df), col='salmon', x1 = min(C.sum.df$chlcell), x2 = max(C.sum.df$chlcell), lwd=2)
+
+# D summer plot
+par(new=T)
+plot(symb..d13C~chlcell, data=D.sum.df, col='blue', ylim=c(-20, -12), xlim=c(0, 12), cex=0.9, pch=21, bg="deepskyblue1", xaxt="n", yaxt="n", ylab="", xlab ="", cex.main=0.7)
+ablineclip(lm(symb..d13C~chlcell, data=D.sum.df), col='deepskyblue1', x1 = min(D.sum.df$chlcell), x2 = max(D.sum.df$chlcell), lwd=2)
+
+# C winter plot
+plot(symb..d13C~chlcell, data=C.win.df, col='red3', ylim=c(-20, -12), xlim=c(0, 12), cex=0.9, pch=21, bg="salmon", xaxt="n", yaxt="n", ylab="", xlab ="", cex.main=0.7)
+ablineclip(lm(symb..d13C~chlcell, data=C.win.df), col='salmon', x1 = min(C.win.df$chlcell), x2 = max(C.win.df$chlcell), lwd=2)
+
+# D winter plot
+par(new=T)
+plot(symb..d13C~chlcell, data=D.win.df, col='blue', ylim=c(-20, -12), xlim=c(0, 12), cex=0.9, pch=21, bg="deepskyblue1", ylab="", cex.main=0.7,
+xlab=(expression(paste("chlorophyll (",pg~cell^-1, ")", sep=""))), cex.axis=0.8,
+     cex.lab=0.8)
+ablineclip(lm(symb..d13C~chlcell, data=D.win.df), col='deepskyblue1', x1 = min(D.win.df$chlcell), x2 = max(D.win.df$chlcell), lwd=2)
+
+dev.copy(pdf, "figures/regressions/symb.isotope_by.symb.phys.pdf", encod="MacRoman", width=4, height=6)
+dev.off()
+```
+  
+#### Figure S9  
+```{r zoox by d13Chs, fig.dim=c(5.5,3), results="hide", fig.align='center', collapse=TRUE, fig.cap="**Figure S9.** *The relationship between the relative differences in host and symbiont carbon isotope values (δ^13^C~H-S~) and symbiont densities for Montipora capitata colonies dominated by C (Cladocopium spp.) or D (Durusdinium spp.) symbionts collected in summer (left) and winter (right).*"}
+############################
+######### zoox cm-2 and d13Ch-s
+
+##### Plot it
+##### host
+par(mfrow=c(1,2),mar=c(5,4.5,2,1))
+
+# C summer plot
+plot(zoox~d13C..host.sym, data=C.sum.df, col='red3', xlim=c(-2, 2), ylim=c(0, 6000000), cex=0.7, pch=21, bg="salmon", main="Summer", cex.main=0.7, xaxt="n",
+     ylab=expression(paste("symbionts ", "(",cells~cm^-2~")", sep="")), 
+     xlab=(expression(paste(delta^{13}, C[H-S], " (\u2030, V-PDB)"))), cex.axis=0.6,
+     cex.lab=0.6)
+Axis(side=1, at = seq(-2, 2, by = 1), cex.axis=0.6)
+legend("topright", c("C-colonies", "D-colonies"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.6, y.intersp = 0.8, x.intersp = 0.4, bty="n", inset=c(0.075, 0.02))
+legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.6, y.intersp = 0.8, x.intersp = 0.4, bty="n", inset=c(0.41, 0.02))
+ablineclip(lm(zoox~d13C..host.sym, data=C.sum.df), col='salmon', 
+           x1 = min(C.sum.df$d13C..host.sym), x2 = max(C.sum.df$d13C..host.sym), lwd=2)
+
+# D summer plot
+par(new=T)
+plot(zoox~d13C..host.sym, data=D.sum.df, col='blue', xlim=c(-2, 2), ylim=c(0, 6000000), cex=0.7, pch=21, bg="deepskyblue1", xaxt="n", yaxt="n", ylab="", xlab ="")
+ablineclip(lm(zoox~d13C..host.sym, data=D.sum.df), col='deepskyblue1', x1 = min(D.sum.df$d13C..host.sym), x2 = max(D.sum.df$d13C..host.sym), lwd=2)
+
+# C winter plot
+plot(zoox~d13C..host.sym, data=C.win.df, col='red3', xlim=c(-2, 2), ylim=c(0, 6000000), cex=0.7, pch=21, bg="salmon", xaxt="n", yaxt="n", main="Winter", ylab="", xlab ="", cex.main=0.7)
+ablineclip(lm(zoox~d13C..host.sym, data=C.win.df), col='salmon', x1 = min(C.win.df$d13C..host.sym), x2 = max(C.win.df$d13C..host.sym), lwd=2)
+
+# D winter plot
+par(new=T)
+plot(zoox~d13C..host.sym, data=D.win.df, col='blue', xlim=c(-2, 2), ylim=c(0, 6000000), cex=0.7, pch=21, bg="deepskyblue1", ylab="", yaxt="n", xaxt="n",
+     xlab=(expression(paste(delta^{13}, C[H-S], " (\u2030, V-PDB)"))), cex.axis=0.6,
+     cex.lab=0.8)
+Axis(side=1, at = seq(-2, 2, by = 1), cex.axis=0.6)
+Axis(side=2, labels=FALSE)
+ablineclip(lm(zoox~d13C..host.sym, data=D.win.df), col='deepskyblue1', x1 = min(D.win.df$d13C..host.sym), x2 = max(D.win.df$d13C..host.sym), lwd=2)
+
+dev.copy(pdf, "figures/regressions/zoox.by_HS.d13C.pdf", width=5, height=4, encod="MacRoman")
+dev.off()
+
+```
+  
+#### Figure S10  
+**Nitrogen isotope composition**
+```{r isotopes host nitrogen, results='hide', fig.dim=c(5,7), fig.cap="**Figure S10.** *Nitrogen stable isotope values for symbiont densities for Montipora capitata colonies dominated by C (Cladocopium spp.) or D (Durusdinium spp.) symbionts collected in summer (left) and winter (right).*"}
+
+######################## Supplement
+##################
+# Fig: d15N host over season and depth
+##################        
+par(mfrow=c(3,2),mar=c(5,4.5,2,1))
+
+# model.data$host..d15N
+mod<-lmer(host..d15N~Season+Light+Dom+(1|Location), data=model.data, na.action=na.exclude)
+intercept<-coef(summary(mod))[1] # intercept
+fixed_params <- tidy_lmer(mod, effects = "fixed")[,c("term", "estimate")]; #fixed_params
+
+# C summer
+plot(host..d15N~Light, data=C.sum.df, col='red3', ylim=c(0, 8), xlim=c(25, 0), yaxt="n", xaxt="n", cex=0.9, pch=21, bg="salmon", ylab="", xlab ="", main="Summer", cex.main=0.9)
+ablineclip(intercept, coef(summary(mod))["Light",1], col="salmon", 
+           x1 = min(C.sum.df$Light), x2 = max(C.sum.df$Light), lwd=2)
+legend("topright", c("C-colonies", "D-colonies"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.7, y.intersp = 1.1, x.intersp = 0.4, bty="n",  inset=c(.11, 0.03))
+legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.7, y.intersp = 1.1, x.intersp = 0.4, bty="n", inset=c(0.35, 0.03))
+par(new=T)
+
+# D summer
+plot(host..d15N~Light, data=D.sum.df, col='blue', ylim=c(0, 8), xlim=c(25, 0), cex=0.9, pch=21, bg="deepskyblue1",
+     #xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab=(expression(paste(delta^{15}, N[H], " (\u2030, Air)"))), cex.axis=0.8,
+     cex.lab=0.8, xaxt="n", xlab="")
+axis(side=1, labels=F)
+ablineclip((intercept+ coef(summary(mod))["DomD",1]), coef(summary(mod))["Light",1], col="deepskyblue1", x1 = min(D.sum.df$Light), x2 = max(D.sum.df$Light), lwd=2)
+
+# C winter
+plot(host..d15N~Light, data=C.win.df, col='red3', ylim=c(0, 8), xlim=c(15, 0), yaxt="n", xaxt="n",
+     cex=0.9, pch=21, bg="salmon", ylab="", xlab ="", main="Winter", cex.main=0.9)
+ablineclip((intercept + coef(summary(mod))["Seasonwinter",1]), coef(summary(mod))["Light",1], col="salmon", x1 = min(C.win.df$Light), x2 = max(C.win.df$Light), lwd=2)
+par(new=T)
+
+# D winter
+plot(host..d15N~Light, data=D.win.df, col='blue', ylim=c(0, 8), xlim=c(15, 0), cex=0.9, pch=21, bg="deepskyblue1",
+     #xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab="", cex.axis=0.8, cex.lab=0.8, yaxt="n", xaxt="n", xlab="")
+axis(side=1, labels=F)
+axis(side=2, labels=F)
+ablineclip((intercept+ coef(summary(mod))["Seasonwinter",1]+ coef(summary(mod))["DomD",1]),
+           coef(summary(mod))["Light",1], 
+           col="deepskyblue1", x1 = min(D.win.df$Light), x2 = max(D.win.df$Light), lwd=2)
+
+
+##################
+# Fig: d15N symb over season and depth
+##################        
+
+# model.data$symb..d15N
+mod<-lmer(symb..d15N~Season+Light+Dom+ Season:Dom +(1|Location), data=model.data, na.action=na.exclude)
+intercept<-coef(summary(mod))[1] # intercept
+fixed_params <- tidy_lmer(mod, effects = "fixed")[,c("term", "estimate")]; #fixed_params
+
+# C summer
+plot(symb..d15N~Light, data=C.sum.df, col='red3', ylim=c(0, 8), xlim=c(25, 0), yaxt="n", xaxt="n", cex=0.9, 
+     #main="Summer",
+     pch=21, bg="salmon", ylab="", xlab ="", cex.main=0.7)
+ablineclip(intercept, coef(summary(mod))["Light",1], col="salmon", 
+           x1 = min(C.sum.df$Light), x2 = max(C.sum.df$Light), lwd=2)
+#legend("topright", c("C-colonies", "D-colonies"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.1, 0))
+# legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.355, 0))
+par(new=T)
+
+# D summer
+plot(symb..d15N~Light, data=D.sum.df, col='blue', ylim=c(0, 8), xlim=c(25, 0), cex=0.9, pch=21, bg="deepskyblue1",
+     #xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab=(expression(paste(delta^{15}, N[S], " (\u2030, Air)"))), cex.axis=0.8,
+     cex.lab=0.8, xaxt="n", xlab="")
+axis(side=1, labels=F)
+ablineclip((intercept+ coef(summary(mod))["DomD",1]), 
+           (coef(summary(mod))["Light",1]), col="deepskyblue1", x1 = min(D.sum.df$Light), x2 = max(D.sum.df$Light), lwd=2)
+
+# C winter
+plot(symb..d15N~Light, data=C.win.df, col='red3', ylim=c(0, 8), xlim=c(15, 0), yaxt="n", xaxt="n",
+     #main="Winter",
+     cex=0.9, pch=21, bg="salmon", ylab="", xlab ="", cex.main=0.7)
+ablineclip((intercept + coef(summary(mod))["Seasonwinter",1]), coef(summary(mod))["Light",1], col="salmon", x1 = min(C.win.df$Light), x2 = max(C.win.df$Light), lwd=2)
+par(new=T)
+
+# D winter
+plot(symb..d15N~Light, data=D.win.df, col='blue', ylim=c(0, 8), xlim=c(15, 0), cex=0.9, pch=21, bg="deepskyblue1",
+     #xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab="", cex.axis=0.8, cex.lab=0.8, xaxt="n", xlab="", yaxt="n")
+axis(side=1, labels=F)
+axis(side=2, labels=F)
+ablineclip((intercept+ coef(summary(mod))["Seasonwinter",1]+ coef(summary(mod))["DomD",1]+
+              coef(summary(mod))["Seasonwinter:DomD",1]),
+           (coef(summary(mod))["Light",1]), 
+           col="deepskyblue1", x1 = min(D.win.df$Light), x2 = max(D.win.df$Light), lwd=2)
+
+
+##################
+# Fig: d15N host.symb over season and depth
+##################        
+
+# model.data$d15N..host.sym
+mod<-lmer(d15N..host.sym~Season+Light+Dom+ Season:Dom +(1|Location), data=model.data, na.action=na.exclude)
+intercept<-coef(summary(mod))[1] # intercept
+fixed_params <- tidy_lmer(mod, effects = "fixed")[,c("term", "estimate")]; #fixed_params
+
+# C summer
+plot(d15N..host.sym~Light, data=C.sum.df, col='red3', ylim=c(-1,2), xlim=c(25, 0), yaxt="n", xaxt="n", cex=0.9,
+     #main="Summer",
+     pch=21, bg="salmon", ylab="", xlab ="", cex.main=0.7)
+ablineclip(intercept, coef(summary(mod))["Light",1], col="salmon", 
+           x1 = min(C.sum.df$Light), x2 = max(C.sum.df$Light), lwd=2)
+#legend("topright", c("C-colonies", "D-colonies"), lty=c(1,1), lwd=c(2,2), col=c("salmon", "deepskyblue1"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.1, 0))
+#legend("topright", c("", ""), pch=c(21,21), pt.bg=c("salmon", "deepskyblue1"), col=c("red3", "blue"), cex=0.8, y.intersp = 0.9, x.intersp = 0.4, bty="n", inset=c(0.355, 0))
+par(new=T)
+
+# D summer
+plot(d15N..host.sym~Light, data=D.sum.df, col='blue', ylim=c(-1,2), xlim=c(25, 0), cex=0.9, pch=21, bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab=(expression(paste(delta^{15}, N[H-S], " (\u2030, Air)"))), cex.axis=0.8,
+     cex.lab=0.8)
+ablineclip((intercept+ coef(summary(mod))["DomD",1]), 
+           coef(summary(mod))["Light",1], col="deepskyblue1", x1 = min(D.sum.df$Light), x2 = max(D.sum.df$Light), lwd=2)
+
+# C winter
+plot(d15N..host.sym~Light, data=C.win.df, col='red3', ylim=c(-1,2), xlim=c(15, 0), yaxt="n", xaxt="n",
+     #main="Winter",
+     cex=0.9, pch=21, bg="salmon", ylab="", xlab ="", cex.main=0.7)
+ablineclip((intercept + coef(summary(mod))["Seasonwinter",1]), coef(summary(mod))["Light",1], col="salmon", x1 = min(C.win.df$Light), x2 = max(C.win.df$Light), lwd=2)
+par(new=T)
+
+# D winter
+plot(d15N..host.sym~Light, data=D.win.df, col='blue', ylim=c(-1,2), xlim=c(15, 0), cex=0.9, pch=21, bg="deepskyblue1",
+     xlab=(expression(paste("DLI (mol photons", ~m^-2, ~d^-1,")", sep=""))), 
+     ylab="", cex.axis=0.8, cex.lab=0.8, yaxt="n")
+axis(side=2, labels=F)
+ablineclip((intercept+ coef(summary(mod))["Seasonwinter",1]+ coef(summary(mod))["DomD",1]+
+              coef(summary(mod))["Seasonwinter:DomD",1]),
+           coef(summary(mod))["Light",1], 
+           col="deepskyblue1", x1 = min(D.win.df$Light), x2 = max(D.win.df$Light), lwd=2)
+
+
+dev.copy(pdf, "figures/isotope/suppm.nitrogen.pdf", encod="MacRoman", width=4, height=5.5)
+dev.off()
+```
+  
+#### Figure S11  
+**Host and symbiont tissue C:N**  
+```{r isotopes host  CN, results="hide", fig.dim=c(7.5,3.5), fig.cap="**Figure S11.** *Biomass molar carbon:nitrogen (C:N) ratios in host and symbiont tissues as a function of symbiont community (C-colonies vs. D-colonies) and season (summer vs. winter).*"}
+
+##################
+# Fig: C.N host season and depth
+##################       
+par(mfrow=c(1,4), mar=c(4,5,4,1))
+plot(host..C.N~Dom, data=df.fig, ylab=(expression(paste("C:N"), sep="")), 
+     main="Host", ylim=c(5, 11))
+plot(symb..C.N~Dom, data=df.fig, ylab="", 
+     yaxt="n", main="Symbiont", ylim=c(5, 11));  axis(side=2, labels=F)
+plot(host..C.N~Season, data=df.fig, ylab="", 
+     yaxt="n", main="Host", ylim=c(5, 11));  axis(side=2, labels=F)
+plot(symb..C.N~Season, data=df.fig, ylab="", 
+     yaxt="n", main="Symbiont", ylim=c(5, 11)); axis(side=2, labels=F)
+
+dev.copy(pdf, "figures/isotope/suppm.CNboxplot.pdf", encod="MacRoman", width=7, height=4)
+dev.off()
+
+```
+  
+
+```{r d15N scatter with host and symbiont physiology, results="hide", fig.align='center', eval=FALSE}
+#Looking at d15N, but nothing here.
+
+### IN THE HOST ###
+##### C-colonies
+# ZOOX in the winter influence d15N
+# CHLCELL in summer influences d15N
+
+summary(lm(zoox~host..d15N, data=C.sum.df)) # NS
+summary(lm(zoox~host..d15N, data=C.win.df)) # NS
+
+summary(lm(chltot~host..d15N, data=C.sum.df)) # NS
+summary(lm(chltot~host..d15N, data=C.win.df)) # NS
+
+summary(lm(chlcell~host..d15N, data=C.sum.df)) # NS
+summary(lm(chlcell~host..d15N, data=C.win.df)) # NS
+
+
+#### D-colonies
+# ZOOX in winter influence d15N
+
+summary(lm(zoox~host..d15N, data=D.sum.df)) # NS
+summary(lm(zoox~host..d15N, data=D.win.df)) # NS
+
+summary(lm(chltot~host..d15N, data=D.sum.df)) # NS
+summary(lm(chltot~host..d15N, data=D.win.df)) # NS
+
+summary(lm(chlcell~host..d15N, data=D.sum.df)) # NS 
+summary(lm(chlcell~host..d15N, data=D.win.df)) # NS
+
+
+### IN THE SYMBIONT ###
+
+##### C-colonies
+# ZOOX in the winter influence d15N
+# CHLCELL in summer and winter influences d15N
+
+summary(lm(symb..d15N~zoox, data=C.sum.df)) # NS
+summary(lm(symb..d15N~zoox, data=C.win.df)) # NS
+
+summary(lm(symb..d15N~chltot, data=C.sum.df)) # NS
+summary(lm(symb..d15Nchltot, data=C.win.df)) # NS
+
+summary(lm(symb..d15N~chlcell, data=C.sum.df)) # signif p=0.028
+summary(lm(symb..d15N~chlcell, data=C.win.df)) # NS
+
+
+#### D-colonies
+# ZOOX in winter influence d15N
+summary(lm(symb..d15N~zoox, data=D.sum.df)) # NS
+summary(lm(symb..d15N, data=D.win.df)) # NS
+
+summary(lm(symb..d15N~chltot, data=D.sum.df)) # NS
+summary(lm(symb..d15N~chltot, data=D.win.df)) # NS
+
+summary(lm(symb..d15N~chlcell, data=D.sum.df)) # NS 
+summary(lm(symb..d15N~chlcell, data=D.win.df)) # NS
+
+
+##### IN HOST-SYMBIONT
+## zoox
+summary(lm(d15N..host.sym~zoox, data=C.sum.df)) # NS
+summary(lm(d15N..host.sym~zoox, data=C.win.df)) # NS
+summary(lm(d15N..host.sym~zoox, data=D.sum.df)) # NS
+summary(lm(d15N..host.sym~zoox, data=D.win.df)) # NS
+```
