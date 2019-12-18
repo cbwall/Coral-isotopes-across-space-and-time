@@ -37,10 +37,9 @@ Reef corals are mixotrophic organisms relying on symbiont-derived photoautotroph
      
 #### FIGURES  *houses exported figures*  
 **environmental** :  
-  - folder: **unused** are figures used in analysis but not published  
-     - pdfs:  
-      - daily light integral (DLI) and photosynthetically active radiation (PAR) at the 2m depth only (for comparison)  
-      - coefficent plots for DLI and PAR fitting  
+  - folder: **unused** are figures used in analysis but not published   
+   - pdfs for daily light integral (DLI) and photosynthetically active radiation (PAR) at the 2m depth only (for comparison)  
+   - pdf for coefficent plots for DLI and PAR fitting  
           
   - *all.nutrients.pdf* (DIN)  
   - *DLI.bar.pdf* (mean +/-SE bar plot)  
