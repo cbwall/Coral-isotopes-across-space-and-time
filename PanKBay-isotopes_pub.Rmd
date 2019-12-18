@@ -406,7 +406,7 @@ with(na.omit(data.frame(date=df.mean$Date, mean=rollmean(df.mean$HIMB.mean, k, f
 })
 legend("topright", lty=1, col=c(reefcols[1:4]), legend=c("NW","NE", "SW", "SE"), lwd=2, bty="n", cex=0.6, y.intersp = 1.5, x.intersp = 0.5)
 
-dev.copy(pdf, "figures/environmental/Temp.allsites",".pdf", height=3.5, width=6)
+dev.copy(pdf, "figures/environmental/Temp.allsites.pdf", height=3.5, width=6)
 dev.off()
 
 ```
@@ -3328,7 +3328,7 @@ Axis(side=1, at = seq(-2, 2, by = 1), cex.axis=0.6)
 Axis(side=2, labels=FALSE)
 ablineclip(lm(zoox~d13C..host.sym, data=D.win.df), col='deepskyblue1', x1 = min(D.win.df$d13C..host.sym), x2 = max(D.win.df$d13C..host.sym), lwd=2)
 
-dev.copy(pdf, "figures/regressions/zoox.by_HS.d13C.pdf", width=5, height=4, encod="MacRoman")
+dev.copy(pdf, "figures/regressions/symb.by_HS.d13C.pdf", width=5, height=3, encod="MacRoman")
 dev.off()
 
 ```
