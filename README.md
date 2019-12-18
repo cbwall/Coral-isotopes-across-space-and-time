@@ -37,8 +37,7 @@ Reef corals are mixotrophic organisms relying on symbiont-derived photoautotroph
   - *PanKBay_winter_qPCR*  
     - compiled qPCR data for winter samples (post pipeline [detailed in Rmd file])  
      
-#### FIGURES  
-*houses exported figures*  
+#### FIGURES ####  *houses exported figures*  
   
 **environmental** :  
   - folder: **unused** are figures used in analysis but not published  
