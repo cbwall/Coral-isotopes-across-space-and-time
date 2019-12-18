@@ -18,13 +18,14 @@ Reef corals are mixotrophic organisms relying on symbiont-derived photoautotroph
   
 #### DATA 
 *houses the following folders and files*  
- *coast_n83.shp* : shape files for making site maps  
- *environmental* :  
-     - folder 'sea level' for sea-level correction  
-     - folder 'temp and light' for raw data collected on the reef  
+ **coast_n83.shp** : shape files for making site maps  
+ **environmental** :  
+     - folder **sea level** for sea-level correction  
+     - folder **temp and light** for raw data collected on the reef  
      - 'PanKBay_nutrients.csv' for dissolved inorganic nutrients  
      - 'Reefs_lat_long.csv' for mapping sampling sites  
- *qPCR*
+     
+ **qPCR**
      - eds files (for StepOne Platform) and associated .txt files with qPCR plate reads  
  *isotopes_SW_all times.csv*  
      - seawater and plankton isotopes collected at the sample sites in each season  
@@ -37,11 +38,12 @@ Reef corals are mixotrophic organisms relying on symbiont-derived photoautotroph
      
 #### FIGURES  
 *houses exported figures*  
- *environmental* :  
-     - folder: *unused* are figures used in analysis but not published  
+ **environmental** :  
+     - folder: **unused** are figures used in analysis but not published  
          - pdfs:  
           - daily light integral (DLI) and photosynthetically active radiation (PAR) at the 2m depth only (for comparison)  
           - coefficent plots for DLI and PAR fitting  
+          
      - *all.nutrients.pdf* (DIN)  
      - *DLI.bar.pdf* (mean +/-SE bar plot)  
      - *DLIcalc.alldepths.pdf* (DLI at 3 depth zones)  
@@ -49,26 +51,26 @@ Reef corals are mixotrophic organisms relying on symbiont-derived photoautotroph
      - *KBaymap.pdf* (map and sites)  
      - *Temp.allsites.pdf* (temperature at 2m for each site)  
    
- *isotopes* :  
+ **isotopes** :  
      - *isotope_multipanel.pdf* (carbon isotope figures)  
      - *suppm.CNboxplot.pdf* (boxplots for C:N data, host and symbionts)  
      - *suppm.Cskel.pdf* (skeletal carbon and oxygen isotope figures)  
      - *suppm.nitrogen.pdf* (nitrogen isotope figures)  
     
- *models* :  
+ **models** :  
      - *variance.pdf* (model random effect [location] proportion of variance)  
     
- *multivariate* :  
+ **multivariate** :  
      - *PCx4.pdf* (PCA with 4 plots of differing categories)  
    
- *physiology* :   
+ **physiology** :   
      - *physio_multipanel.pdf* (multipanel of all physiology metrics)  
     
- *regressions* :  
+ **regressions** :  
      - *symb.isotope_by.symb.phys.pdf* (regression of symbiont physiology vs. symbiont carbon isotope values)  
      - *symb.by_HS.d13C.pdf* (regression of symbiont physiology vs. carbon host-symbiont isotopes values)  
     
-  *symbionts* :  
+  **symbionts** :  
      - *Light by Depth_symbs.pdf* (calculations for DLI at the coral surface)  
      - *Symb_Season_Light_logistic.pdf* (logistic regression histograms of symbiont distributions)  
      - *Symbionts_by_Season_depth.pdf* (probability of *Durusdinium* across depth)  
