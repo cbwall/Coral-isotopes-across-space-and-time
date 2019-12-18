@@ -76,12 +76,12 @@ Reef corals are mixotrophic organisms relying on symbiont-derived photoautotroph
 
 #### output 
 *houses exported outputs and compiled data*
-   *C_D sample size.csv* (sample size for C- and D-dominated corals)  
-   *data.all.csv* (all physiology, isotope, and symbiont community data)  
-   *kd.all.csv* (light attenuation coefficients for each site)  
-   *Light attenuation_table.csv* (light DLI mean +/-SE at <1m and attenuation relative to this at 2m and 8m-depth)  
-   *light coeffs_factor.csv* (coefficients of models for ligh-at-depth calculations)  
-   *season.DLI.csv* (DLI mean +/- SE at each site, in each season)  
+   - *C_D sample size.csv* (sample size for C- and D-dominated corals)  
+   - *data.all.csv* (all physiology, isotope, and symbiont community data)  
+   - *kd.all.csv* (light attenuation coefficients for each site)  
+   - *Light attenuation_table.csv* (light DLI mean +/-SE at <1m and attenuation relative to this at 2m and 8m-depth)  
+   - *light coeffs_factor.csv* (coefficients of models for ligh-at-depth calculations)  
+   - *season.DLI.csv* (DLI mean +/- SE at each site, in each season)  
    
    
    
