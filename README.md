@@ -31,14 +31,14 @@ Reef corals are mixotrophic organisms relying on symbiont-derived photoautotroph
         
    - folder **temp and light** for raw data collected on the reef  
    - *PanKBay_nutrients.csv* for dissolved inorganic nutrients  
-       *columns*
+       *columns*  
         *Date* = date of collection)  
         *Reef* = reef IDs, F=fringe, R=patch reef)  
         *Location* = northwest NW, northeast NE, central west CW, southeast SE, southwest SW)  
         *phosphate, silicate, N+N (nitrate+nitrite), ammonium* = all in μmol L-1  
       
    - *Reefs_lat_long.csv* for mapping sampling sites  
-      *columns* 
+      *columns*  
        *Site* = Reef ID as cardinal directions and Reef number  
        *latitude and longitude* = in decimal degrees  
      
