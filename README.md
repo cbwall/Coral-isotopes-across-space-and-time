@@ -22,6 +22,7 @@ Reef corals are mixotrophic organisms relying on symbiont-derived photoautotroph
  **coast_n83.shp** : shape files for making site maps  
  **environmental** :  
    - folder **sea level** for sea-level correction  
+    
        *columns*  
         *stationID* = Moku o Lo'e weather station   
         *datum* = mean sea level (MSL)  
@@ -31,6 +32,7 @@ Reef corals are mixotrophic organisms relying on symbiont-derived photoautotroph
         
    - folder **temp and light** for raw data collected on the reef  
    - *PanKBay_nutrients.csv* for dissolved inorganic nutrients  
+   
        *columns*  
         *Date* = date of collection)  
         *Reef* = reef IDs, F=fringe, R=patch reef)  
@@ -38,14 +40,17 @@ Reef corals are mixotrophic organisms relying on symbiont-derived photoautotroph
         *phosphate, silicate, N+N (nitrate+nitrite), ammonium* = all in μmol L-1  
       
    - *Reefs_lat_long.csv* for mapping sampling sites  
+   
       *columns*  
        *Site* = Reef ID as cardinal directions and Reef number  
        *latitude and longitude* = in decimal degrees  
      
  **qPCR**
   - eds files (for StepOne Platform) and associated .txt files with qPCR plate reads  
+  
   - *isotopes_SW_all times.csv*  
     seawater and plankton isotopes collected at the sample sites in each season  
+  
      *columns*  
       *Season* = summer or winter (northern hemisphere)  
       *Sampling.date* = date as "yyyymmdd"  
@@ -62,6 +67,7 @@ Reef corals are mixotrophic organisms relying on symbiont-derived photoautotroph
       
   - *mastersheet_PanKBAY.csv*   
     all response variables from physiology and isotope analyses (prior to calculation of C-D dominance)  
+    
       *columns*  
       *Date*  = date of collection as mm/dd/yy  
       *Season* = summer or winter (northern hemisphere)  
@@ -97,9 +103,11 @@ Reef corals are mixotrophic organisms relying on symbiont-derived photoautotroph
 
   - *PanKBay_summer_qPCR.csv*  
     compiled qPCR data for summer samples (post pipeline [detailed in Rmd file])  
+    
   - *PanKBay_winter_qPCR*  
     compiled qPCR data for winter samples (post pipeline [detailed in Rmd file])  
-      *columns* 
+    
+      *columns*  
       *Colony* = arbitrary ID  
       *Date* = mm/dd/yy  
       *Depth..m* = coral depth in meters  
