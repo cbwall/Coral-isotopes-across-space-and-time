@@ -75,25 +75,25 @@ Reef corals are mixotrophic organisms relying on symbiont-derived photoautotroph
       *total.blastate.ml* = total tissue extrat (blastate) in mL  
       *surface.area.cm2* = colony surface area in cm2  
       *cells.ml* = symbiont densities in cells per mL  
-      *ug.chl.a.ml* -- μg of chlorophyll a per ml blastate  
-      *ug.chl.c2.ml* -- μg of chlorophyll a per ml blastate  
-      *mg.biomass.ml* -- mg of host biomass per ml blastate  
-      *host..mass.mg* -- lyophilized host biomass for isotope analysis  
-      *host..ug.N* -- μg of nitrogen in host tissue  
-      *host..d15N* -- δ15N of host tissues in permil  
-      *host..ug.C* -- μg of carbon in host tissue  
-      *host..d13C* -- δ13C of host tissues in permil  
-      *host..C.N* -- molar ratio of carbon : nitrogen in symbiont tissues  
-      *symb..mass.mg* -- lyophilized symbiont biomass for isotope analysis  
-      *symb..ug.N* -- μg of nitrogen in symbiont tissue  
-      *symb..d15N* -- δ15N of symbiont tissues in permil  
-      *symb..ug.C* -- μg of carbon in host tissue  
-      *symb..d13C* -- δ13C of symbiont tissues in permil  
-      *symb..C.N* -- molar ratio of carbon : nitrogen in symbiont tissues  
-      *d15N..host.symb* -- difference in δ15N of host minus symbiont in permil  
-      *d13C..host.symb* -- difference in δ13C of host minus symbiont in permil  
-      *d13C..skel* -- δ13C of coral skeletal carbonates in permil  
-      *d18O.skel* -- δ18O of coral skeletal carbonates in permil  
+      *ug.chl.a.ml* = μg of chlorophyll a per ml blastate  
+      *ug.chl.c2.ml* = μg of chlorophyll a per ml blastate  
+      *mg.biomass.ml* = mg of host biomass per ml blastate  
+      *host..mass.mg* = lyophilized host biomass for isotope analysis  
+      *host..ug.N* = μg of nitrogen in host tissue  
+      *host..d15N* = δ15N of host tissues in permil  
+      *host..ug.C* = μg of carbon in host tissue  
+      *host..d13C* = δ13C of host tissues in permil  
+      *host..C.N* = molar ratio of carbon : nitrogen in symbiont tissues  
+      *symb..mass.mg* = lyophilized symbiont biomass for isotope analysis  
+      *symb..ug.N* = μg of nitrogen in symbiont tissue  
+      *symb..d15N* = δ15N of symbiont tissues in permil  
+      *symb..ug.C* = μg of carbon in host tissue  
+      *symb..d13C* = δ13C of symbiont tissues in permil  
+      *symb..C.N* = molar ratio of carbon : nitrogen in symbiont tissues  
+      *d15N..host.symb* = difference in δ15N of host minus symbiont in permil  
+      *d13C..host.symb* = difference in δ13C of host minus symbiont in permil  
+      *d13C..skel* = δ13C of coral skeletal carbonates in permil  
+      *d18O.skel* = δ18O of coral skeletal carbonates in permil  
 
   - *PanKBay_summer_qPCR.csv*  
     - compiled qPCR data for summer samples (post pipeline [detailed in Rmd file])  
