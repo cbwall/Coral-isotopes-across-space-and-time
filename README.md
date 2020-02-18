@@ -30,23 +30,23 @@ Reef corals are mixotrophic organisms relying on symbiont-derived photoautotroph
         (other columns NA)  
         
    - folder **temp and light** for raw data collected on the reef  
-   - *PanKBay_nutrients.csv* for dissolved inorganic nutrients
-       *columns* :
+   - *PanKBay_nutrients.csv* for dissolved inorganic nutrients  
+       *columns*
         *Date* = date of collection)  
         *Reef* = reef IDs, F=fringe, R=patch reef)  
         *Location* = northwest NW, northeast NE, central west CW, southeast SE, southwest SW)  
         *phosphate, silicate, N+N (nitrate+nitrite), ammonium* = all in μmol L-1  
       
    - *Reefs_lat_long.csv* for mapping sampling sites  
-      *columns* :  
+      *columns* 
        *Site* = Reef ID as cardinal directions and Reef number  
        *latitude and longitude* = in decimal degrees  
      
  **qPCR**
   - eds files (for StepOne Platform) and associated .txt files with qPCR plate reads  
   - *isotopes_SW_all times.csv*  
-    - seawater and plankton isotopes collected at the sample sites in each season  
-     *columns* :  
+    seawater and plankton isotopes collected at the sample sites in each season  
+     *columns*  
       *Season* = summer or winter (northern hemisphere)  
       *Sampling.date* = date as "yyyymmdd"  
       *Reef* = F for fringe reef, R for patch reef, and reef number  
@@ -61,8 +61,8 @@ Reef corals are mixotrophic organisms relying on symbiont-derived photoautotroph
       *d13C* = δ<sup>13</sup>C in permil  
       
   - *mastersheet_PanKBAY.csv*   
-    - all response variables from physiology and isotope analyses (prior to calculation of C-D dominance)  
-      *columns* :  
+    all response variables from physiology and isotope analyses (prior to calculation of C-D dominance)  
+      *columns*  
       *Date*  = date of collection as mm/dd/yy  
       *Season* = summer or winter (northern hemisphere)  
       *Reef* = F for fringe reef, R for patch reef, and reef number  
@@ -96,10 +96,10 @@ Reef corals are mixotrophic organisms relying on symbiont-derived photoautotroph
       *d18O.skel* = δ18O of coral skeletal carbonates in permil  
 
   - *PanKBay_summer_qPCR.csv*  
-    - compiled qPCR data for summer samples (post pipeline [detailed in Rmd file])  
+    compiled qPCR data for summer samples (post pipeline [detailed in Rmd file])  
   - *PanKBay_winter_qPCR*  
-    - compiled qPCR data for winter samples (post pipeline [detailed in Rmd file])  
-      *columns* :  
+    compiled qPCR data for winter samples (post pipeline [detailed in Rmd file])  
+      *columns* 
       *Colony* = arbitrary ID  
       *Date* = mm/dd/yy  
       *Depth..m* = coral depth in meters  
