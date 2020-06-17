@@ -72,9 +72,9 @@ Reef corals are mixotrophic organisms relying on symbiont-derived photoautotroph
       *Time.of.collection* = time for tidal correction  
       *Depth..m* = colony depth in meters  
       *Sample.ID* = arbitrary sample ID  
-      *total.blastate.ml* = total tissue extrat (blastate) in mL  
+      *total.blastate.ml* = total tissue extract (blastate) in ml  
       *surface.area.cm2* = colony surface area in cm2  
-      *cells.ml* = symbiont densities in cells per mL  
+      *cells.ml* = symbiont densities in cells per ml blastate  
       *ug.chl.a.ml* = μg of chlorophyll a per ml blastate  
       *ug.chl.c2.ml* = μg of chlorophyll a per ml blastate  
       *mg.biomass.ml* = mg of host biomass per ml blastate  
